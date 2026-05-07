@@ -1,0 +1,6 @@
+[submodule "linux"]
+	path = linux
+	url = https://github.com/jaewan/DutyFree-Linux.git
+[submodule "gem5"]
+	path = gem5
+	url = https://github.com/jaewan/DutyFree-Gem5.git
