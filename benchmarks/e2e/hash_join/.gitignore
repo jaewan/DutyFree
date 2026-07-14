@@ -1,0 +1,17 @@
+# Build outputs
+/build/
+
+# Generated benchmark logs
+/artifacts/logs/
+
+# Temporary resumability writes
+/artifacts/*.tmp
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Local editor and OS noise
+.DS_Store
+*.swp
+*.swo
