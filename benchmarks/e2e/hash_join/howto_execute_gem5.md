@@ -168,6 +168,10 @@ sudo mount -o loop,offset=1048576 x86-ubuntu-18.04-img-hashjoin /mnt
 sudo cp DutyFree/benchmarks/e2e/hash_join_gem5fs/build/cxl_join_bench.gem5fs /mnt/root/
 sudo umount /mnt
 
+# gem5 FS needs M5_PATH set to an existing dir (kernel/disk are absolute, so any
+# existing dir works). The scripts default it to $HOME/.cache/gem5; override if
+# your image lives elsewhere:  M5_PATH=/your/path scripts/fs_boot_checkpoint.sh 2
+
 ### 2.2 Boot + checkpoint
 
 Atomic boot + checkpoint; example is 2-cpu (change the core count as needed).
