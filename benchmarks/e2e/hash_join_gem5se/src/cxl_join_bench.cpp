@@ -197,6 +197,7 @@ void *alloc_bytes(uint64_t bytes, int node, bool huge2m, const char *name) {
   void *p = nullptr;
 #ifdef GEM5
   (void)name;
+  (void)huge2m;  /* SE has no hugetlbfs; pages are fixed 4KB */
   int flags = MAP_PRIVATE | MAP_ANONYMOUS;
   p = mmap(nullptr, bytes, PROT_READ | PROT_WRITE, flags, -1, 0);
   if (p == MAP_FAILED) p = nullptr;
@@ -233,6 +234,7 @@ void *alloc_bytes(uint64_t bytes, int node, bool huge2m, const char *name) {
 
 void free_bytes(void *p, uint64_t bytes, bool huge2m) {
 #ifdef GEM5
+  (void)huge2m;
   munmap(p, bytes);
 #else
   (void)huge2m;
@@ -515,6 +517,7 @@ static inline void policy_prefetch(const char *p, const std::string &policy) {
 }
 
 uint64_t stream_read(Fact *fact, size_t n, const std::string &policy, int pf_distance, int stream_count) {
+  (void)stream_count;  /* CLI-compat parameter; unused in the SSE2 builds */
 #ifdef __AVX2__
   const char *base = reinterpret_cast<const char *>(fact);
   size_t bytes = n * sizeof(Fact);

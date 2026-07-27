@@ -493,6 +493,7 @@ static inline void policy_prefetch(const char *p, const std::string &policy) {
 }
 
 uint64_t stream_read(Fact *fact, size_t n, const std::string &policy, int pf_distance, int stream_count) {
+  (void)stream_count;  /* CLI-compat parameter; unused in the SSE2 builds */
 #ifdef __AVX2__
   const char *base = reinterpret_cast<const char *>(fact);
   size_t bytes = n * sizeof(Fact);
