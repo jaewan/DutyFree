@@ -9,7 +9,6 @@ Workloads:
 
 SE mode runs W1-W4.
 FS mode runs W1-W3.
-FS W4 needs a Linux kernel change.
 Only the Intel EMR (8592) configuration is validated so far.
 
 ## 0. Build
@@ -212,7 +211,3 @@ scripts/fs_restore_chi_8592.sh atomic_2cpu_hashjoin fs_w3_2c w3_2c.rcS
 #   W1(original):    --mode stream-smoke --policy wb   (drop --hot-bytes/--morsel/--check)
 #   W1(line-stride): add --line-stride
 #   W2:              --mode probe-workload --policy wb
-
-### 2.4 FS W4 -- kernel change needed
-
-The STREAMING kernel gates MAP_STREAMING to device-DAX fds; FS W4 needs that gate to accept anonymous/mbind memory.
