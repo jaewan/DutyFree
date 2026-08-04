@@ -1,0 +1,66 @@
+diff --git a/configs/ruby/CHI_config_8592.py b/configs/ruby/CHI_config_8592.py
+index a4392182b4..f04e422019 100644
+--- a/configs/ruby/CHI_config_8592.py
++++ b/configs/ruby/CHI_config_8592.py
+@@ -354,6 +354,12 @@ class CHI_HNFController(Base_CHI_Cache_Controller):
+         self.dealloc_on_shared = False
+         self.dealloc_backinv_unique = False
+         self.dealloc_backinv_shared = False
++        # H3 / finite snoop filter (see H3_FINITE_SF_DESIGN.md).  Both default
++        # OFF so an unset environment reproduces today's behavior exactly.
++        #   HNF_SF_FINITE=1 -> model the HNF directory as a finite snoop filter
++        #   HNF_H3=1        -> STREAMING lines skip directory/SF enrollment
++        self.sf_finite = bool(int(os.environ.get("HNF_SF_FINITE", 0)))
++        self.enable_H3_streaming_bypass = bool(int(os.environ.get("HNF_H3", 0)))
+         # Some reasonable default TBE params (env HNF_MSHR, unset=32)
+         self.number_of_TBEs = int(os.environ.get("HNF_MSHR", 32))
+         self.number_of_repl_TBEs = 32
+diff --git a/src/mem/ruby/protocol/chi/CHI-cache.sm b/src/mem/ruby/protocol/chi/CHI-cache.sm
+index 1862452a17..e5b98a7516 100644
+--- a/src/mem/ruby/protocol/chi/CHI-cache.sm
++++ b/src/mem/ruby/protocol/chi/CHI-cache.sm
+@@ -134,6 +134,17 @@ machine(MachineType:Cache, "Cache coherency protocol") :
+   // H3: skip HNF directory tracking for STREAMING lines (coherence bypass).
+   // When enabled, HNF does not register STREAMING lines as sharers, preventing
+   // back-probes. Tradeoff: no DCT forwarding for multi-reader STREAMING.
++  // Inert unless the directory is finite (see sf_finite) -- skipping an
++  // allocation in a PerfectCacheMemory costs nothing.
++  // See H3_FINITE_SF_DESIGN.md, steps B1/B3.
++  bool enable_H3_streaming_bypass := "False";
++
++  // Model the HNF directory as a FINITE structure. Because this HNF is a
++  // non-inclusive victim cache (alloc_on_read* = False), read-shared lines are
++  // tracked only in `directory` -- the directory IS the snoop filter, so making
++  // it finite is what makes SF capacity pressure and back-invalidation visible.
++  // Default false => directory behaves exactly as today. See B2.
++  bool sf_finite := "False";
+ 
+   // Atomic Operation Policy
+   // All Near executes all Atomics at L1 (variable set to 0; default)
+diff --git a/src/sim/pseudo_inst.cc b/src/sim/pseudo_inst.cc
+index 073aef33f4..e97676a12d 100644
+--- a/src/sim/pseudo_inst.cc
++++ b/src/sim/pseudo_inst.cc
+@@ -55,6 +55,7 @@
+ #include "base/output.hh"
+ #include "cpu/base.hh"
+ #include "cpu/thread_context.hh"
++#include "arch/generic/mmu.hh"
+ #include "debug/Loader.hh"
+ #include "debug/Quiesce.hh"
+ #include "debug/WorkItems.hh"
+@@ -648,6 +649,14 @@ setstreaming(ThreadContext *tc, Addr addr, uint64_t size)
+             marked_pages++;
+         }
+     }
++    // TLB entries populated before this mark (e.g. by init/prefault writes)
++    // are stale and lack the Streaming flag; flush so re-translation observes it.
++    if (marked_pages) {
++        for (auto *thr : tc->getSystemPtr()->threads) {
++            if (thr && thr->getMMUPtr())
++                thr->getMMUPtr()->flushAll();
++        }
++    }
+     DPRINTF(PseudoInst,
+             "setstreaming: addr=%#x size=%#x -> %d/%d pages marked\n",
+             addr, size, marked_pages, total_pages);
