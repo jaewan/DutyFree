@@ -1,0 +1,16 @@
+# Experiment outputs / raw data — large, archived separately (see experiments/asplos/README.md).
+# Not versioned: 30MB+ and grows per run. Preserve via a tarball / GitHub Release, not the code repo.
+results/
+
+# Backups & patch/editor cruft
+*.orig
+*~
+.DS_Store
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Local build/scratch
+*.o
+*.a
