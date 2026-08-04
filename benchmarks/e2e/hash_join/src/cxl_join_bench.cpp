@@ -4,10 +4,12 @@
 #include <chrono>
 #include <climits>
 #include <cmath>
+#include <condition_variable>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <deque>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -78,6 +80,12 @@ struct Config {
   bool json = false;
   bool check = false;
   bool huge2m = false;
+  int scan_threads = 0;
+  int probe_threads = 0;
+  uint64_t queue_depth = 4;
+  bool result_hash = false;
+  bool scan_memcpy = false;
+  bool no_stream = false;
 };
 
 static inline uint64_t rdtsc() {
@@ -168,6 +176,16 @@ void pin_cpu(int cpu) {
   }
 #endif
 }
+
+#ifdef GEM5
+// H2: mark [addr,addr+size) STREAMING (M5OP_SET_STREAMING=0x55) so the CHI
+// HNF bypasses the LLC data array for these clean read-only lines.
+static inline void gem5_set_streaming(void *addr, long size) {
+    __asm__ volatile(".byte 0x0f, 0x04, 0x55, 0x00" : : "D"(addr), "S"(size));
+}
+#else
+static inline void gem5_set_streaming(void *, long) {}
+#endif
 
 void *alloc_bytes(uint64_t bytes, int node, bool huge2m, const char *name) {
   void *p = nullptr;
@@ -282,7 +300,8 @@ SmapsInfo smaps_info(void *p) {
   return info;
 }
 
-std::string cpu_mapping_json(const std::vector<int> &cpus, int n) {
+std::string cpu_mapping_json(const std::vector<int> &cpus, int n,
+                             const std::vector<std::string> &roles = {}) {
   std::ostringstream os;
   os << "[";
   for (int i = 0; i < n; ++i) {
@@ -295,6 +314,9 @@ std::string cpu_mapping_json(const std::vector<int> &cpus, int n) {
     f >> core;
     os << ",\"physical_core\":" << core;
 #endif
+    if (static_cast<size_t>(i) < roles.size()) {
+      os << ",\"role\":\"" << roles[i] << "\"";
+    }
     os << "}";
   }
   os << "]";
@@ -378,6 +400,58 @@ Result join_range(const std::vector<Entry> &table, const Fact *fact, size_t begi
       (void)payload;
       r.matches++;
       r.sum += fact[i].measure;
+    }
+  }
+  return r;
+}
+
+// Order-independent correctness diagnostic. Identical to join_range except it also
+// XORs a per-match hash of (key,payload) into *xhash, so fused and split runs over the
+// same seed can be compared without depending on morsel processing order. Never called
+// unless --result-hash is set; join_range itself is untouched.
+Result join_range_hashed(const std::vector<Entry> &table, const Fact *fact, size_t begin, size_t end,
+                         const std::string &policy, int pf_distance, uint64_t *xhash) {
+  Result r;
+  int pfd = std::max(0, pf_distance);
+  uint64_t h = 0;
+  for (size_t i = begin; i < end; ++i) {
+    if (policy == "nta" && i + static_cast<size_t>(pfd) < end) {
+      _mm_prefetch(reinterpret_cast<const char *>(&fact[i + pfd]), _MM_HINT_NTA);
+    }
+    int64_t payload = 0;
+    if (probe(table, fact[i].fk, &payload)) {
+      r.matches++;
+      r.sum += fact[i].measure;
+      h ^= hash64(static_cast<uint64_t>(fact[i].fk) * 0x9E3779B97F4A7C15ull ^ static_cast<uint64_t>(payload));
+    }
+  }
+  *xhash ^= h;
+  return r;
+}
+
+// Same-code-path quiescent diagnostic. Identical to join_range except it indexes a
+// small, cache-resident local buffer via wraparound (fact[i % local_n]) instead of
+// striding through the real (CXL) fact array. Used only by --no-stream, to isolate how
+// much of "quiescent vs loaded" reflects real interference versus a code-path
+// difference against run_hot_probe's separate loop. join_range itself is untouched.
+Result join_range_local(const std::vector<Entry> &table, const Fact *fact, size_t local_n,
+                        size_t begin, size_t end, const std::string &policy, int pf_distance) {
+  Result r;
+  int pfd = std::max(0, pf_distance);
+  // local_n is always a power of 2 by construction (run_morsel caps it at 65536), but
+  // it is a runtime value, so a compiler cannot strength-reduce `% local_n` to a shift
+  // the way it can for a literal. Mask explicitly to avoid paying a full integer
+  // division per tuple, which would swamp the very effect this diagnostic measures.
+  size_t mask = local_n - 1;
+  for (size_t i = begin; i < end; ++i) {
+    size_t li = i & mask;
+    if (policy == "nta" && i + static_cast<size_t>(pfd) < end) {
+      _mm_prefetch(reinterpret_cast<const char *>(&fact[(i + pfd) & mask]), _MM_HINT_NTA);
+    }
+    int64_t payload = 0;
+    if (probe(table, fact[li].fk, &payload)) {
+      r.matches++;
+      r.sum += fact[li].measure;
     }
   }
   return r;
@@ -615,7 +689,8 @@ std::string json_escape(const std::string &s) {
   return o;
 }
 
-void emit_json_prefix(const Config &c, void *fact, uint64_t fact_bytes, const std::vector<int> &cpus) {
+void emit_json_prefix(const Config &c, void *fact, uint64_t fact_bytes, const std::vector<int> &cpus,
+                      const std::vector<std::string> &roles = {}) {
   std::cout << "{";
   std::cout << "\"mode\":\"" << json_escape(c.mode) << "\",";
   std::cout << "\"policy\":\"" << json_escape(c.policy) << "\",";
@@ -631,7 +706,7 @@ void emit_json_prefix(const Config &c, void *fact, uint64_t fact_bytes, const st
   uintptr_t base = reinterpret_cast<uintptr_t>(fact);
   std::cout << "\"fact_base\":\"0x" << std::hex << base << "\",";
   std::cout << "\"fact_end\":\"0x" << (base + fact_bytes) << std::dec << "\",";
-  std::cout << "\"thread_mapping\":" << cpu_mapping_json(cpus, c.threads) << ",";
+  std::cout << "\"thread_mapping\":" << cpu_mapping_json(cpus, c.threads, roles) << ",";
 }
 
 void run_stream(Config c) {
@@ -646,6 +721,7 @@ void run_stream(Config c) {
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   auto pf0 = std::chrono::steady_clock::now();
   prefault_region(fact, c.fact_bytes);
+  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
   double prefault_sec = seconds_since(pf0);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
@@ -759,6 +835,7 @@ void run_single(Config c) {
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   prefault_region(fact, c.fact_bytes);
+  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
   if (!placed) {
@@ -830,6 +907,7 @@ void run_breakdown(Config c) {
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   prefault_region(fact, c.fact_bytes);
+  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
   if (!placed) {
@@ -883,6 +961,7 @@ void run_probe_workload(Config c) {
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   prefault_region(fact, c.fact_bytes);
+  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
   if (!placed) {
@@ -923,11 +1002,94 @@ void run_probe_workload(Config c) {
   free_bytes(fact, c.fact_bytes, c.huge2m);
 }
 
-void run_morsel(Config c) {
+// Bounded MPMC morsel queue for --mode split. N_s scan threads copy fact-array morsels
+// (the CXL read) into pre-allocated slots; N_p probe threads pop filled slots and run
+// the hash-table probe against a private, already-copied batch, so probe threads never
+// touch the CXL fact region directly. Locking is per-morsel (batch of --morsel tuples),
+// not per-tuple, so mutex overhead is negligible relative to the copy/probe work.
+class MorselQueue {
+ public:
+  MorselQueue(size_t depth, size_t morsel_elems) : slots_(depth) {
+    for (auto &s : slots_) s.data.resize(morsel_elems);
+    reset();
+  }
+
+  void reset() {
+    std::lock_guard<std::mutex> lk(mu_);
+    free_slots_.clear();
+    filled_slots_.clear();
+    for (size_t i = 0; i < slots_.size(); ++i) free_slots_.push_back(static_cast<int>(i));
+    scanners_remaining_ = 0;
+  }
+
+  void set_scanner_count(int n) {
+    std::lock_guard<std::mutex> lk(mu_);
+    scanners_remaining_ = n;
+  }
+
+  template <typename FillFn>
+  void produce(FillFn &&fill) {
+    std::unique_lock<std::mutex> lk(mu_);
+    free_cv_.wait(lk, [&] { return !free_slots_.empty(); });
+    int slot = free_slots_.back();
+    free_slots_.pop_back();
+    lk.unlock();
+    size_t count = fill(slots_[slot].data);
+    slots_[slot].count = count;
+    lk.lock();
+    filled_slots_.push_back(slot);
+    lk.unlock();
+    filled_cv_.notify_one();
+  }
+
+  void producer_done() {
+    std::lock_guard<std::mutex> lk(mu_);
+    if (--scanners_remaining_ == 0) filled_cv_.notify_all();
+  }
+
+  // Returns false once all scanners are done and no filled morsels remain.
+  template <typename ConsumeFn>
+  bool consume(ConsumeFn &&consume_fn) {
+    std::unique_lock<std::mutex> lk(mu_);
+    filled_cv_.wait(lk, [&] { return !filled_slots_.empty() || scanners_remaining_ == 0; });
+    if (filled_slots_.empty()) return false;
+    int slot = filled_slots_.front();
+    filled_slots_.pop_front();
+    lk.unlock();
+    consume_fn(slots_[slot].data, slots_[slot].count);
+    lk.lock();
+    free_slots_.push_back(slot);
+    lk.unlock();
+    free_cv_.notify_one();
+    return true;
+  }
+
+ private:
+  struct Slot {
+    std::vector<Fact> data;
+    size_t count = 0;
+  };
+  std::vector<Slot> slots_;
+  std::vector<int> free_slots_;
+  std::deque<int> filled_slots_;
+  std::mutex mu_;
+  std::condition_variable free_cv_;
+  std::condition_variable filled_cv_;
+  int scanners_remaining_ = 0;
+};
+
+void run_split(Config c) {
   if (c.policy == "cat") {
     std::cerr << "deferred: --policy cat needs resctrl control-group privilege\n";
     std::exit(20);
   }
+  int n_scan = c.scan_threads > 0 ? c.scan_threads : std::max(1, c.threads / 2);
+  int n_probe = c.probe_threads > 0 ? c.probe_threads : (c.threads - n_scan);
+  if (n_scan <= 0 || n_probe <= 0) {
+    std::cerr << "split mode requires --scan-threads>=1 and --probe-threads>=1\n";
+    std::exit(2);
+  }
+  c.threads = n_scan + n_probe;
   std::vector<int> cpus = parse_cpus(c.cpu_list);
   if (static_cast<int>(cpus.size()) < c.threads) {
     std::cerr << "not enough CPUs in --cpu-list\n";
@@ -941,8 +1103,187 @@ void run_morsel(Config c) {
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   prefault_region(fact, c.fact_bytes);
+  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
+  if (!placed) {
+    std::cerr << "FATAL: fact placement failed: " << placement << "\n";
+    std::exit(10);
+  }
+  for (int i = 0; i < c.warmups; ++i) warm_table(table);
+
+  size_t morsel_elems = static_cast<size_t>(c.morsel);
+  size_t qdepth = std::max<uint64_t>(2, c.queue_depth);
+  MorselQueue queue(qdepth, morsel_elems);
+  bool want_hash = c.result_hash;
+
+  std::atomic<size_t> next{0};
+  std::vector<Result> partial(n_probe);
+  std::vector<uint64_t> scan_cycles(n_scan, 0), scan_tuples(n_scan, 0);
+  // probe_compute_cycles times only the probe loop itself (matches the original
+  // metric). probe_wall_cycles wraps the entire consume() call, including any time
+  // spent blocked waiting for a filled queue slot -- this is the metric comparable to
+  // fused mode's active_cycles_per_access, since join_range never waits on anything
+  // internal and so is implicitly "wall" already. Reporting both avoids silently
+  // picking one and lets a reader see the wait-time component directly.
+  std::vector<uint64_t> probe_compute_cycles(n_probe, 0), probe_wall_cycles(n_probe, 0);
+  std::vector<uint64_t> probe_tuples(n_probe, 0);
+  std::vector<uint64_t> probe_xhash(n_probe, 0);
+
+  bool use_memcpy = c.scan_memcpy;
+  auto scan_worker = [&](int tid) {
+    pin_cpu(cpus[tid]);
+    while (true) {
+      size_t begin = next.fetch_add(morsel_elems);
+      if (begin >= n) break;
+      size_t end = std::min(n, begin + morsel_elems);
+      uint64_t c0 = rdtsc();
+      queue.produce([&](std::vector<Fact> &buf) -> size_t {
+        if (use_memcpy) {
+          std::memcpy(buf.data(), &fact[begin], (end - begin) * sizeof(Fact));
+        } else {
+          for (size_t i = begin; i < end; ++i) buf[i - begin] = fact[i];
+        }
+        return end - begin;
+      });
+      uint64_t c1 = rdtsc();
+      scan_cycles[tid] += c1 - c0;
+      scan_tuples[tid] += end - begin;
+    }
+    queue.producer_done();
+  };
+
+  auto probe_worker = [&](int pid) {
+    pin_cpu(cpus[n_scan + pid]);
+    while (true) {
+      uint64_t w0 = rdtsc();
+      bool got = queue.consume([&](std::vector<Fact> &buf, size_t count) {
+        uint64_t c0 = rdtsc();
+        Result rr;
+        uint64_t h = 0;
+        for (size_t i = 0; i < count; ++i) {
+          int64_t payload = 0;
+          if (probe(table, buf[i].fk, &payload)) {
+            rr.matches++;
+            rr.sum += buf[i].measure;
+            if (want_hash) {
+              h ^= hash64(static_cast<uint64_t>(buf[i].fk) * 0x9E3779B97F4A7C15ull ^ static_cast<uint64_t>(payload));
+            }
+          }
+        }
+        uint64_t c1 = rdtsc();
+        probe_compute_cycles[pid] += c1 - c0;
+        probe_tuples[pid] += count;
+        partial[pid].matches += rr.matches;
+        partial[pid].sum += rr.sum;
+        probe_xhash[pid] ^= h;
+      });
+      uint64_t w1 = rdtsc();
+      if (!got) break;
+      probe_wall_cycles[pid] += w1 - w0;
+    }
+  };
+
+  std::vector<double> samples;
+  samples.reserve(c.reps);
+  double total_sec = 0.0;
+  Result last_out;
+  uint64_t last_xhash = 0;
+  uint64_t all_scan_cycles = 0, all_scan_tuples = 0;
+  uint64_t all_probe_compute_cycles = 0, all_probe_wall_cycles = 0, all_probe_tuples = 0;
+  for (int rep = 0; rep < c.reps; ++rep) {
+    next.store(0);
+    queue.reset();
+    queue.set_scanner_count(n_scan);
+    std::fill(partial.begin(), partial.end(), Result{});
+    std::fill(scan_cycles.begin(), scan_cycles.end(), 0);
+    std::fill(scan_tuples.begin(), scan_tuples.end(), 0);
+    std::fill(probe_compute_cycles.begin(), probe_compute_cycles.end(), 0);
+    std::fill(probe_wall_cycles.begin(), probe_wall_cycles.end(), 0);
+    std::fill(probe_tuples.begin(), probe_tuples.end(), 0);
+    std::fill(probe_xhash.begin(), probe_xhash.end(), 0);
+    std::vector<std::thread> th;
+    auto t0 = std::chrono::steady_clock::now();
+    for (int t = 0; t < n_scan; ++t) th.emplace_back(scan_worker, t);
+    for (int t = 0; t < n_probe; ++t) th.emplace_back(probe_worker, t);
+    for (auto &x : th) x.join();
+    double sec = seconds_since(t0);
+    total_sec += sec;
+    samples.push_back(static_cast<double>(n) / sec / 1e6);
+    all_scan_cycles += std::accumulate(scan_cycles.begin(), scan_cycles.end(), uint64_t{0});
+    all_scan_tuples += std::accumulate(scan_tuples.begin(), scan_tuples.end(), uint64_t{0});
+    all_probe_compute_cycles += std::accumulate(probe_compute_cycles.begin(), probe_compute_cycles.end(), uint64_t{0});
+    all_probe_wall_cycles += std::accumulate(probe_wall_cycles.begin(), probe_wall_cycles.end(), uint64_t{0});
+    all_probe_tuples += std::accumulate(probe_tuples.begin(), probe_tuples.end(), uint64_t{0});
+    last_out = {};
+    last_xhash = 0;
+    for (auto &p : partial) { last_out.matches += p.matches; last_out.sum += p.sum; }
+    for (auto x : probe_xhash) last_xhash ^= x;
+  }
+
+  std::vector<std::string> roles(c.threads);
+  for (int i = 0; i < n_scan; ++i) roles[i] = "scan";
+  for (int i = 0; i < n_probe; ++i) roles[n_scan + i] = "probe";
+
+  emit_json_prefix(c, fact, c.fact_bytes, cpus, roles);
+  std::cout << "\"placement\":\"" << json_escape(placement) << "\",";
+  std::cout << "\"scan_threads\":" << n_scan << ",";
+  std::cout << "\"probe_threads\":" << n_probe << ",";
+  std::cout << "\"queue_depth\":" << qdepth << ",";
+  std::cout << "\"morsel_elems\":" << morsel_elems << ",";
+  std::cout << "\"scan_memcpy\":" << (use_memcpy ? "true" : "false") << ",";
+  emit_samples(samples);
+  std::cout << "\"seconds\":" << std::setprecision(9) << total_sec << ",";
+  std::cout << "\"join_mtuples_per_s\":" << (static_cast<double>(n) * c.reps / total_sec / 1e6) << ",";
+  std::cout << "\"stream_bandwidth_gbps\":" << (static_cast<double>(c.fact_bytes) * c.reps / total_sec / 1e9) << ",";
+  std::cout << "\"scan_cycles_per_access\":" << (all_scan_tuples ? static_cast<double>(all_scan_cycles) / all_scan_tuples : 0.0) << ",";
+  std::cout << "\"active_cycles_per_access\":" << (all_probe_tuples ? static_cast<double>(all_probe_wall_cycles) / all_probe_tuples : 0.0) << ",";
+  std::cout << "\"probe_compute_cycles_per_access\":" << (all_probe_tuples ? static_cast<double>(all_probe_compute_cycles) / all_probe_tuples : 0.0) << ",";
+  std::cout << "\"matches_last_rep\":" << last_out.matches << ",";
+  std::cout << "\"sum_last_rep\":" << last_out.sum << ",";
+  std::cout << "\"result_hash\":" << last_xhash << ",";
+  std::cout << "\"status\":\"ok\"}\n";
+  free_bytes(fact, c.fact_bytes, c.huge2m);
+}
+
+void run_morsel(Config c) {
+  if (c.policy == "cat") {
+    std::cerr << "deferred: --policy cat needs resctrl control-group privilege\n";
+    std::exit(20);
+  }
+  std::vector<int> cpus = parse_cpus(c.cpu_list);
+  if (static_cast<int>(cpus.size()) < c.threads) {
+    std::cerr << "not enough CPUs in --cpu-list\n";
+    std::exit(2);
+  }
+  size_t n = c.fact_bytes / sizeof(Fact);
+  c.fact_bytes = n * sizeof(Fact);
+  // --no-stream: same threading/counting structure and same code path (join_range_local
+  // is a copy of join_range) as the real fused path, but the "fact" data is a small
+  // buffer that stays resident in cache, so there is no real stream. Used only to check
+  // how much of the fused-vs-quiescent gap is a code-path difference against
+  // run_hot_probe's separate loop, versus real interference. join_range/run_morsel's
+  // normal path is otherwise untouched.
+  size_t local_n = n;
+  if (c.no_stream) {
+    // Must stay a power of 2 (join_range_local masks rather than divides); round
+    // down to the largest power of 2 not exceeding min(n, 65536).
+    size_t cap = std::min<size_t>(n, 65536);
+    size_t pow2 = 1;
+    while (pow2 * 2 <= cap) pow2 *= 2;
+    local_n = std::max<size_t>(1, pow2);
+  }
+  uint64_t phys_bytes = local_n * sizeof(Fact);
+  int alloc_node = c.no_stream ? c.hot_node : c.fact_node;
+  Fact *fact = static_cast<Fact *>(alloc_bytes(phys_bytes, alloc_node, c.huge2m, "fact"));
+  std::vector<Entry> table;
+  std::vector<int64_t> keys;
+  build_table(table, keys, c.hot_bytes, c.seed);
+  fill_fact(fact, local_n, keys, c.hit_rate, c.seed);
+  prefault_region(fact, phys_bytes);
+  if (c.policy == "stream") gem5_set_streaming(fact, (long)phys_bytes);
+  std::string placement;
+  bool placed = check_pages_on_node(fact, phys_bytes, alloc_node, &placement);
   if (!placed) {
     std::cerr << "FATAL: fact placement failed: " << placement << "\n";
     std::exit(10);
@@ -952,6 +1293,9 @@ void run_morsel(Config c) {
   std::vector<Result> partial(c.threads);
   std::vector<uint64_t> thread_cycles(c.threads, 0);
   std::vector<uint64_t> thread_tuples(c.threads, 0);
+  std::vector<uint64_t> thread_xhash(c.threads, 0);
+  bool want_hash = c.result_hash;
+  bool no_stream = c.no_stream;
   auto worker = [&](int tid) {
     pin_cpu(cpus[tid]);
     while (true) {
@@ -959,7 +1303,14 @@ void run_morsel(Config c) {
       if (begin >= n) break;
       size_t end = std::min(n, begin + static_cast<size_t>(c.morsel));
       uint64_t c0 = rdtsc();
-      Result rr = join_range(table, fact, begin, end, c.policy, c.pf_distance);
+      Result rr;
+      if (no_stream) {
+        rr = join_range_local(table, fact, local_n, begin, end, c.policy, c.pf_distance);
+      } else if (want_hash) {
+        rr = join_range_hashed(table, fact, begin, end, c.policy, c.pf_distance, &thread_xhash[tid]);
+      } else {
+        rr = join_range(table, fact, begin, end, c.policy, c.pf_distance);
+      }
       uint64_t c1 = rdtsc();
       thread_cycles[tid] += c1 - c0;
       thread_tuples[tid] += end - begin;
@@ -971,6 +1322,7 @@ void run_morsel(Config c) {
   samples.reserve(c.reps);
   double total_sec = 0.0;
   Result last_out;
+  uint64_t last_xhash = 0;
   uint64_t all_active_cycles = 0;
   uint64_t all_active_tuples = 0;
   for (int rep = 0; rep < c.reps; ++rep) {
@@ -978,6 +1330,7 @@ void run_morsel(Config c) {
     std::fill(partial.begin(), partial.end(), Result{});
     std::fill(thread_cycles.begin(), thread_cycles.end(), 0);
     std::fill(thread_tuples.begin(), thread_tuples.end(), 0);
+    std::fill(thread_xhash.begin(), thread_xhash.end(), 0);
     std::vector<std::thread> th;
     auto t0 = std::chrono::steady_clock::now();
     for (int t = 0; t < c.threads; ++t) th.emplace_back(worker, t);
@@ -988,19 +1341,24 @@ void run_morsel(Config c) {
     all_active_cycles += std::accumulate(thread_cycles.begin(), thread_cycles.end(), uint64_t{0});
     all_active_tuples += std::accumulate(thread_tuples.begin(), thread_tuples.end(), uint64_t{0});
     last_out = {};
+    last_xhash = 0;
     for (auto &p : partial) { last_out.matches += p.matches; last_out.sum += p.sum; }
+    for (auto x : thread_xhash) last_xhash ^= x;
   }
-  emit_json_prefix(c, fact, c.fact_bytes, cpus);
+  emit_json_prefix(c, fact, phys_bytes, cpus);
   std::cout << "\"placement\":\"" << json_escape(placement) << "\",";
+  std::cout << "\"no_stream\":" << (no_stream ? "true" : "false") << ",";
+  std::cout << "\"local_n\":" << local_n << ",";
   emit_samples(samples);
   std::cout << "\"seconds\":" << std::setprecision(9) << total_sec << ",";
   std::cout << "\"join_mtuples_per_s\":" << (static_cast<double>(n) * c.reps / total_sec / 1e6) << ",";
-  std::cout << "\"stream_bandwidth_gbps\":" << (static_cast<double>(c.fact_bytes) * c.reps / total_sec / 1e9) << ",";
+  std::cout << "\"stream_bandwidth_gbps\":" << (no_stream ? 0.0 : (static_cast<double>(c.fact_bytes) * c.reps / total_sec / 1e9)) << ",";
   std::cout << "\"active_cycles_per_access\":" << (all_active_tuples ? static_cast<double>(all_active_cycles) / all_active_tuples : 0.0) << ",";
   std::cout << "\"matches_last_rep\":" << last_out.matches << ",";
   std::cout << "\"sum_last_rep\":" << last_out.sum << ",";
+  std::cout << "\"result_hash\":" << last_xhash << ",";
   std::cout << "\"status\":\"ok\"}\n";
-  free_bytes(fact, c.fact_bytes, c.huge2m);
+  free_bytes(fact, phys_bytes, c.huge2m);
 }
 
 void run_hot_probe(Config c) {
@@ -1125,6 +1483,12 @@ Config parse(int argc, char **argv) {
     else if (a == "--json") c.json = true;
     else if (a == "--check") c.check = true;
     else if (a == "--huge2m") c.huge2m = true;
+    else if (a == "--scan-threads") c.scan_threads = std::stoi(need("--scan-threads"));
+    else if (a == "--probe-threads") c.probe_threads = std::stoi(need("--probe-threads"));
+    else if (a == "--queue-depth") c.queue_depth = std::stoull(need("--queue-depth"));
+    else if (a == "--result-hash") c.result_hash = true;
+    else if (a == "--scan-memcpy") c.scan_memcpy = true;
+    else if (a == "--no-stream") c.no_stream = true;
     else {
       std::cerr << "unknown argument: " << a << "\n";
       std::exit(2);
@@ -1151,6 +1515,7 @@ int main(int argc, char **argv) {
   else if (c.mode == "breakdown") run_breakdown(c);
   else if (c.mode == "probe-workload") run_probe_workload(c);
   else if (c.mode == "morsel") run_morsel(c);
+  else if (c.mode == "split") run_split(c);
   else if (c.mode == "hot-probe") run_hot_probe(c);
   else {
     std::cerr << "unknown mode: " << c.mode << "\n";
