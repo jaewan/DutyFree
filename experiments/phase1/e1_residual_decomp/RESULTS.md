@@ -92,6 +92,130 @@ exposed a header page; no download tooling was available in this sandbox to
 fetch the full PDF and check for un-mapped raw event codes). Both gaps are
 left open rather than papered over.
 
-## A4/A5/A6
+## A4: lookups-only (no CAT / with CAT 8/8)
 
-*(to be appended after the n=12 runs complete)*
+7 threads on cpus1-7 re-stream a SHARED 4 MiB buffer on local DRAM (fits
+comfortably in both the full 16-way/16 MiB CCX L3 and an 8-way/8 MiB CAT
+slice — see buffer-size note in the script; an 8 MiB buffer was tried first
+and rejected because it exactly filled the 8-way CAT slice with zero
+associativity slack, producing real ~8.4 GB/s fill traffic under CAT, not
+"lookups-only"). n=12, rep-interleaved with A0/A4_nocat/A4_cat/A5/A5_bwm.
+
+| arm | median tax | 95% CI | agg MBM bandwidth (median) | victim occupancy (mean bytes) |
+|---|---:|---:|---:|---:|
+| A4 no CAT | 1.248x | [1.236, 1.275] | 0.077 GB/s (0.3% of full WB rate) | 3,312,565 |
+| A4 + CAT 8/8 | 1.298x | [1.288, 1.335] | 0.845 GB/s (3.5% of full WB rate) | 3,363,915 |
+
+**A4 taxes the victim substantially** — both CIs sit entirely above 1.0, with
+tight bounds. Coherence lookups/enrollment from 7 threads re-hitting an
+already-L3-resident shared buffer, with negligible new memory traffic, are
+by themselves enough to slow the victim ~1.25-1.30x. Per the pre-registered
+verdict logic: **this fires the "A4 taxes substantially" branch — shared
+lookup/queue occupancy is real, and H3-lookup-skip (not just H2
+allocation-bypass) is the required contract behavior.**
+
+Caveat: 1.25-1.30x is a real but modest fraction of A2's 7.2x residual — A4
+confirms the *mechanism exists*, not that it alone explains the *magnitude*
+of the CAT residual. See A5/A6 below for the rest.
+
+## A5: fills+churn, no CXL (local DRAM), vs A1 at matched bandwidth
+
+7 threads on cpus1-7 stream a 64 MiB local-DRAM (node0) buffer via the
+existing aggressor's `wb_local` mode. Two variants: uncapped, and
+bandwidth-matched to A1's ~24 GB/s CXL rate via `-R 3450` (per-thread
+throttle).
+
+| arm | median tax | 95% CI | agg bandwidth (median, self/MBM) |
+|---|---:|---:|---:|
+| A5 local, uncapped | 16.881x | [16.656, 17.127] | 45.62 / 44.58 GB/s |
+| A5 local, BW-matched to A1 (~24 GB/s) | 5.600x | [5.551, 5.677] | 23.94 / 23.43 GB/s |
+| *(for reference)* A1 CXL, ~24 GB/s | 19.886x | [19.728, 20.163] | 24.13 / 23.84 GB/s |
+
+**At matched bandwidth (~24 GB/s), CXL fills tax the victim 19.89x vs local
+DRAM's 5.60x — a ~3.55x CXL-path-specific multiplier on top of whatever
+generic same-CCX allocating-fill tax local DRAM already imposes.** This
+isolates a real, substantial CXL-path-specific component (per the
+pre-registered "A1 vs A5 at matched BW isolates any CXL-path-specific
+component" logic) — most of A1's tax is not just "allocating fills at this
+rate," it is specifically about the CXL fill path.
+
+## A6: concurrency sweep {1,2,3,5,7}, WB CXL, no CAT
+
+| threads | median tax | 95% CI | agg BW (self/MBM, GB/s) | tax per GB/s | occupancy (mean bytes) |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 2.917x | [2.689, 3.157] | 12.42 / 12.46 | 0.234 | 1,462,772 |
+| 2 | 6.403x | [6.131, 6.725] | 20.24 / 20.22 | 0.317 | 537,675 |
+| 3 | 18.038x | [17.890, 18.422] | 20.64 / 20.60 | **0.876** | 187,417 |
+| 5 | 21.823x | [21.666, 22.281] | 23.90 / 23.78 | 0.918 | 181,623 |
+| 7 | 20.008x | [19.843, 20.423] | 24.13 / 23.84 | 0.839 | 172,831 |
+
+(Reference: at n=12 pass, paper's own 1T/2T/7T anchor points were 2.77x/6.5x/18.3x;
+this run's 1T=2.92x, 2T=6.40x, 7T=20.0x — same shape, all in family, slightly
+higher throughout, consistent with this being a different day/thermal state
+and n=12 vs the paper's smaller samples for those points, not a contradiction.)
+
+**Clear superlinear knee between t=2 and t=3**: bandwidth barely moves
+(20.24 -> 20.64 GB/s, +2%) while tax nearly triples (6.4x -> 18.0x, +182%) and
+tax-per-GB/s jumps from 0.32 to 0.88. This is exactly the corroborating
+signature the pre-registered verdict logic asked A6 to check for: the tax is
+not simply proportional to delivered bandwidth, consistent with a
+fixed-capacity shared queue/resource saturating around 3 concurrent streams
+on this CCX, not a smooth bandwidth-linear effect.
+
+**Anomaly, flagged rather than smoothed over**: tax *decreases* slightly
+from t=5 (21.82x) to t=7 (20.01x) even as bandwidth ticks up (23.90 -> 24.13
+GB/s); the 95% CIs at t=5 and t=7 do not overlap, so this is a real (if
+small) non-monotonicity, not just noise. Plausible causes not disambiguated
+here: self-contention among aggressor threads reducing effective pressure on
+the shared resource, or an OS/scheduling effect at 7 of 8 CCX cores occupied.
+Left as an open question for a follow-up pass rather than averaged away.
+
+## Overall E1 verdict
+
+**Primary mechanism: shared lookup/queue occupancy (P1 hypothesis b),
+corroborated three independent ways, not probe-filter/back-invalidation
+occupancy collapse (hypothesis a):**
+
+1. Under CAT (A2), victim LLC occupancy stays ~intact (92% of quiescent)
+   while L2 miss rate barely moves (+5.6pp) against a 7.2x tax — capacity is
+   not the story.
+2. A4 (near-zero memory traffic, pure L3 coherence lookups from 7 threads on
+   an already-resident shared buffer) taxes the victim substantially
+   (1.25-1.30x, CI excludes 1.0) — the lookup path alone is not free.
+3. A6 shows a superlinear knee in tax vs thread count that is not explained
+   by the near-flat bandwidth curve past 2 threads — consistent with a
+   fixed-capacity shared resource saturating, not a smooth bandwidth effect.
+
+**Gem5 team action: model port/queue contention on the shared lookup/miss
+path (H3-style type-licensed lookup/enrollment skip), not just H2's
+allocation-bypass.** H2 alone (per the paper's own Sec4 concession, restated
+in the panel-review `\jw` note) would not be expected to remove this residual;
+that expectation is now directly measurement-backed by A4.
+
+**Important second-order finding, not to be dropped in synthesis**: A4's
+1.25-1.30x tax is real but is only a modest fraction of A2's 7.2x residual.
+The A1-vs-A5 matched-bandwidth comparison shows a further ~3.55x
+CXL-path-specific multiplier that A4's idle-bandwidth lookup traffic does not
+capture. **The 7.2x CAT residual is very likely a composite of (a) baseline
+lookup/enrollment overhead (A4, mechanism confirmed, magnitude modest) and
+(b) additional CXL-fill-path-specific queueing/latency that only appears
+under real sustained memory traffic (A1 vs A5 gap, magnitude large).** A
+single gem5 mechanism (e.g. finite-SF-as-probe-filter alone) is unlikely to
+reproduce both components; the model likely needs both a lookup/enrollment
+cost on the miss path *and* something CXL-path-specific (elevated occupancy
+or latency on the home-side XI/fill queue when the source is the CXL
+controller specifically, not just "any remote fill").
+
+## What would need a follow-up pass
+
+- A4/A5/A6 all used the L2-hit/miss/IPC/cycles counters that `victim.c`
+  already opens (core-scoped, valid) plus resctrl occupancy/MBM (valid).
+  Given the uncore-PMU scoping gap documented above, no measurement in this
+  campaign directly instruments *which* AMD structure (probe filter queue,
+  home-node XI queue, DF crossbar) is saturating at the A6 knee — that would
+  need either uncore PMU events scoped more finely than this platform
+  exposes via `perf`, or a full AMD PPR read to find raw un-mapped event
+  codes (blocked in this sandbox, no PDF download tooling).
+- AMD per-core WC rate reconciliation (1T/7T, same-CCX vs spread-across-CCX)
+  is a separate E4 item, not yet run — tracked as an open item, not
+  fabricated here.
