@@ -80,13 +80,46 @@ a conclusion.
   limit) -- worth keeping in mind when interpreting any future flush-behind
   or SW-prefetch-distance sweep on this same device.
 
+## Follow-up link/device investigation (remote diagnosis, no BIOS access)
+
+Per user direction, investigated further before deciding how to proceed.
+Everything checkable over SSH without a reboot:
+
+1. **Topology**: `lspci -tv` shows `27:00.0` hanging directly off root bus 27
+   with **no intermediate switch/bridge** -- it is a genuine PCIe Root
+   Complex Integrated Endpoint, wired straight to the CPU's on-die CXL root
+   port. This rules out "a discrete switch/bridge downstream port is
+   capping the link to x8" -- there is no such intermediate device to blame.
+   The x8-vs-x16 gap is either the physical slot/riser wiring on this
+   motherboard (Intel `M50FCP2SBSTD`, BIOS `SE5C741.86B.01.02.0005.2512081849`)
+   or a link-training outcome on the direct CPU<->device link -- both are
+   BIOS/hardware-level questions this session cannot resolve without a
+   reboot into firmware setup or physical slot inspection.
+2. **Kernel-side CXL bandwidth-QoS bug found, but appears unrelated to raw
+   bandwidth**: `dmesg` shows a one-time (count=1) `WARN_ON` at boot
+   (`drivers/cxl/core/port.c:604`, `to_cxl_port`), triggered by
+   `cxl_acpi ACPI0017:00: not a cxl_port device` during
+   `cxl_region_shared_upstream_bandwidth_update`. `cxl list -R -v` confirms
+   the downstream effect: `decoder0.0` has `"qos_class": 0` and region0
+   carries `"qos_class_mismatch": true`. This is Linux's CXL memory-tiering
+   QoS-classification bookkeeping (used for promotion/demotion decisions,
+   not a hardware bandwidth throttle) -- it's a real kernel-driver defect
+   worth flagging (add to `PLATFORMS.md`), but there is no mechanism by
+   which a QoS-*classification* bug would physically halve link bandwidth,
+   so this is reported as a separate, probably-unrelated finding, not folded
+   into the bandwidth explanation.
+3. **No BIOS-level CXL/PCIe bifurcation setting is readable or changeable
+   from this SSH session.** This is the hard stop for remote diagnosis.
+
+**Conclusion of the investigation**: the x8-vs-x16 gap most likely traces to
+motherboard slot wiring or a link-training outcome that requires physical
+access or a BIOS-setup reboot to resolve -- neither of which is available in
+this session. Recommend flagging to whoever has physical/BIOS access to this
+host as a follow-up outside Phase 1's remote-session scope.
+
 ## Recommendation
 
 Do not run the full n=12 MSR sweep or proceed to E2b/E3 on the assumption
-that ~15.8 GB/s is the achievable ceiling here. Awaiting direction on
-whether to (a) proceed treating ~8.9 GB/s as this device's real ceiling and
-characterize relative effects only, (b) investigate the device/link
-question further first (e.g. checking BIOS CXL interleave/link settings,
-comparing against SPR's device), or (c) pause the bandwidth-absolute parts
-of E2/E3 entirely pending hardware investigation outside this campaign's
-scope.
+that ~15.8 GB/s is the achievable ceiling here. Given the investigation above
+hit a hard stop (BIOS/physical access required), this is left as an open
+item pending that access, rather than resolved in this pass.

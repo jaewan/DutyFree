@@ -39,6 +39,33 @@ only to describe currently-installed hardware for any new Phase 1 data.
   transfer across the swap without re-measurement (E2/E3 in this campaign
   re-measure on the currently-installed device).
 
+## EMR CXL link investigation (2026-08-06, follow-up to E2a REPRO_FAILURE)
+
+Single-core WB CXL bandwidth measures ~8.9 GB/s on this host now, vs the
+paper's claimed 15.8 GB/s (see `../e2_h1_speed/REPRO_FAILURE.md` for the full
+diagnosis — frequency/governor and software-MLP were ruled out; both a
+scalar and an AVX2-unrolled kernel agree on ~8-9 GB/s on CXL and ~14.2 GB/s
+on local DRAM using identical tooling). Two additional facts from a remote
+investigation (no BIOS/physical access available in this session):
+
+- `27:00.0` is a **Root Complex Integrated Endpoint with no intermediate
+  switch/bridge** (`lspci -tv`) — wired directly to the CPU's on-die CXL
+  root port. Rules out a discrete downstream port capping the negotiated
+  x8 width; the gap is either motherboard slot/riser wiring or a
+  link-training outcome, both BIOS/hardware-level questions.
+- `dmesg` shows a one-time boot `WARN_ON` (`drivers/cxl/core/port.c:604`,
+  `to_cxl_port`, triggered by `cxl_acpi ACPI0017:00: not a cxl_port device`)
+  during CXL bandwidth-QoS accounting, and `cxl list -R -v` confirms
+  `qos_class_mismatch: true` on region0 (`qos_class: 0`). This is a kernel
+  CXL memory-tiering QoS-classification bug, not a bandwidth throttle —
+  flagged here as a real defect but reported as probably unrelated to the
+  raw bandwidth gap (no plausible mechanism connects a QoS-classification
+  warning to physically halving link throughput).
+- **Hard stop**: resolving the x8-vs-x16 question needs a BIOS-setup reboot
+  or physical slot inspection, neither available remotely. Left open for
+  whoever has that access — motherboard is Intel `M50FCP2SBSTD`, BIOS
+  `SE5C741.86B.01.02.0005.2512081849`.
+
 ## Link details (from `lspci -vvv`, sudo)
 
 | Host | Device | Link capability | Link status | Notes |
