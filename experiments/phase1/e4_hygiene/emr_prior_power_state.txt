@@ -1,0 +1,3 @@
+prior_governor=powersave
+prior_no_turbo=0
+recorded_at=2026-08-06T02:31:33+09:00
