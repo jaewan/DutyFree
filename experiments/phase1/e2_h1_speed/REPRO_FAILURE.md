@@ -1,8 +1,33 @@
-# E2a REPRO_FAILURE — single-core WB CXL bandwidth far below paper's 15.8 GB/s
+# E2a REPRO_FAILURE — single-core WB CXL bandwidth far below expected, PLUS a correction
 
 Dated 2026-08-06. Per ground rule #7: stopping this experiment rather than
 proceeding to new arms (E2b flush-behind, E3 sweeps) on top of a baseline
 that doesn't match.
+
+**CORRECTION (2026-08-06, after further checking): the "~15.8 GB/s single-core
+WB" target this experiment was measured against is an AMD number, not an
+Intel one.** `Sec2_DirectoryTax.tex:43-53` is a single paragraph beginning
+"On AMD we hold the CXL byte stream fixed..." — the "single core reaches
+15.8 GB/s under WB but only 4.2 GB/s under WC" sentence two lines later is
+inside that same AMD paragraph, explaining why the AMD matched-bandwidth
+experiment needs 2 WB cores vs 5 WC cores to hit its ~20.9 GB/s target. The
+mission brief's P2 hypothesis text ("On Intel, single-core WB CXL bandwidth
+(~15.8 GB/s)...") appears to have mixed this up. **No Intel-specific
+single-core WB bandwidth figure was found anywhere in the paper** — the
+genuine Intel numbers are 8-thread *aggregate* figures (34 GB/s unpartitioned,
+32-33 GB/s under CAT, underlying the 2.03x/0.99x tax numbers), not
+single-core.
+
+**What this changes**: the measurement below (Intel single-core WB CXL ~8.9
+GB/s, capped regardless of prefetcher state or kernel choice) is still real
+and still worth flagging (see hardware investigation below), but it is not,
+strictly, a violated reproduction gate against a real paper number — there
+was no real Intel single-core target to violate. The genuine Intel repro
+gate (8-thread aggregate ~34 GB/s WB, 2.03x tax; CAT -> 0.99x at 32-33 GB/s)
+has **not yet been tested** in this pass and is a separate open item, not
+resolved by anything below. The AMD 15.8/4.2 GB/s single-core numbers now
+belong to E4 (CI-qualify unqualified paper numbers, on `broker`, unaffected
+by this Intel hardware question) rather than E2.
 
 ## What was measured
 
@@ -117,9 +142,29 @@ access or a BIOS-setup reboot to resolve -- neither of which is available in
 this session. Recommend flagging to whoever has physical/BIOS access to this
 host as a follow-up outside Phase 1's remote-session scope.
 
-## Recommendation
+## Recommendation (revised after the correction above)
 
-Do not run the full n=12 MSR sweep or proceed to E2b/E3 on the assumption
-that ~15.8 GB/s is the achievable ceiling here. Given the investigation above
-hit a hard stop (BIOS/physical access required), this is left as an open
-item pending that access, rather than resolved in this pass.
+1. **Genuinely blocked, needs BIOS/physical access**: resolving *why*
+   `27:00.0` negotiates x8 instead of its x16 capability. Flagged for
+   whoever has physical/BIOS access to this host (Intel `M50FCP2SBSTD`,
+   BIOS `SE5C741.86B.01.02.0005.2512081849`) — check CXL/PCIe bifurcation
+   settings for that slot in BIOS setup, and physically confirm the riser/
+   slot wiring, then re-run `mlp_probe.c` or `stream_wb --no-verify` on
+   node2 to see if single-core CXL bandwidth moves off ~8.9 GB/s.
+2. **NOT actually blocked** (per the correction above): the real Intel
+   reproduction gate — 8-thread aggregate WB bandwidth (~34 GB/s
+   unpartitioned) and the 2.03x/0.99x tax numbers in `tab:catmba` — has not
+   been tested in this pass and does not depend on resolving the x8/x16
+   question first. Whether 8 threads can still reach ~34 GB/s aggregate
+   despite an ~8.9 GB/s single-core cap is an open empirical question (link/
+   device aggregate throughput is not automatically bounded by a single
+   stream's core-side MLP limit) and should be tested directly rather than
+   assumed either way.
+3. The MSR prefetcher-bit sweep (E2a) and flush-behind streamer (E2b) *as
+   designed* were framed around the single-core ~15.8 GB/s figure that
+   turned out to be AMD's, not Intel's. They can still run and produce
+   useful relative data (bandwidth vs. prefetcher bits, bandwidth vs. flush
+   distance) on whatever this device's real single-core ceiling is — that
+   was always a defensible fallback (see the pre-correction discussion
+   above) and remains one, just no longer justified by a "matching the
+   paper" framing.

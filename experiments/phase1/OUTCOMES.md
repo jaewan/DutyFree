@@ -37,23 +37,56 @@ CXL-path-specific multiplier. This composite structure was not anticipated
 in the P1 statement as written and should inform how the gem5 team scopes
 the H3 model (see RESULTS.md).
 
-## P2 (E2, Intel bandwidth mechanism) — NOT YET TESTED
+## P2 (E2, Intel bandwidth mechanism) — BLOCKED, plus a correction to the pre-registered framing
 
 > "Single-core WB CXL bandwidth (~15.8 GB/s) does NOT depend on the LLC as a
 > prefetch staging buffer: bounding the stream's LLC footprint (flush-behind)
 > keeps bandwidth within ~15% of unbounded WB down to small footprints."
 
-E2 was not run in this pass. The EMR host's governor/turbo state was found
-mismatched to the paper's methodology (powersave/turbo-on vs required
-performance/turbo-off) and corrected mid-session with user confirmation
-(`e4_hygiene/emr_prior_power_state.txt` records the prior state for
-restoration). No timing-sensitive Intel measurement has been taken yet on
-the corrected power state.
+**Correction discovered while investigating the E2a result**: the "~15.8
+GB/s" figure in this pre-registered P2 statement is not an Intel number.
+`Sec2_DirectoryTax.tex:43-53` is one paragraph, opening "On AMD we hold the
+CXL byte stream fixed..." — the 15.8/4.2 GB/s single-core WB/WC figures sit
+inside that same AMD paragraph. No Intel-specific single-core WB bandwidth
+figure exists anywhere in the paper; the real Intel numbers are 8-thread
+*aggregate* (34 GB/s unpartitioned, 32-33 GB/s under CAT). This does not
+retroactively change what P2 is *asking* (whether bounding LLC footprint
+preserves bandwidth) — it only means E2a's baseline-matching framing was
+against the wrong platform's number. See `e2_h1_speed/REPRO_FAILURE.md` for
+the full correction.
 
-## P3 (E2, Intel silicon H2 emulation) — NOT YET TESTED
+**Separately, and still true regardless of the correction**: measured Intel
+single-core WB CXL bandwidth is ~8.9 GB/s, capped regardless of MSR 0x1A4
+prefetcher-bit state (6 configs cluster within ~3%) or kernel choice (scalar
+vs. AVX2-unrolled probe kernel agree), while both kernels reach ~14.2 GB/s on
+local DRAM. CPU frequency/governor and software MLP were ruled out as
+causes. Leading hypothesis: the CXL device swap (Micron->Montage, see
+`e4_hygiene/PLATFORMS.md`) plus a PCIe link negotiated at x8 instead of its
+x16 capability. Root-caused as far as remotely possible: the device is a
+Root Complex Integrated Endpoint with no intermediate switch to blame, and
+resolving the x8/x16 question needs BIOS-setup or physical access not
+available in this session. **Genuinely blocked** on that access.
+
+**Not actually blocked, and not yet tested**: whether the real Intel
+reproduction gate (8-thread aggregate ~34 GB/s, 2.03x/0.99x tax) holds on
+this hardware. That doesn't depend on the single-core question and should
+be tested directly in a follow-up rather than assumed to be broken.
+
+The EMR host's governor/turbo state was also found mismatched to the
+paper's methodology (powersave/turbo-on vs required performance/turbo-off)
+and corrected mid-session with user confirmation
+(`e4_hygiene/emr_prior_power_state.txt` records the prior state for
+restoration).
+
+## P3 (E2, Intel silicon H2 emulation) — NOT YET TESTED, not blocked by the above
 
 > "A flush-behind stream at near-full bandwidth returns the Intel co-run
 > victim to ~baseline (silicon emulation of H2)."
 
 Not run in this pass; depends on the flush-behind streamer (clflushopt at
-distance D), which has not been implemented yet. Tracked as follow-up work.
+distance D), which has not been implemented yet. Unlike P2's single-core
+framing, P3's reproduction gate ("reproduce 2.03x at D=off first") is a
+tax *ratio*, not an absolute bandwidth figure, so it is not automatically
+invalidated by the single-core bandwidth question above -- it should be
+tested directly in a follow-up. Tracked as open work, not attempted in this
+pass.
