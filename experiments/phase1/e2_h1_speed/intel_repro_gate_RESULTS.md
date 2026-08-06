@@ -45,4 +45,29 @@ here.
 
 ## Step 3 — CAT sweep
 
-*(appended once s3_cat_full / s3_cat_3ways / s3_cat_1way land)*
+| condition | slowdown | agg BW | paper | diff (tax / BW) |
+|---|---:|---:|---:|---|
+| s3_cat_full (unpartitioned) | 1.928x | 30.61 GB/s | 2.03x @ 34 GB/s | -5.0% / -10.0% |
+| s3_cat_3ways (aggr 3 disjoint ways) | 0.993x | 34.22 GB/s | 0.99x @ 32 GB/s | +0.3% / +7.0% |
+| s3_cat_1way (aggr 1 disjoint way) | 0.993x | 31.34 GB/s | 0.99x @ 33 GB/s | +0.3% / -5.0% |
+
+**All three PASS, comfortably within the 15% gate.** The CAT-recovers-
+baseline mechanism reproduces essentially exactly (0.993x vs paper's 0.99x,
+both CAT configs) -- the same clean tax-ratio reproduction pattern as
+`s2_cxl8_baseline`/`s2_quiescent` above, and consistent with the AMD side of
+this campaign (E1/E4): **tax ratios reproduce tightly across both platforms;
+absolute single-core bandwidth is the only figure that runs consistently
+low.**
+
+## Step 4/5 — MBA sweep and negative controls
+
+*(running; will append once complete)*
+
+## Verdict
+
+**The genuine Intel reproduction gate PASSES across all of Step 2 and
+Step 3** (baseline tax, CAT-recovers-baseline, both CAT way-counts). This
+means E2b (flush-behind streamer) and E3 (calibration sweeps) can proceed on
+this hardware with confidence in the underlying tax-ratio measurements --
+the x8/x16 CXL-link question (still open, needs BIOS access) affects
+single-core absolute bandwidth, not the tax ratios this gate depends on.
