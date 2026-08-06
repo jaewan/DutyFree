@@ -37,7 +37,7 @@ CXL-path-specific multiplier. This composite structure was not anticipated
 in the P1 statement as written and should inform how the gem5 team scopes
 the H3 model (see RESULTS.md).
 
-## P2 (E2, Intel bandwidth mechanism) — BLOCKED, plus a correction to the pre-registered framing
+## P2 (E2, Intel bandwidth mechanism) — CONFIRMED at small D, plus a correction to the pre-registered framing
 
 > "Single-core WB CXL bandwidth (~15.8 GB/s) does NOT depend on the LLC as a
 > prefetch staging buffer: bounding the stream's LLC footprint (flush-behind)
@@ -67,10 +67,21 @@ Root Complex Integrated Endpoint with no intermediate switch to blame, and
 resolving the x8/x16 question needs BIOS-setup or physical access not
 available in this session. **Genuinely blocked** on that access.
 
-**Not actually blocked, and not yet tested**: whether the real Intel
-reproduction gate (8-thread aggregate ~34 GB/s, 2.03x/0.99x tax) holds on
-this hardware. That doesn't depend on the single-core question and should
-be tested directly in a follow-up rather than assumed to be broken.
+**Follow-up completed later this session**: the real Intel reproduction gate
+(8-thread aggregate ~34 GB/s WB, 2.03x/0.99x tax family) was run via the
+existing `cat_mba_driver.sh` (n=30/condition) and **PASSES across all 11
+conditions** -- baseline tax 1.946x (paper 2.03x), CAT sweep 0.993x for both
+way-counts (paper 0.99x), full MBA rate-throttle curve (4 points, all within
+gate), both negative controls. See `e2_h1_speed/intel_repro_gate_RESULTS.md`.
+This confirmed the hypothesis above: the single-core bandwidth gap did NOT
+propagate to the aggregate/tax-ratio numbers.
+
+With the gate passed, **P2 itself was tested directly** (E2b,
+`stream_wb_flushbehind.c` + `run_e2b_flushbehind.py`, n=12): at D<=2 MiB,
+aggregate bandwidth is within 1.3% of the D=off (unbounded) rate — P2
+CONFIRMED, with a lot of margin versus the pre-registered "~15%" threshold.
+A genuine non-monotonic wrinkle showed up at 16-64 MiB (bandwidth dips
+before recovering at D=off) — see `e2_h1_speed/e2b_RESULTS.md`.
 
 The EMR host's governor/turbo state was also found mismatched to the
 paper's methodology (powersave/turbo-on vs required performance/turbo-off)
@@ -78,15 +89,20 @@ and corrected mid-session with user confirmation
 (`e4_hygiene/emr_prior_power_state.txt` records the prior state for
 restoration).
 
-## P3 (E2, Intel silicon H2 emulation) — NOT YET TESTED, not blocked by the above
+## P3 (E2, Intel silicon H2 emulation) — CONFIRMED, with a real confound flagged
 
 > "A flush-behind stream at near-full bandwidth returns the Intel co-run
 > victim to ~baseline (silicon emulation of H2)."
 
-Not run in this pass; depends on the flush-behind streamer (clflushopt at
-distance D), which has not been implemented yet. Unlike P2's single-core
-framing, P3's reproduction gate ("reproduce 2.03x at D=off first") is a
-tax *ratio*, not an absolute bandwidth figure, so it is not automatically
-invalidated by the single-core bandwidth question above -- it should be
-tested directly in a follow-up. Tracked as open work, not attempted in this
-pass.
+Tested directly (E2b, n=12): at D<=2 MiB, victim tax is 0.90x
+[0.898,0.905] -- not just "recovered to baseline," measurably *faster*,
+CI excluding 1.0 entirely. **Investigated rather than taken at face value**:
+`turbostat` confirms uncore frequency scales from 1500 MHz (quiescent) to
+2400 MHz when the 8-thread aggressor is active (core P-states stayed
+pinned at 1.9 GHz throughout) -- quiescent and co-run are not
+apples-to-apples baselines here, so the exact 0.90x figure is confounded by
+an uncore-frequency effect distinct from H2. The confound flatters the
+result (argues the same direction as the hypothesis), so P3's qualitative
+conclusion stands, but the precise magnitude should not be quoted as "10%
+faster because of H2." See `e2_h1_speed/e2b_RESULTS.md` for the full
+writeup and what a cleaner re-measurement would need.

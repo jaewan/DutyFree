@@ -34,23 +34,54 @@ specific to the CXL fill path (elevated occupancy/latency on the home-side
 XI/fill queue when the source is the CXL controller, not just "any remote
 fill"). See `e1_residual_decomp/RESULTS.md` for the full evidence chain.
 
-**E2 (Intel bandwidth mechanism, P2/P3) — BLOCKED, plus a correction.** The
-"~15.8 GB/s single-core WB" figure P2 was pre-registered against turned out
-to be **AMD's** number, not Intel's (`Sec2_DirectoryTax.tex:43-53` is one
-paragraph opening "On AMD..."; no Intel-specific single-core WB figure
-exists in the paper). Genuinely useful finding underneath the
-misattribution: Intel single-core WB CXL bandwidth here measures ~8.9 GB/s,
-capped regardless of MSR 0x1A4 prefetcher-bit state or kernel choice
-(scalar vs. AVX2-unrolled agree), while both reach ~14.2 GB/s on local DRAM
-with the same tools — frequency/governor and software MLP both ruled out.
-Root-caused as far as remotely possible: the CXL device (Montage M88MX5891,
-swapped in after the paper's Micron-6400-era data) is a Root Complex
-Integrated Endpoint with no intermediate switch, negotiating PCIe x8 instead
-of its x16 capability — resolving *why* needs BIOS-setup or physical access
-not available in this session (`e2_h1_speed/NEEDS_BIOS_ACCESS.md`).
-**Not actually blocked, and not yet tested**: the real Intel repro gate
-(8-thread aggregate ~34 GB/s WB, 2.03x/0.99x tax numbers) does not depend on
-the single-core question and should be tested directly in a follow-up.
+**E2 (Intel bandwidth mechanism, P2/P3) — RESOLVED, both confirmed, plus a
+correction and a real caveat.** The "~15.8 GB/s single-core WB" figure P2
+was pre-registered against turned out to be **AMD's** number, not Intel's
+(`Sec2_DirectoryTax.tex:43-53` is one paragraph opening "On AMD..."; no
+Intel-specific single-core WB figure exists in the paper). Underneath that
+misattribution, a real, still-open hardware question: Intel single-core WB
+CXL bandwidth measures ~8.9 GB/s, capped regardless of MSR 0x1A4
+prefetcher-bit state or kernel choice, vs ~14.2 GB/s on local DRAM with the
+same tools. Root-caused as far as remotely possible: the CXL device
+(Montage M88MX5891, swapped in after the paper's Micron-6400-era data) is a
+Root Complex Integrated Endpoint with no intermediate switch, negotiating
+PCIe x8 instead of its x16 capability — resolving *why* needs BIOS-setup or
+physical access not available in this session
+(`e2_h1_speed/NEEDS_BIOS_ACCESS.md`, still open).
+
+**But that single-core question turned out not to gate anything**: the
+genuine Intel reproduction gate (8-thread aggregate bandwidth and the
+2.03x/0.99x tax family in `tab:catmba`) was run in full via the existing
+`cat_mba_driver.sh` and **PASSES across all 11 conditions** — baseline tax
+(1.946x vs 2.03x), CAT sweep (0.993x vs 0.99x, both way-counts), MBA sweep
+(4 points, all within the gate, reproducing the whole rate-throttle curve
+including the paper's "never reaches baseline" claim), and both negative
+controls. Tax ratios ran a consistent ~4-8% below the paper throughout —
+the same pattern as AMD (E1/E4): mechanism reproduces tightly, some
+absolute figures drift (`e2_h1_speed/intel_repro_gate_RESULTS.md`).
+
+With that gate passed, **E2b (flush-behind) and E3 (calibration) were both
+completed**: P3 (flush-behind at near-full bandwidth returns victim to
+~baseline) is confirmed — at D<=2 MiB, tax=0.90x [0.898,0.905], though a
+real uncore-frequency confound (1500->2400 MHz when the aggressor is active)
+means the exact "faster than quiescent" magnitude isn't purely attributable
+to H2; the qualitative conclusion stands regardless. P2 (bandwidth survives
+bounding the footprint) is confirmed at small D (within 1.3% of unbounded)
+but with a genuine non-monotonic wrinkle — bandwidth dips at 16-64 MiB
+before recovering at D=off, from self-contention among the 8 streams' own
+larger resident footprints, a second-order effect that doesn't bind at H2's
+intended small-D operating point (`e2_h1_speed/e2b_RESULTS.md`).
+
+E3's `calibration_targets.csv` (n=12, 48 config rows) delivers a clean,
+textbook-quality prefetch-hint calibration target: T0 and NTA dip below the
+no-prefetch baseline at small SW-prefetch distances (insufficient lead time
+to hide latency) but then **diverge sharply** — T0 keeps improving with
+distance, NTA collapses (consistent with NTA's low-priority/first-evict
+semantics: a far-ahead NTA prefetch can be evicted before the demand load
+needs it). gem5's prefetch model should not treat T0/NTA as the same curve
+with different endpoints. The idle-latency CXL/local ratio (1.95x) closely
+matches the paper's own gem5 config table (2.07x) even though absolute
+latencies differ (`e3_calibration/RESULTS.md`).
 
 ## Anomalies (flagged, not smoothed over)
 
@@ -101,13 +132,36 @@ the single-core question and should be tested directly in a follow-up.
    start**, contradicting the paper's stated methodology. Fixed with user
    confirmation; prior state saved (`e4_hygiene/emr_prior_power_state.txt`)
    for restoration.
+9. **Uncore frequency scales with socket utilization independent of core
+   P-states** (1500 MHz quiescent -> 2400 MHz with an 8-thread aggressor
+   active, confirmed via `turbostat`, core frequency pinned at 1.9 GHz
+   throughout via `performance`/turbo-off). This means any co-run-vs-
+   quiescent comparison on this platform has a built-in confound unless
+   corrected for — found while investigating why E2b's flush-behind arms
+   measured *faster than quiescent*, not fabricated after the fact.
+10. **Flush-behind bandwidth-vs-D is non-monotonic**: high at small D
+    (32-256 KiB), dips at 16-64 MiB, recovers at D=off. Real (n=12, tight
+    CIs), attributed to a combination of per-flush instruction overhead
+    (present at any D>0, roughly D-independent) and self-contention among
+    the 8 aggressor threads' own larger resident footprints at large D —
+    not disambiguated further between those two contributions.
+11. **SW-prefetch bandwidth dips below the no-prefetch baseline at very
+    small distances** (d=1-8 lines) for both T0 and NTA hints, before T0
+    recovers and NTA collapses at large distances. The small-distance dip
+    is consistent with insufficient lead time to hide round-trip latency —
+    the prefetch adds issue overhead without buying real latency-hiding at
+    that range.
 
 ## What's done vs. open
 
-Done, committed, n>=12 throughout: E1 (A0-A6, full mechanism verdict), E4
-(PLATFORMS.md, AMD WC/WB reconciliation, matched-bandwidth pair). Open,
-blocked, or deferred: E2b (flush-behind streamer, not built), E3
-(calibration_targets.csv, not built) — both pending either BIOS access
-(the x8/x16 question) or a decision to proceed on relative characterization
-of the hardware in hand; SPR per-core WC reconciliation was not attempted
-(E4 scoped this campaign's AMD/EMR work as higher-value given time).
+Done, committed, n>=12 throughout: E1 (A0-A6, full mechanism verdict), E2
+(full 11-condition repro gate, flush-behind P2/P3, calibration_targets.csv),
+E4 (PLATFORMS.md, AMD WC/WB reconciliation, matched-bandwidth pair). Open:
+the EMR CXL link's x8-vs-x16 question (needs BIOS/physical access, tracked
+in `e2_h1_speed/NEEDS_BIOS_ACCESS.md`); the systematic AMD/Intel absolute-
+bandwidth gap (anomaly 1) isn't explained; SPR per-core WC reconciliation
+was not attempted (this campaign scoped AMD/EMR work as higher-value given
+time). EMR governor/turbo and hugepage reservations remain in the
+"frozen for measurement" state set this session — `e4_hygiene/
+emr_prior_power_state.txt` has what to restore when Phase 1 fully closes
+out.
