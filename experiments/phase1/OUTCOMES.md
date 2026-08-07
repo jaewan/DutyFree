@@ -91,6 +91,16 @@ restoration).
 
 ## P3 (E2, Intel silicon H2 emulation) — CONFIRMED, with a real confound flagged
 
+> **CORRECTION (2026-08-07, `e2_h1_speed/PHASE2_E2B_WARMUP_CORRECTION.md`):**
+> the uncore-frequency confound named just below was directly tested
+> (Phase 2.3, uncore pinned) and ruled out — tax was unchanged at ~0.905x
+> either way. The real confound, identified later, was a systematic
+> cold-vs-warm asymmetry in how quiescent vs. loaded arms were measured.
+> Corrected small-D tax at n=12, matched protocol: ~0.99x [95% CI
+> 0.9913-0.9937] — recovers to baseline within noise, not measurably
+> faster. P3's qualitative conclusion (flush-behind returns the victim to
+> ~baseline) still stands, now on firmer footing.
+
 > "A flush-behind stream at near-full bandwidth returns the Intel co-run
 > victim to ~baseline (silicon emulation of H2)."
 

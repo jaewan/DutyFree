@@ -1,0 +1,15 @@
+  rep 1/12: trial0(discarded)=86.92  trial1(used)=81.54
+  rep 2/12: trial0(discarded)=81.69  trial1(used)=81.64
+  rep 3/12: trial0(discarded)=81.62  trial1(used)=81.66
+  rep 4/12: trial0(discarded)=81.57  trial1(used)=81.59
+  rep 5/12: trial0(discarded)=81.69  trial1(used)=81.62
+  rep 6/12: trial0(discarded)=81.62  trial1(used)=81.58
+  rep 7/12: trial0(discarded)=81.62  trial1(used)=81.59
+  rep 8/12: trial0(discarded)=81.74  trial1(used)=81.69
+  rep 9/12: trial0(discarded)=81.73  trial1(used)=81.64
+  rep 10/12: trial0(discarded)=81.75  trial1(used)=81.66
+  rep 11/12: trial0(discarded)=82.11  trial1(used)=81.57
+  rep 12/12: trial0(discarded)=82.06  trial1(used)=81.56
+
+median (corrected quiescent, trial 1 of 4): 81.605
+raw: ['81.54', '81.56', '81.57', '81.58', '81.59', '81.59', '81.62', '81.64', '81.64', '81.66', '81.66', '81.69']

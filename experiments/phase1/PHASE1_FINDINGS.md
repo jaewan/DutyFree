@@ -1,5 +1,9 @@
 # PHASE 1 FINDINGS — hardware-profiling campaign, 2026-08-06
 
+> **CORRECTION (2026-08-07, `e2_h1_speed/PHASE2_E2B_WARMUP_CORRECTION.md`):**
+> E2b's small-D "faster than baseline" recovery figure (~0.90-0.905x) is
+> retracted as a quiescent-baseline measurement artifact. Corrected: ~0.99x.
+
 One page, per the mission brief. Full detail and raw data throughout
 `experiments/phase1/`. Pre-registered predictions and outcomes in
 `HYPOTHESES.md` / `OUTCOMES.md`. **See `PHASE2_FINDINGS.md` and

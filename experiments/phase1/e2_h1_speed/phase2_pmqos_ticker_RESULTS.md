@@ -1,5 +1,17 @@
 # Phase 2.3 follow-up — PM-QoS and keep-awake-ticker tests: RESULTS
 
+> **CORRECTION (2026-08-07, `PHASE2_E2B_WARMUP_CORRECTION.md`):** the
+> "Verdict" below — that these results are "very likely not the
+> explanation" for E2b's tax ratio and that "E2b's original numbers stand
+> as measured" — is **retracted**. Direct inspection of retained per-rep
+> data showed E2b's quiescent arm was 100% slow-mode across every retained
+> run, a total confound rather than the rare outlier this file's Test 2
+> assumed a median would already absorb. The mechanism is refined further
+> in the correction file (memory-subsystem bandwidth threshold, not simple
+> idle-outlier suppression), and the corrected small-D tax is ~0.99x, not
+> the original ~0.90-0.905x. Test 1's ticker/PM-QoS outlier-suppression
+> finding itself stands as a separate, real, minor phenomenon.
+
 Dated 2026-08-07. Direct follow-up to the panel's proposed tests for E2b's
 bimodal quiescent baseline (uncore frequency already ruled out; C6-disable
 on cpu0 already tested and didn't fix it).
