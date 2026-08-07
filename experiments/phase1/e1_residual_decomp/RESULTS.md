@@ -52,10 +52,19 @@ precursor file (`~/tmp_dutyfree_exp/H3_GATE_RESULT.md`, n=3, dated Jul 30)
 ballpark as the paper's numbers but not the same run. Per user direction,
 this n=12 run is the new gate.
 
+> **CORRECTION (2026-08-08, `PHASE2_AMD_WARMUP_CHECK.md`)**: the A2
+> WB+CAT figure below (7.225x) is provenance-superseded. A fresh rerun of
+> this exact, unmodified script on 2026-08-08 reproduces **9.87x**, not
+> 7.225x — a real, reproducible, isolated-to-CAT drift, verified all the
+> way to the raw hardware QoS mask MSRs (enforcement is correct; the
+> physical cause of the drift is not identified). Per explicit decision,
+> **9.87x is now the campaign's standard number** for this arm. A1 (WB)
+> and A3 (WC) are unaffected (both redrift <3.5%, within normal noise).
+
 | arm | median tax | 95% CI (paired bootstrap) | paper's number | diff | gate (<=15%) |
 |---|---:|---:|---:|---:|---|
 | A1 WB (CXL, no CAT) | 19.886x | [19.728, 20.163] | 19.85x | +0.2% | **PASS** |
-| A2 WB + CAT 8/8 | 7.225x | [6.886, 7.518] | 6.92x | +4.4% | **PASS** |
+| A2 WB + CAT 8/8 | ~~7.225x~~ **9.87x (2026-08-08)** | [6.886, 7.518] (orig.) | 6.92x | +4.4% (orig.) | **PASS** (orig.; see correction) |
 | A3 WC (CXL, no CAT) | 0.989x | [0.980, 0.999] | 1.02x | -3.0% | **PASS** |
 
 Aggressor bandwidth (median, self-report / independent MBM):

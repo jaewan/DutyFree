@@ -144,6 +144,18 @@ enforcement.
 - **Not resctrl capability drift.** `cbm_mask=ffff`, `num_closids=16`,
   group `mode=shareable` all read as expected, matching a normal 16-way
   CAT-capable configuration.
+- **Not a hardware CAT enforcement failure — verified at the MSR level,
+  bypassing resctrl's sysfs abstraction entirely.** `check_cat_msr.py`
+  reads `IA32_PQR_ASSOC` (0xC8F) directly via `/dev/cpu/N/msr` for cpu0
+  and cpu1 during a live run, then reads the actual programmed
+  `IA32_L3_QOS_MASK_n` (0xC90+n) for whatever CLOSID each core is
+  assigned. Result: **cpu0 → CLOSID 1 → mask 0xff00 (top 8 ways); cpu1/2/7
+  → CLOSID 2 → mask 0x00ff (bottom 8 ways)** — an exact, disjoint,
+  correctly-programmed 8-way split, matching the intended schemata
+  precisely. The hardware is doing exactly what it was told. Whatever is
+  causing the increased interference, it is not a CAT configuration or
+  enforcement bug at any level checked (sysfs schemata, domain mapping,
+  or now the raw QoS mask MSRs themselves).
 
 **One timing-consistent but mechanistically-unconfirmed candidate found**:
 `dpkg.log` shows `linux-tools-common` upgraded (6.8.0-136.136 →
@@ -160,11 +172,25 @@ obvious mechanism for changing real hardware CAT-partition enforcement
 behavior. The timing match is suspicious enough to record, but this is
 flagged as **correlation, not a confirmed cause**.
 
-**Bottom line: real, isolated to CAT, several plausible mechanisms ruled
-out by direct testing, true cause not identified.** Verifying the actual
-QoS mask MSRs at the CLOSID level (bypassing resctrl's sysfs abstraction
-entirely) would be the next step, but that's beyond what's practical to
-pursue further here. Diagnostic script kept: `check_cat_live.py`.
+**Bottom line: real, isolated to CAT, every configuration/enforcement
+mechanism checked — including the raw hardware QoS mask MSRs — comes back
+correct. The true cause is not identified**, and is not a resctrl,
+schemata, domain-mapping, or CAT-programming problem at any layer from
+sysfs down to the actual MSRs the CPU executes against. Whatever changed,
+it changed something about how the memory/cache subsystem *behaves* under
+a correctly-enforced partition, not whether the partition itself is
+correctly enforced. Diagnostic scripts kept: `check_cat_live.py`,
+`check_cat_msr.py`.
+
+**Decision (2026-08-08, explicit user call, not inferred)**: standardize
+on **9.87x** — the current, reproducible measurement — for paper tables
+and as gem5's CAT validation target going forward. 7.23x is now
+provenance-superseded, same convention as the earlier EMR device-swap
+issue: not deleted, but no longer the number in active use. Phase 2.5
+(gem5) remains on hold specifically because "resolved" was read as
+*root-caused*, not merely *numerically decided* — picking 9.87x unblocks
+which number gem5 targets, but the campaign has not explained *why* the
+number changed, and that explanation was the actual gate for proceeding.
 
 ## Provenance
 
@@ -182,26 +208,23 @@ reboots).
 
 ## What still needs doing
 
-- **[INVESTIGATED, NOT RESOLVED]** `wb_cat` drift: confirmed real (9.87-9.92x
-  now vs 7.23x originally), isolated to the CAT-partitioned arm
-  specifically (wb/wc drift only 1.7-3.3%), several mechanisms ruled out
-  by direct testing (schemata write/readback, domain mapping, resctrl
-  capability info), true physical cause not identified. A `linux-tools-common`
-  package upgrade ~4 hours after the original data collection is a
-  timing-consistent but mechanistically-unconfirmed candidate.
-- **Next step if pursued further**: read the actual QoS mask MSRs for the
-  assigned CLOSIDs directly (bypass resctrl's sysfs abstraction) to verify
-  hardware-level enforcement, or open a case with AMD/kernel resctrl
-  maintainers referencing the exact kernel version (`7.0.0-28-generic`)
-  and the `linux-tools-common` version delta.
-- **Do not fold `wb_cat`/CAT numbers into the paper's convergent-floor
-  table until this is resolved** — a real 37% swing in one input, with an
-  unidentified cause, shouldn't be silently averaged with the original
-  number or silently replaced with the new one. The 6-7x floor's
-  *qualitative* conclusion is safe either way (7.23x and 9.87x both land
-  in the same "large, CAT-doesn't-fully-recover" bucket relative to WB's
-  ~20x and WC's ~1.0x), but the *specific number* quoted needs a decision,
-  not an assumption.
+- **[NUMBER DECIDED, MECHANISM STILL OPEN]** `wb_cat` drift: confirmed
+  real (9.87-9.92x now vs 7.23x originally), isolated to the
+  CAT-partitioned arm specifically (wb/wc drift only 1.7-3.3%), and
+  verified all the way down to the raw QoS mask MSRs — hardware
+  enforcement is correct at every layer checked. **9.87x is now the
+  campaign's standard number** (explicit decision, 2026-08-08); the
+  physical cause of the change from 7.23x remains unexplained.
+- **Next step if the mechanism is pursued further**: this is now beyond
+  what sysfs- or MSR-level checks from the OS side can resolve — would
+  need either AMD-specific microarchitectural counters not currently in
+  this campaign's perf event set, or an AMD/kernel resctrl maintainer
+  consultation referencing the exact kernel version (`7.0.0-28-generic`)
+  and the `linux-tools-common` version delta as the one identified,
+  timing-consistent (but mechanistically unconnected) candidate change.
+- **gem5 (Phase 2.5) stays on hold** until this mechanism is understood,
+  per explicit instruction — not blocked on having *a* number (9.87x is
+  now settled), blocked on not knowing *why* it changed.
 - Add a governor/boost/hugepage freeze-state check to the start of every
   AMD session, not just after known reboot events — this is the second
   time state has been found drifted without an intervening reboot being

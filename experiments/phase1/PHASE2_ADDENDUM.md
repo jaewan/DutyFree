@@ -32,10 +32,20 @@ Four numbers, all measured this campaign, n>=12 or cross-validated:
 
 | Mechanism | Tax | Source |
 |---|---:|---|
-| CAT, 8/8 way split | 7.23x [6.89,7.52] | E1 A2 |
+| CAT, 8/8 way split | ~~7.23x [6.89,7.52]~~ **9.87x (2026-08-08, see `e1_residual_decomp/PHASE2_AMD_WARMUP_CHECK.md`)** | E1 A2 |
 | Flush-behind, best D (256 KiB) | 5.94x [5.82,5.99] | Phase 2.4 |
 | Concurrency cap (2T, 98% of 3T's bandwidth) | 6.40x [6.13,6.73] | A6 / Phase 2.2 |
 | WC (path-exempt by memory type) | 0.99x [0.98,1.00] | E1 A0-A3 gate |
+
+> **CORRECTION (2026-08-08)**: CAT's number was revised from 7.23x to
+> 9.87x — a real, reproducible, isolated-to-CAT session drift confirmed
+> down to the raw hardware QoS mask MSRs (enforcement verified correct;
+> physical cause of the drift unidentified). This *widens* the spread
+> among the three convergent mechanisms (5.94-9.87x instead of
+> 5.94-7.23x) but does not change the qualitative claim: all three still
+> land in the same "large, roughly-one-order-of-magnitude" bucket, sharply
+> distinct from WC's ~1.0x. gem5 (Phase 2.5) is on hold specifically
+> pending an explanation for this drift, not merely a number to target.
 
 Three orthogonal, deployable-class mechanisms (capacity partitioning,
 residency bounding, concurrency reduction) converge on a ~6-7x floor; only
