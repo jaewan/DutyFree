@@ -1,8 +1,10 @@
 # PHASE 1 FINDINGS — hardware-profiling campaign, 2026-08-06
 
-> **CORRECTION (2026-08-07, `e2_h1_speed/PHASE2_E2B_WARMUP_CORRECTION.md`):**
-> E2b's small-D "faster than baseline" recovery figure (~0.90-0.905x) is
-> retracted as a quiescent-baseline measurement artifact. Corrected: ~0.99x.
+> **CORRECTION (2026-08-07/08, `e2_h1_speed/PHASE2_E2B_WARMUP_CORRECTION.md`):**
+> E2b's full D-sweep was measured under a systematic cold-quiescent/
+> warm-loaded asymmetry. Corrected (n=12): small-D ~0.90x → ~0.99x;
+> D=16MiB sign-flips 0.951x → 1.018x; D=64MiB 1.335x → 1.213x; D=off
+> ~unchanged (2.307x → 2.341x).
 
 One page, per the mission brief. Full detail and raw data throughout
 `experiments/phase1/`. Pre-registered predictions and outcomes in

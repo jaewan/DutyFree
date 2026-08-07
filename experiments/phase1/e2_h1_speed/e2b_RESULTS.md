@@ -1,12 +1,16 @@
 # E2b — flush-behind streamer vs co-run victim tax: RESULTS
 
-> **CORRECTION (2026-08-07, `PHASE2_E2B_WARMUP_CORRECTION.md`):** the
-> small-D tax figures below (~0.90-0.905x) are retracted as a
-> quiescent-baseline measurement artifact — the quiescent arm was
-> systematically measured cold while loaded arms were systematically
-> measured warm. Corrected small-D tax (matched discard-cold-trial
-> protocol, n=12): **~0.99x** [95% CI 0.9913-0.9937]. Large-D taxes
-> (16MiB/64MiB/off) are unaffected and stand as reported.
+> **CORRECTION (2026-08-07/08, `PHASE2_E2B_WARMUP_CORRECTION.md`):** the
+> entire D-sweep below was measured with a systematic cold-quiescent /
+> warm-loaded asymmetry (single fresh-process trial vs. concurrent heavy
+> aggressor). Full re-run under a matched discard-cold-trial protocol,
+> n=12: small-D tax (32KiB/256KiB/2MiB) corrects from ~0.90x to **~0.99x**;
+> **D=16MiB flips sign**, from 0.951x (below baseline) to **1.018x** (a
+> small real tax above baseline, CI excludes 1.0 either way but in
+> opposite directions); D=64MiB corrects from 1.335x to **1.213x** (the
+> loaded-arm reading itself was also partly contaminated, not just
+> quiescent); D=off is essentially unchanged (2.307x → 2.341x). See the
+> correction file for the full table and mechanism.
 
 Dated 2026-08-06. Pre-registered: P2 (bandwidth survives bounding LLC
 footprint) and P3 (flush-behind at near-full bandwidth returns victim to

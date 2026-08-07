@@ -1,10 +1,13 @@
 # PHASE 2 FINDINGS — panel-directed follow-up, 2026-08-07
 
-> **CORRECTION (2026-08-07, `e2_h1_speed/PHASE2_E2B_WARMUP_CORRECTION.md`):**
-> wherever this file cites E2b's small-D "faster than baseline" tax
-> (~0.90-0.905x) as a recovery-arm data point, that figure is retracted as
-> a quiescent-baseline measurement artifact. Corrected: ~0.99x [95% CI
-> 0.9913-0.9937]. Large-D taxes are unaffected.
+> **CORRECTION (2026-08-07/08, `e2_h1_speed/PHASE2_E2B_WARMUP_CORRECTION.md`):**
+> wherever this file cites E2b's D-sweep taxes, they were measured under a
+> systematic cold-quiescent/warm-loaded asymmetry. Corrected (matched
+> protocol, n=12): small-D (32KiB/256KiB/2MiB) ~0.90x → **~0.99x**; D=16MiB
+> **sign-flips** 0.951x → **1.018x** (small real tax, not sub-baseline);
+> D=64MiB 1.335x → **1.213x**; D=off ~unchanged (2.307x → 2.341x). The
+> "large-D unaffected" claim in an earlier version of this banner was
+> itself wrong for D=16MiB/64MiB — see the correction file.
 
 Addendum to `PHASE1_FINDINGS.md`. Written in response to a technical panel
 review of the Phase 1 report, which issued two corrections to its own prior

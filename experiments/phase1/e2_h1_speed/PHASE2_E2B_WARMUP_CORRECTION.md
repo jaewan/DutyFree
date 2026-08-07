@@ -92,19 +92,81 @@ The corrected small-D tax is **~0.99x** — a small, real, and now
 tightly-bounded residual (CI excludes 1.0), but two orders of magnitude
 smaller than the retracted number and consistent with "recovers to baseline
 within noise" in the sense the panel used that phrase, not with any genuine
-"faster than quiescent" physical effect. D=16MiB/64MiB/off taxes (which are
-large, ~6-7x, and were never plausibly explainable by a ~10% baseline
-artifact) are **not** affected by this correction and stand as previously
-reported.
+"faster than quiescent" physical effect.
+
+**The claim originally made here — that D=16MiB/64MiB/off taxes "are not
+affected by this correction" — is itself retracted below.** That was an
+untested extrapolation ("their magnitude already swamps a ~1% baseline
+correction"), and the full sweep re-run shows it was wrong for two of the
+three points. See the next section.
+
+## Full D-sweep re-run under the matched protocol, n=12
+
+`run_e2b_full_sweep_warmup.py`: every arm (quiescent + all 6 D points)
+measured with the identical `--trials 2 --run-sec 4`, discard-trial-0,
+report-trial-1 protocol, rep-interleaved, same victim/aggressor placement
+and bandwidth/occupancy sampling as `run_e2b_flushbehind.py`. Raw data:
+`e2b_full_sweep_warmup_n12.jsonl`.
+
+| config | median (cyc/load) | tax | 95% CI | agg BW (GB/s) | occupancy (MiB) |
+|---|---:|---:|---:|---:|---:|
+| quiescent | 81.66 | 1.000 | — | — | — |
+| d_32kb | 80.97 | 0.9915 | [0.9901, 0.9928] | 23.55 | 6.16 |
+| d_256kb | 80.95 | 0.9913 | [0.9901, 0.9921] | 23.55 | 9.88 |
+| d_2mb | 80.88 | 0.9905 | [0.9894, 0.9910] | 22.48 | 23.68 |
+| d_16mb | 83.12 | 1.0178 | [1.0167, 1.0190] | 16.38 | 53.89 |
+| d_64mb | 99.06 | 1.2130 | [1.1982, 1.2363] | 14.83 | 114.34 |
+| d_off | 191.18 | 2.3410 | [2.3056, 2.3623] | 23.85 | 233.98 |
+
+Against the originally reported (confounded-baseline) taxes:
+
+| config | original tax | corrected tax | Δ | CIs overlap? |
+|---|---:|---:|---:|---|
+| d_32kb / d_256kb / d_2mb | 0.902 | ~0.991 | +0.089 | no |
+| d_16mb | 0.951 | 1.0178 | +0.067 | **no — sign flip** |
+| d_64mb | 1.335 | 1.2130 | −0.122 | no |
+| d_off | 2.307 | 2.3410 | +0.034 | yes (barely) |
+
+**Two new, real findings, not just a re-confirmation of the small-D fix:**
+
+1. **D=16MiB flips sign.** Originally reported as *below* quiescent
+   (0.951x, "recovering better than baseline"); corrected, it is a small
+   but statistically real tax *above* baseline (1.018x, CI tightly
+   excludes 1.0). The original number wasn't just imprecise, it pointed
+   the wrong way.
+2. **D=64MiB's tax shrinks by ~9% relative (1.335x → 1.213x), a materially
+   larger correction than quiescent's own ~9% shift alone would produce
+   by simple division.** Working the arithmetic backward: the original
+   d_64mb raw value must have been ~120.4 cyc/load; the corrected value is
+   99.06 — an ~18% drop in the *loaded-arm* reading itself, not just the
+   baseline. So the loaded-arm measurement was *also* contaminated by a
+   cold-start artifact at this D, not only quiescent.
+
+**Mechanistic explanation for why loaded arms weren't uniformly immune**:
+per the bandwidth-threshold hypothesis above, what keeps the victim's
+single trial "warm" is *ambient memory bandwidth*, which at small D and at
+`d_off` is high (22.5-23.9 GB/s — plenty). At D=16MiB/64MiB, the aggressor's
+own bandwidth is markedly lower (16.4 / 14.8 GB/s — this is the same
+already-documented non-monotonic dip from clflushopt+sfence overhead
+competing with the aggressor's own memory traffic at large D). Lower
+ambient bandwidth from the aggressor leaves the victim's own single-trial
+measurement more exposed to the same cold-start contamination diagnosed
+for quiescent — hence a *disproportionately* large correction exactly at
+the two points where aggressor bandwidth itself is lowest. `d_off`'s
+aggressor bandwidth (23.85 GB/s) is back in the "high" range, which is
+consistent with its correction being the smallest (+0.034, CIs nearly
+overlapping) of the three large-D points.
+
+**Updated headline numbers for the paper**: small-D recovery is ~0.99x
+(not ~0.90x); D=16MiB shows a small *real* tax (~1.02x, not a sub-baseline
+0.95x); D=64MiB's tax is ~1.21x (not 1.335x); full-residency tax (~2.34x)
+is essentially unchanged. The aggressor-side non-monotonic bandwidth dip at
+16-64MiB (16.4-14.8 GB/s vs ~23.5-23.9 GB/s elsewhere) is untouched by this
+correction (aggressor-side measurement, not victim-side) and stands as
+previously reported.
 
 ## What still needs doing
 
-- Re-run the full D sweep (`d_32kb`, `d_256kb`, `d_2mb`, `d_16mb`, `d_64mb`,
-  `d_off`) under the matched discard-cold-trial protocol at n=12 to get
-  corrected numbers across the whole curve, not just the `d_32kb` spot
-  check above. The large-D taxes are expected to move negligibly (their
-  magnitude already swamps a ~1% baseline correction) but should be
-  re-quoted from matched data rather than asserted by extrapolation.
 - Audit the AMD flush-behind result (Phase 2.4) for the same asymmetry:
   its quiescent arm used the same "single cold trial" convention. AMD's own
   retained quiescent data (E1 gate, Phase 2.4) showed no bimodality on
@@ -113,10 +175,9 @@ reported.
 - Add a baseline-stationarity preflight (standalone vs. warmed quiescent
   comparison) to the campaign's standard methodology before any future
   co-run tax measurement, per the panel's recommendation.
-- Commit `run_e2b_matched_warmup.py`, `run_quiescent_corrected.py`,
-  `run_e2b_flushbehind_ticker.py`, and their raw data
-  (`/tmp/e2b_matched_warmup_n12.jsonl`, `/tmp/e2b_ticker_n12.jsonl`) to the
-  repo.
-- Correction banners added to `phase2_pmqos_ticker_RESULTS.md`,
+- Commit `run_e2b_full_sweep_warmup.py` and `e2b_full_sweep_warmup_n12.jsonl`
+  to the repo (the earlier scripts/data were already committed in `b1f9bd7`).
+- Update the correction banners in `phase2_pmqos_ticker_RESULTS.md`,
   `e2b_RESULTS.md`, `PHASE2_FINDINGS.md`, `PHASE1_FINDINGS.md`, and
-  `OUTCOMES.md` pointing here.
+  `OUTCOMES.md` — they currently say only the small-D tax was corrected;
+  they need to reflect the d_16mb sign-flip and d_64mb magnitude change too.
