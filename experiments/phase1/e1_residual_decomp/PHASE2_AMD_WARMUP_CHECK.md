@@ -159,6 +159,25 @@ enforcement.
 
 ## Bounded follow-up investigation (2026-08-08, panel-directed, timeboxed)
 
+> **⚠️ RETRACTION IN PROGRESS (2026-08-08, later same day)**: the "CCX0
+> is a stark outlier" finding below, specifically the claim that "CAT
+> recovers nothing on 3 of 4 CCXes," is **very likely an artifact of a
+> bug in the test script, not a real hardware finding.** `write_schemata()`
+> in `check_ccx_comparison.py` hardcoded `L3:0=...` regardless of which
+> CCX was under test. AMD's resctrl L3 schemata is per-domain, and domain
+> index does **not** track CCX index sequentially (verified:
+> CCX0→domain0, CCX1→domain1, CCX2→**domain8**, CCX3→**domain9**). The
+> CCX1/2/3 "wb_cat" arms below wrote their mask to domain 0 (CCX0's
+> domain, where nothing was running) while the actual domain for
+> CCX1/2/3 stayed at default `ffff` (no partition) throughout — CAT was
+> never actually applied on non-CCX0 CCXes in this test. A corrected
+> script (`check_ccx_comparison_v2.py`) with per-CCX domain discovery and
+> **MSR verification performed on the actual CCX-under-test's cores**
+> (not just CCX0's, closing the exact gap the panel flagged in the prior
+> MSR check) is running now; see the follow-up section below the
+> original (uncorrected) writeup, which is kept for the record per the
+> campaign's no-history-rewrite discipline, not because it stands.
+
 Five items were pursued, cheapest first, per explicit direction. The
 result reframes the whole question.
 
