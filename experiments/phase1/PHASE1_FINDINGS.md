@@ -2,7 +2,10 @@
 
 One page, per the mission brief. Full detail and raw data throughout
 `experiments/phase1/`. Pre-registered predictions and outcomes in
-`HYPOTHESES.md` / `OUTCOMES.md`.
+`HYPOTHESES.md` / `OUTCOMES.md`. **See `PHASE2_FINDINGS.md` and
+`PHASE2_ADDENDUM.md` for material updates**, including the retraction of
+the "~3.55x CXL-path-specific multiplier" below and the decisive
+cross-vendor result (H2 does not port to AMD by analogy from Intel).
 
 ## G1 verdicts
 

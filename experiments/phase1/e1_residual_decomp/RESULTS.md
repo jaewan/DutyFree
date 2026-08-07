@@ -2,6 +2,17 @@
 
 Dated 2026-08-06. Hypotheses pre-registered in `../HYPOTHESES.md` (P1) before any run.
 
+**CORRECTION (2026-08-07, `../PHASE2_ADDENDUM.md`)**: the "~3.55x
+CXL-path-specific multiplier" claimed below (A1-vs-A5) is **retracted**.
+The A5 comparison used a throttled (`-R`) local-DRAM arm with an identified
+pacing artifact; a clean, unthrottled, thread-matched redo (Phase 2.2) gives
+CXL 20.25x vs local 17.14x at matched 7T/full-rate -- a ratio of ~1.18x, not
+3.55x. The composite-mechanism conclusion itself is unaffected (Phase 2.4's
+AMD flush-behind result independently and decisively confirms the
+lookup/queue-occupancy story via a completely different experiment) -- only
+this specific multiplier is withdrawn. Left in place below for the
+historical record, not deleted.
+
 ## Config
 
 - Host: `broker` (moscxl), AMD EPYC 9754 (Bergamo, Zen4c), 2 sockets x 128 cores,
