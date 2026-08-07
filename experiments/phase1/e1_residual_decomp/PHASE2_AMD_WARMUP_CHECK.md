@@ -97,24 +97,74 @@ inspection" failure mode: the check that was actually missing has now been
 run, at n=12, with a proper control replica in the same session, and it
 clears.
 
-The 6-7x convergent-floor claim also holds: `wb_cat` (CAT) sits at
-9.77-9.92x and `flush_d256kb` at 5.86-5.90x — both comfortably in the
-previously-reported range, unaffected by warmup duration.
+`flush_d256kb` sits at 5.86-5.90x, comfortably matching the previously
+reported 5.94x — the convergent-floor claim holds there. **`wb_cat`
+(CAT) does NOT comfortably match its previous number** — see below, this
+is now a confirmed, real, and as-yet-unexplained drift, not a warmup
+artifact.
 
-## Secondary finding, unrelated to warmup: `wb_cat` session drift
+## Secondary finding, unrelated to warmup: `wb_cat` session drift, investigated
 
 The W=2 control-replica's `wb_cat` tax (9.92x) is notably higher than the
-original gate's `A2_wb_cat` (7.23x) — a ~37% relative difference, and
-*consistent* between this session's W=2 and W=10 passes (9.92 vs 9.77,
-internally tight), so it is not a warmup artifact. `wb` (20.4-20.3x vs
-original 19.9x) and `wc`/`flush_d256kb` (both closely matching original)
-show much smaller or no drift. This looks like a real, unexplained
-session-to-session change specific to the CAT-partitioned arm — flagged
-here for follow-up, out of scope for this warmup check. Candidates worth
-checking first: CAT schemata actually taking effect identically
-(way-count, not just the schemata string); governor/boost state at the
-time of the original gate run vs. today's re-freeze; and general
-hardware/thermal drift over the ~weeks between runs.
+original gate's `A2_wb_cat` (7.23x) — a ~37% relative difference. This was
+followed up rather than just flagged.
+
+**Confirmed real, not a v2/warmup artifact.** Re-ran the *literal,
+unmodified* `run_e1_gate.py` (byte-identical to the committed file, diffed
+to confirm), fresh, n=6, right now. It crashed on a `perf stat` failure
+(see below) before completing, but the victim/aggressor measurements
+before the crash are fully valid — patched a copy
+(`run_e1_gate_noperf.py`, only change: catch the now-missing perf output
+file instead of crashing) and reran clean:
+
+| arm | now (n=6) | original (n=12) | relative drift |
+|---|---:|---:|---:|
+| A1_wb | 20.545 | 19.886 | +3.3% |
+| A2_wb_cat | **9.867** | **7.225** | **+36.6%** |
+| A3_wc | 1.006 | 0.989 | +1.7% |
+
+**The drift is specific to the CAT-partitioned arm.** `wb` and `wc` sit
+well within normal session-to-session noise (1.7-3.3%); only `wb_cat`
+shows a large, real shift. This rules out general thermal/hardware drift
+(which would move all three) and points at something specific to CAT
+enforcement.
+
+**Investigated directly, several mechanisms ruled out:**
+- **Not a schemata-write failure.** `last_cmd_status` reads `ok` both
+  before and during a live run; schemata reads back exactly as written
+  (`ff00`/`00ff`) and stays stable throughout.
+- **Not a domain-mapping shift.** The box has 32 L3 domains (one per CCX;
+  16 CCX × 2 sockets), and both scripts only ever write `L3:0=...`
+  (domain 0). Verified directly: ran the victim alone in a fresh
+  monitoring-only group and checked `llc_occupancy` across all 32
+  `mon_L3_NN` domains — only `mon_L3_00` showed nonzero occupancy,
+  confirming domain 0 is still correctly mapped to CCX0 (cores 0-7,
+  matching `cpu0`'s `shared_cpu_list`). The partition is being applied to
+  the right physical cache slice.
+- **Not resctrl capability drift.** `cbm_mask=ffff`, `num_closids=16`,
+  group `mode=shareable` all read as expected, matching a normal 16-way
+  CAT-capable configuration.
+
+**One timing-consistent but mechanistically-unconfirmed candidate found**:
+`dpkg.log` shows `linux-tools-common` upgraded (6.8.0-136.136 →
+6.8.0-137.137) at **2026-08-06 06:32:46** — about 4 hours *after* the
+original gate data was collected (committed at 2026-08-06 02:31-02:40,
+same day). This same package area plausibly explains a fully separate
+observation made along the way: `perf list` no longer recognizes the
+`l3_lookup_state.*` / `l3_xi_sampled_latency.*` AMD uncore PMU event
+aliases that `run_e1_gate.py` depends on for its supplementary L3 counters
+(confirmed missing; the gate script now crashes on this unless patched).
+However, `linux-tools-common` is a **userspace perf-tooling package** —
+it ships event-alias JSON definitions, not kernel code, and has no
+obvious mechanism for changing real hardware CAT-partition enforcement
+behavior. The timing match is suspicious enough to record, but this is
+flagged as **correlation, not a confirmed cause**.
+
+**Bottom line: real, isolated to CAT, several plausible mechanisms ruled
+out by direct testing, true cause not identified.** Verifying the actual
+QoS mask MSRs at the CLOSID level (bypassing resctrl's sysfs abstraction
+entirely) would be the next step, but that's beyond what's practical to
+pursue further here. Diagnostic script kept: `check_cat_live.py`.
 
 ## Provenance
 
@@ -132,11 +182,26 @@ reboots).
 
 ## What still needs doing
 
-- Investigate the `wb_cat` session-to-session drift (9.92x now vs 7.23x
-  originally) as its own item — separate from this warmup check.
-- Fold these numbers into the convergent-floor synthesis and paper tables
-  once the `wb_cat` drift is resolved (don't average across sessions with
-  an unexplained 37% discrepancy in one arm).
+- **[INVESTIGATED, NOT RESOLVED]** `wb_cat` drift: confirmed real (9.87-9.92x
+  now vs 7.23x originally), isolated to the CAT-partitioned arm
+  specifically (wb/wc drift only 1.7-3.3%), several mechanisms ruled out
+  by direct testing (schemata write/readback, domain mapping, resctrl
+  capability info), true physical cause not identified. A `linux-tools-common`
+  package upgrade ~4 hours after the original data collection is a
+  timing-consistent but mechanistically-unconfirmed candidate.
+- **Next step if pursued further**: read the actual QoS mask MSRs for the
+  assigned CLOSIDs directly (bypass resctrl's sysfs abstraction) to verify
+  hardware-level enforcement, or open a case with AMD/kernel resctrl
+  maintainers referencing the exact kernel version (`7.0.0-28-generic`)
+  and the `linux-tools-common` version delta.
+- **Do not fold `wb_cat`/CAT numbers into the paper's convergent-floor
+  table until this is resolved** — a real 37% swing in one input, with an
+  unidentified cause, shouldn't be silently averaged with the original
+  number or silently replaced with the new one. The 6-7x floor's
+  *qualitative* conclusion is safe either way (7.23x and 9.87x both land
+  in the same "large, CAT-doesn't-fully-recover" bucket relative to WB's
+  ~20x and WC's ~1.0x), but the *specific number* quoted needs a decision,
+  not an assumption.
 - Add a governor/boost/hugepage freeze-state check to the start of every
   AMD session, not just after known reboot events — this is the second
   time state has been found drifted without an intervening reboot being
