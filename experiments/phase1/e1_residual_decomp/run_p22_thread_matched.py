@@ -31,9 +31,13 @@ CORES_ALL = "1,2,3,4,5,6,7"
 # a real per-request value (still in L3-clock cycles, not ns, until Phase
 # 2.3 pins/measures the uncore clock -- reported as raw cycles/request here,
 # convert once uncore frequency is known).
-PERF_EVENTS = ("l3_xi_sampled_latency.ext_near,l3_xi_sampled_latency_requests.ext_near,"
-               "l3_xi_sampled_latency.dram_near,l3_xi_sampled_latency_requests.dram_near,"
-               "l3_lookup_state.l3_hit,l3_lookup_state.l3_miss")
+# Raw PMU encodings, not perf alias names -- see PHASE2_AMD_WARMUP_CHECK.md
+# (linux-tools-common silently dropped these AMD Zen4 aliases on
+# 2026-08-06). Sourced from AMD's pmu-events JSON (amdzen4/cache.json):
+# l3_xi_sampled_latency.ext_near=r10ac, .dram_near=r01ac,
+# l3_xi_sampled_latency_requests.ext_near=r10ad, .dram_near=r01ad,
+# l3_lookup_state.l3_hit=rfe04, .l3_miss=r0104.
+PERF_EVENTS = "r10ac,r10ad,r01ac,r01ad,rfe04,r0104"
 
 ARMS = [("quiescent", None, None, 0)]
 for n in range(1, 8):
@@ -202,9 +206,13 @@ def run_one(name, mode, cores, node, rep, outf):
         },
         "l3_xi_perf_raw": perf_data,  # raw sum + count, both buckets, for the record
     }
+    # raw-code lookup, not alias-name lookup -- see the PERF_EVENTS comment
+    # above for why: {latency_raw, requests_raw} per source
+    XI_RAW = {"ext_near": ("r10ac", "r10ad"), "dram_near": ("r01ac", "r01ad")}
     src = "ext_near" if node == 2 else "dram_near"
-    lat_sum = perf_data.get(f"l3_xi_sampled_latency.{src}")
-    lat_n = perf_data.get(f"l3_xi_sampled_latency_requests.{src}")
+    lat_code, req_code = XI_RAW[src]
+    lat_sum = perf_data.get(lat_code)
+    lat_n = perf_data.get(req_code)
     rec["xi_cycles_per_request"] = (lat_sum / lat_n) if (lat_sum and lat_n) else None
     outf.write(json.dumps(rec) + "\n")
     outf.flush()

@@ -1,0 +1,15 @@
+=== CCX0 (victim=cpu0, agg=1,2,3,4,5,6,7) ===
+CCX0: quiescent=3631121  wb_tax=20.457  wb_cat_tax=9.848  cat_benefit=2.077x
+=== CCX1 (victim=cpu8, agg=9,10,11,12,13,14,15) ===
+CCX1: quiescent=3673052  wb_tax=13.220  wb_cat_tax=13.411  cat_benefit=0.986x
+=== CCX2 (victim=cpu16, agg=17,18,19,20,21,22,23) ===
+CCX2: quiescent=3603033  wb_tax=13.483  wb_cat_tax=13.498  cat_benefit=0.999x
+=== CCX3 (victim=cpu24, agg=25,26,27,28,29,30,31) ===
+CCX3: quiescent=3643197  wb_tax=13.465  wb_cat_tax=13.239  cat_benefit=1.017x
+
+=== SUMMARY ===
+ CCX    quiescent   wb_tax  wb_cat_tax  cat_benefit
+   0      3631121   20.457       9.848        2.077
+   1      3673052   13.220      13.411        0.986
+   2      3603033   13.483      13.498        0.999
+   3      3643197   13.465      13.239        1.017

@@ -25,11 +25,13 @@ VICTIM = f"{BIN}/victim"
 AGGRESSOR = f"{BIN}/aggressor"
 LOOKUPS_AGG = f"{BIN}/lookups_aggressor"
 
-PERF_EVENTS = (
-    "l3_lookup_state.l3_hit,l3_lookup_state.l3_miss,"
-    "l3_lookup_state.all_coherent_accesses_to_l3,"
-    "l3_xi_sampled_latency.near_cache,l3_xi_sampled_latency.dram_near"
-)
+# Raw PMU encodings, not perf alias names -- see PHASE2_AMD_WARMUP_CHECK.md
+# and run_e1_gate.py for why (linux-tools-common silently dropped these
+# AMD Zen4 aliases on 2026-08-06). Sourced from AMD's own pmu-events JSON
+# (arch/x86/amdzen4/cache.json): l3_lookup_state.l3_hit=rfe04,
+# .l3_miss=r0104, .all_coherent_accesses_to_l3=rff04,
+# l3_xi_sampled_latency.near_cache=r04ac, .dram_near=r01ac.
+PERF_EVENTS = "rfe04,r0104,rff04,r04ac,r01ac"
 
 VICTIM_WARMUP = 2
 VICTIM_DUR = 8

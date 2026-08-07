@@ -157,7 +157,98 @@ enforcement.
   enforcement bug at any level checked (sysfs schemata, domain mapping,
   or now the raw QoS mask MSRs themselves).
 
-**One timing-consistent but mechanistically-unconfirmed candidate found**:
+## Bounded follow-up investigation (2026-08-08, panel-directed, timeboxed)
+
+Five items were pursued, cheapest first, per explicit direction. The
+result reframes the whole question.
+
+**(i) Aggressor bandwidth and within-session CI, both epochs, from data
+already on disk.** Aggressor self-report and MBM-verified bandwidth are
+essentially identical and extremely tight in *both* epochs (~24 GB/s,
+<1% spread) — the aggressor's own output never changed. The victim tax
+itself: original epoch (n=12) ranges 6.59–8.22x internally (22.6% spread,
+wider than one might assume for a "clean" session); rerun epoch (n=6)
+ranges 9.20–9.91x (7.25% spread, tighter). **The two epochs'
+ranges do not overlap at all.** This is a genuine step change between
+sessions, not two draws from one noisy distribution.
+
+**(ii) Kernel/microcode diff across epochs.** Kernel unchanged
+(`7.0.0-28-generic` since 2026-07-18, weeks before either epoch). No
+`amd64-microcode` package update in `dpkg.log` at any point. The full apt
+transaction at 06:32:46 touched exactly two packages: `linux-libc-dev`
+(kernel UAPI headers, compile-time only, cannot affect already-compiled
+binaries) and `linux-tools-common` (perf tooling). **Neither has a
+plausible mechanism for changing real hardware CAT-partition enforcement
+behavior.** This specific, confirmed package churn is ruled out as a
+mechanistic cause — the timing correlation noted below is exactly that:
+correlation, not a lead worth pursuing further.
+
+**(iii) Co-tenancy records, both epochs.** `last -F` shows **zero**
+other logins during the original epoch (nearest prior/following session
+boundary: `domin` alone, ending Aug 4; next login `seungjun` starting Aug
+7 09:12, continuously present through the rerun and every AMD
+measurement in this document). The rerun epoch was measured under
+confirmed multi-tenancy; the original was not. Process-level inspection
+during the rerun showed the other user's own load as negligible (desktop
+session, <1% CPU, no affinity to cores 0-7) — this doesn't prove a causal
+link, but it's a real, documented, confirmed environmental difference
+between epochs that the original single-tenant measurement never had.
+
+**(iv) Direct gain/sensitivity characterization — superseded by a bigger
+finding.** The plan was a thread-count or bandwidth sweep around the
+wb_cat operating point. Instead, testing whether the effect was
+CCX0-specific (a cheaper, more diagnostic first move) produced a result
+that makes the planned sweep secondary:
+
+### The dominant finding: CCX0 is a stark, quadruple-replicated outlier — in both directions
+
+`check_ccx_comparison.py`: quiescent / WB (no CAT) / WB+CAT, matched
+script, matched session, n=6 per CCX, run back-to-back on CCX0-3:
+
+| CCX | quiescent | wb_tax | wb_cat_tax | cat_benefit (wb_tax / wb_cat_tax) |
+|---|---:|---:|---:|---:|
+| **0** | 3,631,121 | **20.457** | **9.848** | **2.077x** |
+| 1 | 3,673,052 | 13.220 | 13.411 | 0.986x |
+| 2 | 3,603,033 | 13.483 | 13.498 | 0.999x |
+| 3 | 3,643,197 | 13.465 | 13.239 | 1.017x |
+
+**CCX0 is not just where wb_cat drifted — it is categorically different
+from every other CCX tested, in both the endpoint and the mechanism.**
+Its uncontended WB tax (20.5x) is ~52% higher than CCX1-3's tight cluster
+(~13.2-13.5x, all mutually consistent). And CAT partitioning provides a
+real, roughly 2x benefit **only on CCX0**; on CCX1, CCX2, and CCX3, CAT's
+benefit is statistically zero (0.986x, 0.999x, 1.017x — all within noise
+of 1.0). Quiescent baselines are identical across all four CCXes
+(3.60-3.67M, no meaningful difference) — this is specifically an
+*interference-under-contention* property, not a baseline-speed property.
+
+**This changes the shape of the question.** It is not "wb_cat's residual
+drifted at a high-gain operating point while stable endpoints held
+still" — the WB endpoint itself is not CCX-independent (20.5x vs ~13.4x
+is a large difference at the *uncontended* comparison point, the thing
+that was assumed stable). The campaign's AMD numbers have, from the
+start, been measured exclusively on CCX0 (`cpus 0-7`, matching every
+prior script's hardcoded core list). **If CCX0 is atypical of the chip
+as a whole, "CAT recovers most of WB's tax" may describe CCX0
+specifically, not AMD's cache-partitioning mechanism in general** — on
+3 of the 4 CCXes tested, CAT provided no measurable recovery at all.
+
+One candidate, consistent with but not proven to cause this: cpu0 carries
+substantially more IRQ load than other cores (10.5M vs 4.4M cumulative
+interrupts against cpu8, confirmed via `/proc/interrupts`) — a
+well-known reason core/CCX0 behaves differently from the rest of a chip
+in careful benchmarking. This is plausible but unconfirmed; it does not
+explain the *direction* of the effect (why would extra IRQ load make CAT
+*more* effective specifically) without further, more speculative
+reasoning than the evidence currently supports.
+
+**(v) Observer-effect check**: obtained for free by the CCX comparison
+itself — running the identical script on 4 different CCXes with no
+special instrumentation reproduces the same qualitative pattern each
+time (tight clusters on CCX1-3, outlier on CCX0), so the measurement
+apparatus itself is not the source of the CCX0 divergence.
+
+**One timing-consistent but mechanistically-ruled-out-by-(ii) candidate**:
 `dpkg.log` shows `linux-tools-common` upgraded (6.8.0-136.136 →
 6.8.0-137.137) at **2026-08-06 06:32:46** — about 4 hours *after* the
 original gate data was collected (committed at 2026-08-06 02:31-02:40,
@@ -165,26 +256,35 @@ same day). This same package area plausibly explains a fully separate
 observation made along the way: `perf list` no longer recognizes the
 `l3_lookup_state.*` / `l3_xi_sampled_latency.*` AMD uncore PMU event
 aliases that `run_e1_gate.py` depends on for its supplementary L3 counters
-(confirmed missing; the gate script now crashes on this unless patched).
-However, `linux-tools-common` is a **userspace perf-tooling package** —
-it ships event-alias JSON definitions, not kernel code, and has no
-obvious mechanism for changing real hardware CAT-partition enforcement
-behavior. The timing match is suspicious enough to record, but this is
-flagged as **correlation, not a confirmed cause**.
+(confirmed missing; the gate script now crashes on this unless patched —
+**fixed**, see "Perf alias loss" section below). As established in (ii)
+above, this package has no plausible mechanism for changing hardware CAT
+enforcement — recorded for completeness, not as a live lead.
 
-**Bottom line: real, isolated to CAT, every configuration/enforcement
-mechanism checked — including the raw hardware QoS mask MSRs — comes back
-correct. The true cause is not identified**, and is not a resctrl,
-schemata, domain-mapping, or CAT-programming problem at any layer from
-sysfs down to the actual MSRs the CPU executes against. Whatever changed,
-it changed something about how the memory/cache subsystem *behaves* under
-a correctly-enforced partition, not whether the partition itself is
-correctly enforced. Diagnostic scripts kept: `check_cat_live.py`,
-`check_cat_msr.py`.
+**Bottom line, updated: this is no longer just "an unexplained CAT
+drift."** Every configuration/enforcement mechanism checked at the
+CCX0-only level — including the raw hardware QoS mask MSRs — comes back
+correct, so it is not a resctrl, schemata, domain-mapping, or
+CAT-programming problem at any layer from sysfs down to the MSRs. But
+the CCX comparison shows the drift sits inside a much larger, structural
+fact: **CCX0 behaves differently from the rest of this chip, in both its
+baseline contention level and CAT's effectiveness against it.** Whether
+CCX0's *own* time-varying behavior (the 7.23→9.87x drift) and CCX0's
+*cross-sectional* divergence from CCX1-3 (20.5x/9.85x vs ~13.4x/~13.4x)
+share one root cause, or are two separate CCX0-specific phenomena, is not
+resolved — but the practical consequence is the same either way: **a
+single-CCX measurement convention is not safe to generalize to "AMD's
+CAT mechanism" without saying which CCX, and CCX0 (the one used
+throughout this campaign) is the least representative of the four
+tested.** Diagnostic scripts kept: `check_cat_live.py`, `check_cat_msr.py`,
+`check_ccx_comparison.py`, `check_wb_ccx1.py`.
 
 **Decision (2026-08-08, explicit user call, not inferred)**: standardize
 on **9.87x** — the current, reproducible measurement — for paper tables
-and as gem5's CAT validation target going forward. 7.23x is now
+and as gem5's CAT validation target going forward, **as CCX0's number
+specifically**. Given the CCX comparison, this should now be labeled as
+such in any table it appears in, not presented as "the" AMD CAT tax.
+7.23x is now
 provenance-superseded, same convention as the earlier EMR device-swap
 issue: not deleted, but no longer the number in active use. Phase 2.5
 (gem5) remains on hold specifically because "resolved" was read as
@@ -206,26 +306,83 @@ pattern noted after the earlier mid-run reboot incident; worth adding a
 freeze-state check to the top of every AMD session, not just after
 reboots).
 
+## Perf alias loss: fixed, raw encodings now in use
+
+`perf list` no longer recognizes `l3_lookup_state.*` /
+`l3_xi_sampled_latency*.*` — confirmed missing entirely, not renamed.
+This is load-bearing: `run_e1_a4a5.py` (the A4/A5 lookup-vs-occupancy
+decomposition) and `run_p22_thread_matched.py` (the 2T/3T concurrency-cap
+sweep, computing `xi_cycles_per_request`) depend on these events, not
+just `run_e1_gate.py`'s supplementary counters.
+
+Fixed by going to raw PMU encodings instead of alias names, sourced
+directly from AMD's own `pmu-events` JSON (found on disk at
+`CoherenceTest/APSys/sources/linux-ubuntu-6.8.0-111/tools/perf/pmu-events/arch/x86/amdzen4/cache.json`
+— the exact family for this box), verified end-to-end against real load
+(`hit + miss == all_coherent` exactly: 2,098,968 + 42 = 2,099,010):
+
+| alias (now gone) | EventCode | UMask | raw encoding |
+|---|---|---|---|
+| `l3_lookup_state.l3_hit` | 0x04 | 0xfe | `rfe04` |
+| `l3_lookup_state.l3_miss` | 0x04 | 0x01 | `r0104` |
+| `l3_lookup_state.all_coherent_accesses_to_l3` | 0x04 | 0xff | `rff04` |
+| `l3_xi_sampled_latency.near_cache` | 0xac | 0x04 | `r04ac` |
+| `l3_xi_sampled_latency.dram_near` | 0xac | 0x01 | `r01ac` |
+| `l3_xi_sampled_latency.ext_near` | 0xac | 0x10 | `r10ac` |
+| `l3_xi_sampled_latency_requests.dram_near` | 0xad | 0x01 | `r01ad` |
+| `l3_xi_sampled_latency_requests.ext_near` | 0xad | 0x10 | `r10ad` |
+
+Patched `run_e1_gate.py`, `run_e1_a4a5.py`, `run_p22_thread_matched.py`
+to use these directly — no dependency on whatever alias set happens to
+be installed at run time. `run_p22_thread_matched.py` also had real
+downstream key-based lookups (`perf_data.get(f"l3_xi_sampled_latency.{src}")`)
+that would have silently returned `None` after switching the event
+string without also fixing the lookup — found and fixed, not just the
+`PERF_EVENTS` constant.
+
+**Preflight/hygiene, done**: `env_manifest.py` added at the phase1 root —
+snapshots kernel, microcode, tool versions + hold status, governor,
+boost/turbo (both conventions, unambiguous), THP mode, resctrl
+capabilities, and a live capability probe for the `l3_lookup_state` alias
+specifically (so its disappearance is a loud warning at session start,
+not a crash four hours into a run). `linux-tools-common`, `linux-libc-dev`,
+the running kernel image, and `amd64-microcode`/`intel-microcode` are now
+`apt-mark hold`'d on both hosts (broker and mos181) to stop further
+mid-campaign package churn.
+
 ## What still needs doing
 
-- **[NUMBER DECIDED, MECHANISM STILL OPEN]** `wb_cat` drift: confirmed
-  real (9.87-9.92x now vs 7.23x originally), isolated to the
-  CAT-partitioned arm specifically (wb/wc drift only 1.7-3.3%), and
-  verified all the way down to the raw QoS mask MSRs — hardware
-  enforcement is correct at every layer checked. **9.87x is now the
-  campaign's standard number** (explicit decision, 2026-08-08); the
-  physical cause of the change from 7.23x remains unexplained.
-- **Next step if the mechanism is pursued further**: this is now beyond
-  what sysfs- or MSR-level checks from the OS side can resolve — would
-  need either AMD-specific microarchitectural counters not currently in
-  this campaign's perf event set, or an AMD/kernel resctrl maintainer
-  consultation referencing the exact kernel version (`7.0.0-28-generic`)
-  and the `linux-tools-common` version delta as the one identified,
-  timing-consistent (but mechanistically unconnected) candidate change.
-- **gem5 (Phase 2.5) stays on hold** until this mechanism is understood,
-  per explicit instruction — not blocked on having *a* number (9.87x is
-  now settled), blocked on not knowing *why* it changed.
-- Add a governor/boost/hugepage freeze-state check to the start of every
-  AMD session, not just after known reboot events — this is the second
-  time state has been found drifted without an intervening reboot being
-  the obvious cause.
+- **[REFRAMED — CCX0 is the finding, not just the drift]** The wb_cat
+  session drift (7.23x → 9.87x) sits inside a much larger fact: CCX0
+  diverges from CCX1/2/3 in both uncontended WB tax (20.5x vs ~13.4x)
+  and CAT's benefit (2.08x reduction vs ~1.0x/no benefit). **This needs
+  to reach the paper's AMD section, not stay a methodology footnote** —
+  it bears directly on whether "CAT recovers most of WB's tax" is a
+  general claim or a CCX0-specific one.
+- **9.87x remains the standard number, but must now be labeled "CCX0"
+  explicitly** wherever it's quoted, not presented as *the* AMD CAT tax.
+  Whether the paper should report a CCX0 number, a cross-CCX range/mean,
+  or a different CCX entirely is a decision item, not something to
+  resolve unilaterally here.
+- **The CCX0-vs-rest mechanism is not identified.** The IRQ-load
+  difference (10.5M vs 4.4M cumulative interrupts, cpu0 vs cpu8) is a
+  plausible contributing factor but doesn't explain the *direction* of
+  the effect (why extra IRQ load would make CAT specifically more
+  effective) without more speculation than the evidence supports. Package
+  churn (linux-libc-dev, linux-tools-common) and microcode are both ruled
+  out mechanistically (item ii above). Kernel/AMD errata research or
+  vendor engagement would be the next step if pursued further.
+- **gem5 (Phase 2.5) stays on hold**, per explicit instruction, pending
+  this mechanism — now understood to be broader (CCX0 divergence) than
+  originally framed (a single-number drift), which if anything raises
+  rather than lowers the bar for what "resolved" should mean here.
+- Add a governor/boost/hugepade/THP freeze-state check to the start of
+  every AMD session — now implemented as `env_manifest.py`, should be run
+  and diffed against the previous session at the start of every future
+  measurement session on either host.
+- **New, not previously scoped**: decide whether to re-measure other
+  campaign AMD numbers (WB, WC, flush-behind, A4/A5/A6) across multiple
+  CCXes too, given CCX0's demonstrated non-representativeness. WC/WB's
+  own CCX0-vs-CCX1 comparison is already done here (WB) and via the v2
+  warmup check (WC, though not cross-CCX) — flush-behind and the
+  lookup-only/concurrency-cap arms have not been cross-CCX tested at all.

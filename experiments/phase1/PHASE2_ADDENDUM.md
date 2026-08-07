@@ -39,13 +39,25 @@ Four numbers, all measured this campaign, n>=12 or cross-validated:
 
 > **CORRECTION (2026-08-08)**: CAT's number was revised from 7.23x to
 > 9.87x — a real, reproducible, isolated-to-CAT session drift confirmed
-> down to the raw hardware QoS mask MSRs (enforcement verified correct;
-> physical cause of the drift unidentified). This *widens* the spread
-> among the three convergent mechanisms (5.94-9.87x instead of
-> 5.94-7.23x) but does not change the qualitative claim: all three still
-> land in the same "large, roughly-one-order-of-magnitude" bucket, sharply
-> distinct from WC's ~1.0x. gem5 (Phase 2.5) is on hold specifically
-> pending an explanation for this drift, not merely a number to target.
+> down to the raw hardware QoS mask MSRs (enforcement verified correct).
+>
+> **Bigger correction, same date, found while chasing the first one**:
+> this number was measured exclusively on CCX0 (`cpus 0-7`, hardcoded in
+> every AMD script this campaign has run). A 4-CCX comparison
+> (`e1_residual_decomp/PHASE2_AMD_WARMUP_CHECK.md`, n=6/CCX) shows
+> **CCX0 is a stark outlier, not representative of the chip**: CCX1/2/3
+> cluster tightly at ~13.2-13.5x uncontended WB tax with CAT providing
+> *zero* measurable benefit (0.986x/0.999x/1.017x — all at parity),
+> while CCX0 alone shows 20.5x uncontended and CAT cutting that roughly
+> in half (9.85x). **On 3 of 4 CCXes tested, CAT recovers nothing.** The
+> 9.87x number is real and reproducible, but it describes CCX0
+> specifically — it should not be quoted as "AMD's CAT tax" without that
+> qualifier, and the paper's framing of CAT as a partition-based recovery
+> mechanism needs to confront that it may only hold on the one CCX this
+> campaign has ever measured. This is now flagged for the paper text
+> directly, not just the methodology appendix. gem5 (Phase 2.5) is on
+> hold specifically pending this — the bar for "resolved" is now the
+> CCX0-vs-rest divergence, not merely the session-to-session drift.
 
 Three orthogonal, deployable-class mechanisms (capacity partitioning,
 residency bounding, concurrency reduction) converge on a ~6-7x floor; only
@@ -77,6 +89,16 @@ mismatch flagged in the original writeup is real (33.05 vs self-report's
 self-report (closer to but still below the true rate, per the eviction-
 traffic hypothesis) is the only usable number here, another reason
 per-arm bandwidth *and* occupancy both matter, exactly as the panel argued.
+
+> **Cross-checked against the corrected v2 data (2026-08-08)**: this
+> closure used the original (pre-warmup-correction) Phase 2.4 numbers.
+> `amd_v2_W2_n12.jsonl`'s `flush_d256kb` arm — same measurement, matched
+> protocol, n=12 — reproduces bandwidth and occupancy almost exactly
+> (bw_self 17.03 vs 17.04, bw_mbm 33.07 vs 33.05, occupancy 3.14 vs
+> 2.93 MB) and tax 5.899x vs the original 5.94x. The hole-closure
+> conclusion is not an artifact of the pre-correction protocol — it holds
+> under the corrected one too. This item is fully closed, not just
+> closed-pending-verification.
 
 ## The D-structure / L2-size architectural point: panel was right, repo's own comment was stale
 

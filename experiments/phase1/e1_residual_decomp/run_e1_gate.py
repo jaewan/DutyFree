@@ -31,11 +31,18 @@ BIN = "/home/domin/tmp_dutyfree_exp/bin"  # hardcoded: script runs under sudo, w
 VICTIM = f"{BIN}/victim"
 AGGRESSOR = f"{BIN}/aggressor"
 
-PERF_EVENTS = (
-    "l3_lookup_state.l3_hit,l3_lookup_state.l3_miss,"
-    "l3_lookup_state.all_coherent_accesses_to_l3,"
-    "l3_xi_sampled_latency.near_cache,l3_xi_sampled_latency.dram_near"
-)
+# Raw PMU encodings (r<umask><eventcode>, hex), NOT perf alias names.
+# The alias package (linux-tools-common) silently dropped these AMD Zen4
+# event aliases between 2026-08-06 06:32 and this fix -- see
+# PHASE2_AMD_WARMUP_CHECK.md. Sourced directly from AMD's own pmu-events
+# JSON (arch/x86/amdzen4/cache.json) so this script no longer depends on
+# whatever alias set happens to be installed. Mapping (for maintainers):
+#   l3_lookup_state.l3_hit                     EventCode=0x04 UMask=0xfe -> rfe04
+#   l3_lookup_state.l3_miss                    EventCode=0x04 UMask=0x01 -> r0104
+#   l3_lookup_state.all_coherent_accesses_to_l3 EventCode=0x04 UMask=0xff -> rff04
+#   l3_xi_sampled_latency.near_cache           EventCode=0xac UMask=0x04 -> r04ac
+#   l3_xi_sampled_latency.dram_near            EventCode=0xac UMask=0x01 -> r01ac
+PERF_EVENTS = "rfe04,r0104,rff04,r04ac,r01ac"
 
 ARMS = {
     # name: (mode_or_None, victim_L3, agg_L3, smba)
