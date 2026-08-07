@@ -259,11 +259,21 @@ previously reported.
   protocol, and fold in the still-open Phase 2.4 items in the same pass:
   per-arm aggressor bandwidth from non-MBM counters, victim-side occupancy
   on flush arms, and the 2T-anchor comparison.
-- **Intel `cat_mba.py` gate delta-check under the matched protocol.** The
-  gate's 1.946x vs. the paper's cited 2.03x may be partly explained by the
-  same cold-quiescent deflation — if so, every tax measured under the old
-  single-cold-trial convention was biased *low* (a conservative bias worth
-  stating explicitly when regenerating).
+- **[RESOLVED] Intel `cat_mba.py` gate delta-check under the matched
+  protocol.** Checked directly against the retained raw trial-by-trial CSV
+  (`s2_cxl8_baseline.csv`): `cat_mba.py` already runs `--trials 30` within
+  *one* continuous victim process per phase (Q or A), not 12 independent
+  single-trial fresh processes like E2b's broken design, and reduces to a
+  median across all 30. Q-phase trial 0 (82.03) is only mildly elevated
+  above the tight 81.56-81.65 plateau of trials 1-29 (~0.5%, nothing like
+  E2b's ~10% jump); A-phase shows a real multi-trial ramp-down (195.56 →
+  174.95 → 167.42 → ... → ~156-160 plateau by trial ~8) but with 30 trials
+  to draw from, the median absorbs it completely: **tax = 1.9458 (all 30
+  trials) vs 1.9457 (excluding trial 0)** — a 0.006% difference. The
+  4.1% gap to the paper's 2.03x is **not** explained by a cold-baseline
+  artifact; `cat_mba.py`'s many-trials-per-process design was already
+  structurally immune to the failure mode that broke E2b's single-trial
+  design. No revision needed to this gate's numbers.
 - **Build the occupancy-vs-tax dose-response plot** from the full-sweep
   data (6.2 / 9.9 / 23.7 / 53.9 / 114.3 / 234.0 MiB occupancy vs. 0.991 /
   0.991 / 0.991 / 1.018 / 1.213 / 2.341 tax) — this is the Intel silicon
