@@ -64,9 +64,14 @@ Four numbers, all measured this campaign, n>=12 or cross-validated:
 > core/CCX placement measurably changes the uncontended baseline on this
 > platform) independent of whether the fabric mechanism is ever
 > identified. gem5 (Phase 2.5)'s original blocking concern — does 9.87x
-> represent AMD's CAT mechanism generally — is resolved (yes); whether to
-> keep the hold pending the now-narrower WB-uncontended question is a
-> decision for the user, not resolved here.
+> represent AMD's CAT mechanism generally — is resolved (yes).
+>
+> **Decision (2026-08-08, explicit user call)**: gem5 stays on hold,
+> specifically pending the CCX0-topology question (why is CCX0's
+> uncontended WB tax ~50% higher than the rest of the chip), even though
+> that question no longer bears on the CAT validation target itself. The
+> hold is now scoped to this one open item, not the broader "does 9.87x
+> generalize" concern it started as.
 
 Three orthogonal, deployable-class mechanisms (capacity partitioning,
 residency bounding, concurrency reduction) converge on a ~6-7x floor; only

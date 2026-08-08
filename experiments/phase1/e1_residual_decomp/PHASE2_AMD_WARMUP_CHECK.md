@@ -472,10 +472,12 @@ mid-campaign package churn.
   identified.
 - **gem5 (Phase 2.5)**: the original blocking concern (does 9.87x
   represent AMD's CAT mechanism generally) is resolved — it does, within
-  the band every CCX converges to. Whether to keep the hold pending the
-  now-narrower WB-uncontended/CCX0 question, or unblock since it doesn't
-  bear directly on any of the 6 validation targets, is a decision to
-  bring back to the user, not something to resolve here.
+  the band every CCX converges to. **Decision (2026-08-08, explicit user
+  call): gem5 stays on hold, now specifically scoped to the CCX0-topology
+  question** (why CCX0's uncontended WB tax is ~50% higher than the rest
+  of the chip) — not because it bears on any of the 6 validation targets,
+  none of which it does, but as a deliberate scheduling choice pending
+  that open item.
 - Add a governor/boost/hugepage/THP freeze-state check to the start of
   every AMD session — implemented as `env_manifest.py`, should be run
   and diffed against the previous session at the start of every future
