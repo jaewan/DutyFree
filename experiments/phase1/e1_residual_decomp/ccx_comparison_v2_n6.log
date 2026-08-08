@@ -1,0 +1,6 @@
+=== SUMMARY (corrected: per-CCX domain discovery + MSR verification on actual cores under test) ===
+ CCX  domain    quiescent   wb_tax  wb_cat_tax  cat_benefit  msr_disjoint
+   0       0      3581197   20.771      10.030        2.071          True
+   1       1      3630437   13.339       9.891        1.349          True
+   2       8      3591229   13.713       9.865        1.390          True
+   3       9      3643417   13.342       9.662        1.381          True

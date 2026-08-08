@@ -41,34 +41,32 @@ Four numbers, all measured this campaign, n>=12 or cross-validated:
 > 9.87x — a real, reproducible, isolated-to-CAT session drift confirmed
 > down to the raw hardware QoS mask MSRs (enforcement verified correct).
 >
-> **⚠️ RETRACTED, SAME DAY**: the paragraph below claimed CAT provides
-> zero benefit on CCX1/2/3. That claim was **very likely a bug in the
-> test script, not a hardware finding** — the schemata-writer hardcoded
-> domain 0 regardless of which CCX was under test, and AMD's resctrl
-> domain index does not track CCX index sequentially (CCX2 is domain 8,
-> not 2). CAT was never actually applied on CCX1/2/3 in that test. A
-> corrected re-run with per-CCX domain discovery and MSR verification on
-> the actual cores under test is in progress; see
-> `e1_residual_decomp/PHASE2_AMD_WARMUP_CHECK.md` for the live status and
-> corrected numbers once available. **Do not cite the claim below.**
+> **⚠️ RETRACTED AND CORRECTED, SAME DAY**: the claim below that CAT
+> provides zero benefit on CCX1/2/3 was a bug in the test script — the
+> schemata-writer hardcoded domain 0 regardless of which CCX was under
+> test, and AMD's resctrl domain index does not track CCX index
+> sequentially (CCX2 is domain 8, CCX3 is domain 9). CAT was never
+> actually applied on CCX1/2/3 in that test.
 >
-> ~~**Bigger correction, same date, found while chasing the first one**:
-> this number was measured exclusively on CCX0 (`cpus 0-7`, hardcoded in
-> every AMD script this campaign has run). A 4-CCX comparison
-> (`e1_residual_decomp/PHASE2_AMD_WARMUP_CHECK.md`, n=6/CCX) shows
-> **CCX0 is a stark outlier, not representative of the chip**: CCX1/2/3
-> cluster tightly at ~13.2-13.5x uncontended WB tax with CAT providing
-> *zero* measurable benefit (0.986x/0.999x/1.017x — all at parity),
-> while CCX0 alone shows 20.5x uncontended and CAT cutting that roughly
-> in half (9.85x). **On 3 of 4 CCXes tested, CAT recovers nothing.**~~ The
-> 9.87x number is real and reproducible, but it describes CCX0
-> specifically — it should not be quoted as "AMD's CAT tax" without that
-> qualifier, and the paper's framing of CAT as a partition-based recovery
-> mechanism needs to confront that it may only hold on the one CCX this
-> campaign has ever measured. This is now flagged for the paper text
-> directly, not just the methodology appendix. gem5 (Phase 2.5) is on
-> hold specifically pending this — the bar for "resolved" is now the
-> CCX0-vs-rest divergence, not merely the session-to-session drift.
+> **Corrected (`e1_residual_decomp/PHASE2_AMD_WARMUP_CHECK.md`, per-CCX
+> domain discovery + MSR verification on the actual cores under test):
+> CAT genuinely works on every CCX, converging to nearly the same
+> absolute residual everywhere (9.66-10.03x, MSR-verified disjoint on
+> all four).** **9.87x is representative, not a CCX0 artifact — no
+> relabeling needed for the headline CAT number.** What's real and still
+> open is narrower: CCX0's *uncontended* WB tax (20.8x) is genuinely
+> higher than CCX1-3's (~13.3-13.7x) — a finding independent of the CAT
+> domain bug (WB arms use no masks) — and a direct manipulation test
+> (moving the victim within CCX0 off cpu0, onto a confirmed low-IRQ core)
+> shows this tracks CCX0 as a physical/topological unit, **not** cpu0's
+> IRQ-heavy role. This is now a fabric-topology question genuinely beyond
+> OS-level tooling. Worth reporting as a methodology finding (victim
+> core/CCX placement measurably changes the uncontended baseline on this
+> platform) independent of whether the fabric mechanism is ever
+> identified. gem5 (Phase 2.5)'s original blocking concern — does 9.87x
+> represent AMD's CAT mechanism generally — is resolved (yes); whether to
+> keep the hold pending the now-narrower WB-uncontended question is a
+> decision for the user, not resolved here.
 
 Three orthogonal, deployable-class mechanisms (capacity partitioning,
 residency bounding, concurrency reduction) converge on a ~6-7x floor; only

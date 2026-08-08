@@ -159,23 +159,30 @@ enforcement.
 
 ## Bounded follow-up investigation (2026-08-08, panel-directed, timeboxed)
 
-> **⚠️ RETRACTION IN PROGRESS (2026-08-08, later same day)**: the "CCX0
-> is a stark outlier" finding below, specifically the claim that "CAT
-> recovers nothing on 3 of 4 CCXes," is **very likely an artifact of a
-> bug in the test script, not a real hardware finding.** `write_schemata()`
-> in `check_ccx_comparison.py` hardcoded `L3:0=...` regardless of which
-> CCX was under test. AMD's resctrl L3 schemata is per-domain, and domain
+> **⚠️ RETRACTED AND SUPERSEDED (2026-08-08, later same day)**: the
+> "CCX0 is a stark outlier" finding below, specifically the claim that
+> "CAT recovers nothing on 3 of 4 CCXes," was an artifact of a bug in the
+> test script, not a real hardware finding. `write_schemata()` in
+> `check_ccx_comparison.py` hardcoded `L3:0=...` regardless of which CCX
+> was under test. AMD's resctrl L3 schemata is per-domain, and domain
 > index does **not** track CCX index sequentially (verified:
 > CCX0→domain0, CCX1→domain1, CCX2→**domain8**, CCX3→**domain9**). The
 > CCX1/2/3 "wb_cat" arms below wrote their mask to domain 0 (CCX0's
 > domain, where nothing was running) while the actual domain for
 > CCX1/2/3 stayed at default `ffff` (no partition) throughout — CAT was
-> never actually applied on non-CCX0 CCXes in this test. A corrected
-> script (`check_ccx_comparison_v2.py`) with per-CCX domain discovery and
-> **MSR verification performed on the actual CCX-under-test's cores**
-> (not just CCX0's, closing the exact gap the panel flagged in the prior
-> MSR check) is running now; see the follow-up section below the
-> original (uncorrected) writeup, which is kept for the record per the
+> never actually applied on non-CCX0 CCXes in that test.
+>
+> **See "CORRECTED cross-CCX finding" below for what actually holds up.**
+> Short version: with per-CCX domain discovery and MSR verification
+> performed on the actual CCX-under-test's cores (not just CCX0's,
+> closing the exact gap the panel flagged), CAT genuinely works on every
+> CCX — but converges to nearly the *same absolute residual* everywhere
+> (~9.7-10.0x). The real, surviving anomaly is narrower and different
+> than first reported: CCX0's *uncontended* WB tax (20.8x) is the
+> outlier, not CAT's benefit on it. A direct manipulation test (moving
+> the victim within CCX0, off cpu0) shows this tracks CCX0 as a physical
+> unit, not cpu0's IRQ-heavy role specifically. The section immediately
+> below (original, uncorrected) is kept for the record per the
 > campaign's no-history-rewrite discipline, not because it stands.
 
 Five items were pursued, cheapest first, per explicit direction. The
@@ -325,6 +332,72 @@ pattern noted after the earlier mid-run reboot incident; worth adding a
 freeze-state check to the top of every AMD session, not just after
 reboots).
 
+## CORRECTED cross-CCX finding (2026-08-08, same day, gating check applied)
+
+The panel's exact prediction going in: a script that writes only
+`L3:0=...` "produces exactly this table: real partition on CCX0, default
+`0xffff` for every CLOSID everywhere else, wb_cat ≡ wb on CCX1-3 by
+construction." Confirmed precisely. `check_ccx_comparison_v2.py` fixes
+this with a live occupancy probe per CCX (run the victim alone in an
+unrestricted monitoring group, find which `mon_L3_NN` lights up) before
+writing schemata, and — closing the gap the panel explicitly flagged in
+the original MSR check — reads `IA32_PQR_ASSOC` and `IA32_L3_QOS_MASK_n`
+on the **actual CCX-under-test's cores**, not just CCX0's, on every run.
+
+Domain map (not sequential — this by itself would have broken any
+formula-based fix): CCX0→domain 0, CCX1→domain 1, CCX2→**domain 8**,
+CCX3→**domain 9**.
+
+| CCX | domain | quiescent | wb_tax | wb_cat_tax | cat_benefit | MSR disjoint |
+|---|---:|---:|---:|---:|---:|---|
+| 0 | 0 | 3,581,197 | **20.771** | 10.030 | 2.071x | ✓ |
+| 1 | 1 | 3,630,437 | 13.339 | 9.891 | 1.349x | ✓ |
+| 2 | 8 | 3,591,229 | 13.713 | 9.865 | 1.390x | ✓ |
+| 3 | 9 | 3,643,417 | 13.342 | 9.662 | 1.381x | ✓ |
+
+**A much cleaner, more coherent picture than either the original claim
+or the retracted one.** CAT is now confirmed genuinely enforced
+(disjoint masks, correct CLOSIDs) on every CCX, and it works everywhere
+— but the *absolute* residual it converges to is nearly CCX-independent
+(9.66-10.03x, a ~4% spread). What actually varies by CCX is the
+*uncontended* WB tax: CCX0 sits at 20.8x while CCX1-3 cluster tightly at
+13.3-13.7x. CAT cuts CCX0's larger starting tax roughly in half (2.07x)
+and gives CCX1-3 a smaller but still real, MSR-verified reduction
+(1.35-1.39x) — both land at nearly the same final number. **This
+actually vindicates 9.87x (CCX0's number) as a reasonable stand-in for
+"AMD's CAT-protected residual" after all** — it's within the same tight
+band every other CCX converges to. The real, surviving, still-open
+anomaly is narrower than first reported: why is CCX0's *uncontended* WB
+tax ~50% higher than the rest of the chip?
+
+### Disambiguating cpu0's role from CCX0's silicon
+
+The panel's manipulation #1, run directly: move the victim to cpu7
+(still CCX0, but not cpu0 — IRQs now land on an aggressor core instead),
+aggressors on cpus 0-6. Result: **wb_tax = 21.066**, matching cpu0's
+20.771 almost exactly — **not** dropping toward CCX1-3's ~13.4x as the
+cpu0-IRQ-role hypothesis predicted.
+
+Confirmatory check (lighter-weight than the panel's manipulation #2,
+which would have required rewriting system-wide IRQ affinity on a
+shared, multi-tenant host — judged too invasive for the confirmatory
+value given #1 was already decisive): cpu7's own cumulative IRQ count
+(5.35M) is close to CCX1's cpu8 (5.28M) and far below cpu0's (12.26M) —
+cpu7 is *not* itself IRQ-heavy, yet the victim on cpu7 still shows the
+full anomaly.
+
+**This decisively refutes the cpu0-IRQ-role hypothesis as the mechanism.**
+The anomaly tracks CCX0 as a physical/topological unit, not whichever
+specific core within it happens to host the victim. This narrows the
+remaining candidates to something structural about CCX0's position —
+physical proximity to the IO die or CXL root complex, Infinity Fabric
+hop count, or some other topology-dependent property — which is now
+genuinely a question for AMD fabric documentation or vendor engagement,
+not something further OS-level probing can resolve. The panel's own
+fallback criterion ("only if the anomaly survives all three [tests] does
+this escalate to a physical-CCX question worth vendor engagement") is
+met: it survived the falsifiable test that was run.
+
 ## Perf alias loss: fixed, raw encodings now in use
 
 `perf list` no longer recognizes `l3_lookup_state.*` /
@@ -369,39 +442,54 @@ the running kernel image, and `amd64-microcode`/`intel-microcode` are now
 `apt-mark hold`'d on both hosts (broker and mos181) to stop further
 mid-campaign package churn.
 
-## What still needs doing
+## What still needs doing (post-correction)
 
-- **[REFRAMED — CCX0 is the finding, not just the drift]** The wb_cat
-  session drift (7.23x → 9.87x) sits inside a much larger fact: CCX0
-  diverges from CCX1/2/3 in both uncontended WB tax (20.5x vs ~13.4x)
-  and CAT's benefit (2.08x reduction vs ~1.0x/no benefit). **This needs
-  to reach the paper's AMD section, not stay a methodology footnote** —
-  it bears directly on whether "CAT recovers most of WB's tax" is a
-  general claim or a CCX0-specific one.
-- **9.87x remains the standard number, but must now be labeled "CCX0"
-  explicitly** wherever it's quoted, not presented as *the* AMD CAT tax.
-  Whether the paper should report a CCX0 number, a cross-CCX range/mean,
-  or a different CCX entirely is a decision item, not something to
-  resolve unilaterally here.
-- **The CCX0-vs-rest mechanism is not identified.** The IRQ-load
-  difference (10.5M vs 4.4M cumulative interrupts, cpu0 vs cpu8) is a
-  plausible contributing factor but doesn't explain the *direction* of
-  the effect (why extra IRQ load would make CAT specifically more
-  effective) without more speculation than the evidence supports. Package
-  churn (linux-libc-dev, linux-tools-common) and microcode are both ruled
-  out mechanistically (item ii above). Kernel/AMD errata research or
-  vendor engagement would be the next step if pursued further.
-- **gem5 (Phase 2.5) stays on hold**, per explicit instruction, pending
-  this mechanism — now understood to be broader (CCX0 divergence) than
-  originally framed (a single-number drift), which if anything raises
-  rather than lowers the bar for what "resolved" should mean here.
-- Add a governor/boost/hugepade/THP freeze-state check to the start of
-  every AMD session — now implemented as `env_manifest.py`, should be run
+- **[RESOLVED, GOOD NEWS] 9.87x is representative, not a CCX0 artifact.**
+  CAT's *absolute* residual is nearly CCX-independent (9.66-10.03x across
+  all 4 CCXes tested, MSR-verified). No relabeling of the standard number
+  is needed on this front — it was never really "CCX0's number" in the
+  sense that mattered, it happens to be close to what every CCX converges
+  to under CAT.
+- **[OPEN, NARROWER THAN FIRST REPORTED] CCX0's uncontended WB tax (20.8x
+  vs ~13.4x elsewhere) is real, survives an MSR-independent mechanism
+  (WB arms use no CAT masks, so the domain bug never touched this
+  number), and survives a direct falsification test.** Moving the victim
+  within CCX0 off cpu0 (to cpu7, confirmed low-IRQ, matching CCX1's IRQ
+  level) did *not* fix it (21.066 vs 20.771) — **the cpu0-IRQ-role
+  hypothesis is refuted.** This is now a CCX0-as-physical/topological-unit
+  question (fabric position, IO die proximity, hop count), which is
+  genuinely beyond OS-level tooling — AMD fabric documentation or vendor
+  engagement is the honest next step, not something to keep probing from
+  the OS side.
+- **This needs to reach the paper's AMD section**: the *headline* CAT
+  number (9.87x, or the cross-CCX ~9.7-10.0x band) is fine to use as-is.
+  What changed is narrower and more interesting: the uncontended WB
+  baseline itself is not CCX-uniform, which is a real, quotable,
+  community-useful methodology finding in its own right ("core/CCX
+  placement of the victim measurably changes the *uncontended* baseline
+  on this platform, even though the CAT-protected residual converges") —
+  independent of whether the underlying fabric mechanism ever gets
+  identified.
+- **gem5 (Phase 2.5)**: the original blocking concern (does 9.87x
+  represent AMD's CAT mechanism generally) is resolved — it does, within
+  the band every CCX converges to. Whether to keep the hold pending the
+  now-narrower WB-uncontended/CCX0 question, or unblock since it doesn't
+  bear directly on any of the 6 validation targets, is a decision to
+  bring back to the user, not something to resolve here.
+- Add a governor/boost/hugepage/THP freeze-state check to the start of
+  every AMD session — implemented as `env_manifest.py`, should be run
   and diffed against the previous session at the start of every future
   measurement session on either host.
-- **New, not previously scoped**: decide whether to re-measure other
-  campaign AMD numbers (WB, WC, flush-behind, A4/A5/A6) across multiple
-  CCXes too, given CCX0's demonstrated non-representativeness. WC/WB's
-  own CCX0-vs-CCX1 comparison is already done here (WB) and via the v2
-  warmup check (WC, though not cross-CCX) — flush-behind and the
-  lookup-only/concurrency-cap arms have not been cross-CCX tested at all.
+- **Still open, not yet scoped**: cross-CCX replication of WC, flush-behind,
+  and A4/A5/A6, given the (now narrower, but still real) CCX0
+  non-uniformity in uncontended baselines. Lower urgency than before —
+  the CAT-specific version of this question is answered — but WC and
+  flush-behind's own uncontended comparisons haven't been checked across
+  CCXes and could in principle show the same pattern.
+- **Process note for the record**: the domain-index bug was caught
+  because the panel demanded a specific, falsifiable gating check before
+  trusting the table, not because anyone reviewing the numbers themselves
+  found it implausible (0.986/0.999/1.017 look exactly like a clean null
+  result). This is now the second time in two rounds that verifying
+  *how* a measurement was taken (not just what it showed) caught a real
+  bug — worth keeping as a standing discipline, not a one-off lesson.
