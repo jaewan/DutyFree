@@ -77,14 +77,45 @@ def parse_perf_csv(path):
     return out
 
 
-def read_mbm(grp):
+def discover_domain(cpu):
+    """Live occupancy probe to find which resctrl L3 domain a CPU's CCX
+    actually is -- domain index does NOT track CCX index sequentially
+    (verified earlier: CCX0->0, CCX1->1, CCX2->8, CCX3->9)."""
+    grp = f"{RESCTRL}/probe_domdisc"
+    os.makedirs(grp, exist_ok=True)
+    open(f"{grp}/cpus_list", "w").write(str(cpu))
+    proc = subprocess.Popen(f"{VICTIM} -c {cpu} -w 4096 -P -d 5 -W 1 > /tmp/probe_domdisc.log 2>&1", shell=True)
+    time.sleep(3)
+    found = None
+    for f in sorted(os.listdir(f"{grp}/mon_data")):
+        path = f"{grp}/mon_data/{f}/llc_occupancy"
+        try:
+            v = open(path).read().strip()
+        except (FileNotFoundError, ValueError):
+            continue
+        if v not in ("0", "Unavailable") and int(v) > 100000:
+            found = int(f.split("_")[-1])
+            break
+    proc.wait(timeout=15)
+    os.rmdir(grp)
+    if found is None:
+        raise RuntimeError(f"could not discover domain for cpu{cpu}")
+    return found
+
+
+def read_mbm(grp, domain):
+    # NOTE: mon_data enumerates ALL domains under every group (mon_L3_00
+    # .. mon_L3_31), not just the one the group's cpus live on -- reading
+    # a hardcoded mon_L3_00 for a non-CCX0 group is the exact same class
+    # of bug as the schemata domain-index mistake, just in the monitoring
+    # path instead of the control path. Must use the DISCOVERED domain.
     for _ in range(10):
-        with open(f"{grp}/mon_data/mon_L3_00/mbm_total_bytes") as f:
+        with open(f"{grp}/mon_data/mon_L3_{domain:02d}/mbm_total_bytes") as f:
             v = f.read().strip()
         if v != "Unavailable":
             return int(v)
         time.sleep(0.5)
-    raise RuntimeError("mbm stayed Unavailable")
+    raise RuntimeError(f"mbm stayed Unavailable on domain {domain}")
 
 
 def probe1_3_loaded(ccx_idx, base_cpu, reps):
@@ -96,10 +127,19 @@ def probe1_3_loaded(ccx_idx, base_cpu, reps):
     vgrp, agrp = f"{RESCTRL}/probe1_{ccx_idx}_v", f"{RESCTRL}/probe1_{ccx_idx}_a"
     sh("pkill -f 'bin/aggressor' 2>/dev/null")
     time.sleep(0.3)
+
+    domain = discover_domain(victim_cpu)
+    print(f"  CCX{ccx_idx} (cpu{victim_cpu}) -> resctrl domain {domain}", flush=True)
+
     os.makedirs(vgrp, exist_ok=True)
     os.makedirs(agrp, exist_ok=True)
     open(f"{vgrp}/cpus_list", "w").write(str(victim_cpu))
     open(f"{agrp}/cpus_list", "w").write(agg_cores)
+    # writing ffff (full access, the default) to domain 0 specifically is
+    # harmless here since no arm in this probe restricts CAT -- every
+    # domain, including the real one, is already at ffff by default. Kept
+    # simple (not full per-domain lines like check_ccx_comparison_v2.py's
+    # write_schemata) since correctness doesn't depend on it for this probe.
     open(f"{vgrp}/schemata", "w").write("L3:0=ffff\nSMBA:0=2048\n")
     open(f"{agrp}/schemata", "w").write("L3:0=ffff\nSMBA:0=2048\n")
     time.sleep(1.0)  # let RMID/monitoring settle before the first mbm read
@@ -108,7 +148,7 @@ def probe1_3_loaded(ccx_idx, base_cpu, reps):
     try:
         for r in range(1, reps + 1):
             agg_log = f"/tmp/probe1_{ccx_idx}_agg_{r}.log"
-            mbm0 = read_mbm(agrp)
+            mbm0 = read_mbm(agrp, domain)
             t0 = time.time()
             agg = subprocess.Popen(
                 f"{AGGRESSOR} -m wb_load -t 7 -c {agg_cores} -N 2 -s 64 -d {AGG_DUR} "
@@ -135,7 +175,7 @@ def probe1_3_loaded(ccx_idx, base_cpu, reps):
             perf_proc.wait(timeout=perf_dur + 5)
             agg.wait(timeout=AGG_DUR + 10)
             t1 = time.time()
-            mbm1 = read_mbm(agrp)
+            mbm1 = read_mbm(agrp, domain)
 
             with open(agg_log) as f:
                 agg_bw = parse_agg_bw(f.read())

@@ -1,0 +1,12 @@
+=== FULL SUMMARY (n=6 per CCX, all 4 CCXes) ===
+ CCX  agg_bw_self  dram_near_lat  ext_near_lat  idle_local_cyc  idle_cxl_cyc
+   0       24.7045         0.3806         0.6047          313.03         893.35
+   1       24.7310         0.3213         0.5372          313.25         888.66
+   2       24.6770         0.3223         0.5230          312.27         892.84
+   3       24.6895         0.3212         0.5473          310.69         886.17
+
+dram_near_lat: CCX0 excess vs CCX1-3 mean = +18.3%
+ext_near_lat:  CCX0 excess vs CCX1-3 mean = +12.9%
+agg_bw:        flat across all 4 CCXes (<0.3% spread)
+idle_local:    flat across all 4 CCXes (<1% spread)
+idle_cxl:      flat across all 4 CCXes (<1% spread)

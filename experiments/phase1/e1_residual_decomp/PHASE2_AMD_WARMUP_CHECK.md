@@ -450,17 +450,53 @@ mid-campaign package churn.
   is needed on this front — it was never really "CCX0's number" in the
   sense that mattered, it happens to be close to what every CCX converges
   to under CAT.
-- **[OPEN, NARROWER THAN FIRST REPORTED] CCX0's uncontended WB tax (20.8x
-  vs ~13.4x elsewhere) is real, survives an MSR-independent mechanism
-  (WB arms use no CAT masks, so the domain bug never touched this
-  number), and survives a direct falsification test.** Moving the victim
-  within CCX0 off cpu0 (to cpu7, confirmed low-IRQ, matching CCX1's IRQ
-  level) did *not* fix it (21.066 vs 20.771) — **the cpu0-IRQ-role
-  hypothesis is refuted.** This is now a CCX0-as-physical/topological-unit
-  question (fabric position, IO die proximity, hop count), which is
-  genuinely beyond OS-level tooling — AMD fabric documentation or vendor
-  engagement is the honest next step, not something to keep probing from
-  the OS side.
+- **[NARROWED FURTHER] CCX0's uncontended WB tax (20.8x vs ~13.4x
+  elsewhere) is real, survives an MSR-independent mechanism, and survives
+  a direct falsification test** (moving the victim to cpu7 within CCX0,
+  confirmed low-IRQ, did not fix it — the cpu0-IRQ-role hypothesis is
+  refuted). Before conceding this is beyond OS-level tooling, three cheap
+  probes were run across all 4 CCXes (`probe_ccx0_mechanism.py`, n=6):
+
+  | CCX | agg_bw (GB/s) | dram_near lat* | ext_near lat* | idle local (cyc) | idle CXL (cyc) |
+  |---|---:|---:|---:|---:|---:|
+  | 0 | 24.704 | **0.3806** | **0.6047** | 313.0 | 893.4 |
+  | 1 | 24.731 | 0.3213 | 0.5372 | 313.3 | 888.7 |
+  | 2 | 24.677 | 0.3223 | 0.5230 | 312.3 | 892.8 |
+  | 3 | 24.690 | 0.3212 | 0.5473 | 310.7 | 886.2 |
+
+  *raw `l3_xi_sampled_latency / l3_xi_sampled_latency_requests` ratio;
+  absolute units not independently validated (this is a sampled/sparse
+  hardware counter pair — the ratio's cross-CCX comparison is meaningful
+  under identical methodology, but "0.38" should not be read as literal
+  cycles without further validation against AMD documentation).
+
+  **Two of three probes come back completely flat**: aggressor bandwidth
+  is identical across all 4 CCXes (<0.3% spread) — ruling out an
+  aggressor-side explanation. Idle latency to both local DRAM and CXL is
+  also flat (<1% spread on each) — ruling out a simple static
+  fabric-distance/hop-count explanation; CCX0 is not "farther" from
+  memory or the CXL controller in any way visible at idle.
+
+  **The third probe shows a real, four-way-replicated signal, and it's
+  specific to load.** CCX0's loaded XI-latency ratio is ~18% higher
+  (dram_near) and ~13% higher (ext_near) than CCX1/2/3's tight cluster —
+  the *only* one of the three measured quantities where CCX0 stands out.
+  Combined with quiescent baselines being flat across all 4 CCXes
+  (established earlier) and the endpoint difference only appearing under
+  contention, this points at a **queueing/arbitration asymmetry specific
+  to load**, not a physical distance or bandwidth-delivery difference:
+  something about how CCX0's requests are prioritized or queued at the
+  fabric/memory-controller level under contention, not where CCX0 sits.
+
+  **This is now a much narrower, more specific question than "CCX0
+  topology" — a fabric QoS/arbitration-policy asymmetry under load — and
+  answering *why* still requires AMD documentation or vendor engagement
+  (this campaign's OS-level tooling cannot read arbiter priority tables
+  or crossbar scheduling policy), but the empirical characterization is
+  no longer "beyond OS-level tooling" in general — two candidate
+  mechanisms (aggressor-side, idle-distance) were directly tested and
+  eliminated, and the surviving candidate (loaded-queueing asymmetry) is
+  now measured, not just inferred.**
 - **This needs to reach the paper's AMD section**: the *headline* CAT
   number (9.87x, or the cross-CCX ~9.7-10.0x band) is fine to use as-is.
   What changed is narrower and more interesting: the uncontended WB
