@@ -126,3 +126,23 @@ trusting the display string.
   smoke-test runs above already tested and passed).
 
 **Next**: merge `gate0-test` into `streaming`, tag, push. Then Gate 1.
+
+## Finalized
+
+- Merged `gate0-test` into `streaming` (`--no-ff`, full verification record
+  in the merge commit message): `streaming` HEAD is now `23f27375e9`.
+- Tagged `gate0-unified` on the gem5 repo, pushed both branch and tag.
+- PR #2 auto-detected as merged by GitHub (identical commit content);
+  commented with a pointer to this file, since it was merged via direct
+  `git merge` rather than GitHub's own merge button.
+- Umbrella `DutyFree` repo's `gem5` submodule pointer updated to
+  `23f27375e9`. **`asplos27-submission` tag deliberately left untouched**
+  at the old SHA (`00fca787bd`) — it's the reproducibility anchor for what
+  was actually submitted; Gate 0's unification is new work building on
+  top of it, not a correction to it, so the historical tag stays put and
+  `gate0-unified` is the new reference point going forward.
+- Scratch branch `gate0-test` deleted (fully merged, no longer needed).
+
+**Gate 0 is complete.** Every future run in this campaign should build
+from `streaming` HEAD `23f27375e9` (or later), not the pre-Gate-0
+`00fca787bd`.
