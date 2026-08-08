@@ -1,0 +1,96 @@
+{"arm": "quiescent", "rep": 1, "cyc_per_iter": 3635943.7092430117, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 3376702.43902439, "msr": null}
+{"arm": "wb", "rep": 1, "cyc_per_iter": 50410458.82253521, "agg_bw_self_gbps": 24.685, "agg_mbm_bw_gbps": 24.19249104477089, "occ_mean_bytes": 70331.31707317074, "msr": null}
+{"arm": "wb_cat", "rep": 1, "cyc_per_iter": 35900923.43687375, "agg_bw_self_gbps": 24.716, "agg_mbm_bw_gbps": 24.283880379911345, "occ_mean_bytes": 2804860.8780487804, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 1, "cyc_per_iter": 3582383.0026135906, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.0004876630651016699, "occ_mean_bytes": 3868222.43902439, "msr": null}
+{"arm": "flush_d256kb", "rep": 1, "cyc_per_iter": 16744926.86235955, "agg_bw_self_gbps": 17.023, "agg_mbm_bw_gbps": 33.128433500976506, "occ_mean_bytes": 2765299.512195122, "msr": null}
+{"arm": "t1", "rep": 1, "cyc_per_iter": 10660148.972586412, "agg_bw_self_gbps": 12.712, "agg_mbm_bw_gbps": 12.697491595748732, "occ_mean_bytes": 1519715.9024390243, "msr": null}
+{"arm": "t2", "rep": 1, "cyc_per_iter": 16229695.985494107, "agg_bw_self_gbps": 21.519, "agg_mbm_bw_gbps": 21.377085072257525, "occ_mean_bytes": 742874.5365853659, "msr": null}
+{"arm": "t3", "rep": 1, "cyc_per_iter": 41655241.051162794, "agg_bw_self_gbps": 24.13, "agg_mbm_bw_gbps": 23.90047188528238, "occ_mean_bytes": 80321.56097560975, "msr": null}
+{"arm": "quiescent", "rep": 2, "cyc_per_iter": 3658547.747383542, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 3595688.5853658537, "msr": null}
+{"arm": "wb", "rep": 2, "cyc_per_iter": 49340319.63360882, "agg_bw_self_gbps": 24.673, "agg_mbm_bw_gbps": 24.191072449438312, "occ_mean_bytes": 202202.53658536586, "msr": null}
+{"arm": "wb_cat", "rep": 2, "cyc_per_iter": 35506898.03571428, "agg_bw_self_gbps": 24.718, "agg_mbm_bw_gbps": 24.223868133451546, "occ_mean_bytes": 2906361.7560975607, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 2, "cyc_per_iter": 3697731.4310917393, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.0003637481221137527, "occ_mean_bytes": 3964528.3902439023, "msr": null}
+{"arm": "flush_d256kb", "rep": 2, "cyc_per_iter": 16581469.636700649, "agg_bw_self_gbps": 17.044, "agg_mbm_bw_gbps": 33.1725610498127, "occ_mean_bytes": 2933934.8292682925, "msr": null}
+{"arm": "t1", "rep": 2, "cyc_per_iter": 11204193.388854101, "agg_bw_self_gbps": 12.692, "agg_mbm_bw_gbps": 12.67821475967362, "occ_mean_bytes": 1362269.6585365853, "msr": null}
+{"arm": "t2", "rep": 2, "cyc_per_iter": 17614252.28937008, "agg_bw_self_gbps": 21.557, "agg_mbm_bw_gbps": 21.409775754616454, "occ_mean_bytes": 131471.60975609755, "msr": null}
+{"arm": "t3", "rep": 2, "cyc_per_iter": 32261528.785971224, "agg_bw_self_gbps": 24.113, "agg_mbm_bw_gbps": 23.882833821362265, "occ_mean_bytes": 156247.41463414635, "msr": null}
+{"arm": "quiescent", "rep": 3, "cyc_per_iter": 3671667.0609806343, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 3457823.2195121953, "msr": null}
+{"arm": "wb", "rep": 3, "cyc_per_iter": 48718061.5585831, "agg_bw_self_gbps": 24.712, "agg_mbm_bw_gbps": 24.223284949878007, "occ_mean_bytes": 208596.29268292684, "msr": null}
+{"arm": "wb_cat", "rep": 3, "cyc_per_iter": 35514210.565476194, "agg_bw_self_gbps": 24.697, "agg_mbm_bw_gbps": 24.197284159893066, "occ_mean_bytes": 2653408.7804878047, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 3, "cyc_per_iter": 3617452.9663080983, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.00021421923390125996, "occ_mean_bytes": 3491390.43902439, "msr": null}
+{"arm": "flush_d256kb", "rep": 3, "cyc_per_iter": 16593413.993506493, "agg_bw_self_gbps": 17.037, "agg_mbm_bw_gbps": 33.163484427687486, "occ_mean_bytes": 2891975.8048780486, "msr": null}
+{"arm": "t1", "rep": 3, "cyc_per_iter": 11084352.013011152, "agg_bw_self_gbps": 12.701, "agg_mbm_bw_gbps": 12.684802016483438, "occ_mean_bytes": 1395037.6585365853, "msr": null}
+{"arm": "t2", "rep": 3, "cyc_per_iter": 16183913.879746836, "agg_bw_self_gbps": 21.667, "agg_mbm_bw_gbps": 21.525773398474485, "occ_mean_bytes": 713703.0243902439, "msr": null}
+{"arm": "t3", "rep": 3, "cyc_per_iter": 31414663.11754386, "agg_bw_self_gbps": 24.098, "agg_mbm_bw_gbps": 23.86521464809924, "occ_mean_bytes": 173430.63414634147, "msr": null}
+{"arm": "quiescent", "rep": 4, "cyc_per_iter": 3658884.699507389, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 3250825.3658536584, "msr": null}
+{"arm": "wb", "rep": 4, "cyc_per_iter": 48609195.45380435, "agg_bw_self_gbps": 24.672, "agg_mbm_bw_gbps": 24.134920683748863, "occ_mean_bytes": 197407.21951219512, "msr": null}
+{"arm": "wb_cat", "rep": 4, "cyc_per_iter": 34336045.82341651, "agg_bw_self_gbps": 24.702, "agg_mbm_bw_gbps": 24.25186779072346, "occ_mean_bytes": 2140309.8536585364, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 4, "cyc_per_iter": 3645552.853079599, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.00022118746819406386, "occ_mean_bytes": 3588096.0, "msr": null}
+{"arm": "flush_d256kb", "rep": 4, "cyc_per_iter": 16900782.084985837, "agg_bw_self_gbps": 17.011, "agg_mbm_bw_gbps": 33.140244844590065, "occ_mean_bytes": 2364890.536585366, "msr": null}
+{"arm": "t1", "rep": 4, "cyc_per_iter": 11088105.324039653, "agg_bw_self_gbps": 12.744, "agg_mbm_bw_gbps": 12.729261541835502, "occ_mean_bytes": 1450983.024390244, "msr": null}
+{"arm": "t2", "rep": 4, "cyc_per_iter": 16113173.851485148, "agg_bw_self_gbps": 21.582, "agg_mbm_bw_gbps": 21.435009812768588, "occ_mean_bytes": 303703.4146341463, "msr": null}
+{"arm": "t3", "rep": 4, "cyc_per_iter": 42598201.35154394, "agg_bw_self_gbps": 24.18, "agg_mbm_bw_gbps": 23.945458651057468, "occ_mean_bytes": 158645.07317073172, "msr": null}
+{"arm": "quiescent", "rep": 5, "cyc_per_iter": 3558812.7522954093, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 2882385.1707317075, "msr": null}
+{"arm": "wb", "rep": 5, "cyc_per_iter": 49262587.71349862, "agg_bw_self_gbps": 24.708, "agg_mbm_bw_gbps": 24.189883282237314, "occ_mean_bytes": 177426.73170731709, "msr": null}
+{"arm": "wb_cat", "rep": 5, "cyc_per_iter": 35297060.27416173, "agg_bw_self_gbps": 24.68, "agg_mbm_bw_gbps": 24.198711291296952, "occ_mean_bytes": 2182348.8, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 5, "cyc_per_iter": 3599263.535137318, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.0001826724157543381, "occ_mean_bytes": 3449431.4146341463, "msr": null}
+{"arm": "flush_d256kb", "rep": 5, "cyc_per_iter": 16935289.714285713, "agg_bw_self_gbps": 17.002, "agg_mbm_bw_gbps": 33.09326911700497, "occ_mean_bytes": 2754909.6585365855, "msr": null}
+{"arm": "t1", "rep": 5, "cyc_per_iter": 10881455.585766423, "agg_bw_self_gbps": 12.689, "agg_mbm_bw_gbps": 12.671397866191697, "occ_mean_bytes": 1486947.9024390243, "msr": null}
+{"arm": "t2", "rep": 5, "cyc_per_iter": 16446397.495404411, "agg_bw_self_gbps": 21.52, "agg_mbm_bw_gbps": 21.37603189166312, "occ_mean_bytes": 316890.53658536583, "msr": null}
+{"arm": "t3", "rep": 5, "cyc_per_iter": 35689248.64342629, "agg_bw_self_gbps": 24.155, "agg_mbm_bw_gbps": 23.918279111631, "occ_mean_bytes": 222183.0243902439, "msr": null}
+{"arm": "quiescent", "rep": 6, "cyc_per_iter": 3659125.648665298, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 2863203.9024390243, "msr": null}
+{"arm": "wb", "rep": 6, "cyc_per_iter": 48941288.19125683, "agg_bw_self_gbps": 24.65, "agg_mbm_bw_gbps": 24.130642486138054, "occ_mean_bytes": 178625.56097560975, "msr": null}
+{"arm": "wb_cat", "rep": 6, "cyc_per_iter": 26251553.214390602, "agg_bw_self_gbps": 24.67, "agg_mbm_bw_gbps": 24.208841973608536, "occ_mean_bytes": 2243808.7804878047, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 6, "cyc_per_iter": 3646783.0063420623, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.00026644309945569064, "occ_mean_bytes": 3496984.975609756, "msr": null}
+{"arm": "flush_d256kb", "rep": 6, "cyc_per_iter": 16879634.4, "agg_bw_self_gbps": 17.048, "agg_mbm_bw_gbps": 33.201435598938254, "occ_mean_bytes": 2332921.7560975607, "msr": null}
+{"arm": "t1", "rep": 6, "cyc_per_iter": 10721812.071899341, "agg_bw_self_gbps": 12.758, "agg_mbm_bw_gbps": 12.743397477947065, "occ_mean_bytes": 1403029.8536585367, "msr": null}
+{"arm": "t2", "rep": 6, "cyc_per_iter": 17343225.790697675, "agg_bw_self_gbps": 21.689, "agg_mbm_bw_gbps": 21.551071189562382, "occ_mean_bytes": 407601.9512195122, "msr": null}
+{"arm": "t3", "rep": 6, "cyc_per_iter": 36917965.75257732, "agg_bw_self_gbps": 24.149, "agg_mbm_bw_gbps": 23.909543710772287, "occ_mean_bytes": 119882.9268292683, "msr": null}
+{"arm": "quiescent", "rep": 7, "cyc_per_iter": 3585035.6338764834, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 2913155.1219512196, "msr": null}
+{"arm": "wb", "rep": 7, "cyc_per_iter": 49062127.38356164, "agg_bw_self_gbps": 24.704, "agg_mbm_bw_gbps": 24.187477997462068, "occ_mean_bytes": 222582.63414634147, "msr": null}
+{"arm": "wb_cat", "rep": 7, "cyc_per_iter": 35790308.024, "agg_bw_self_gbps": 24.711, "agg_mbm_bw_gbps": 24.24926867478282, "occ_mean_bytes": 2158292.2926829266, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 7, "cyc_per_iter": 3596683.3129416513, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.00029407448846168984, "occ_mean_bytes": 3582901.073170732, "msr": null}
+{"arm": "flush_d256kb", "rep": 7, "cyc_per_iter": 17000935.84805318, "agg_bw_self_gbps": 17.028, "agg_mbm_bw_gbps": 33.1462332320199, "occ_mean_bytes": 2403253.073170732, "msr": null}
+{"arm": "t1", "rep": 7, "cyc_per_iter": 9965971.484122563, "agg_bw_self_gbps": 12.783, "agg_mbm_bw_gbps": 12.767177865191027, "occ_mean_bytes": 1705134.8292682928, "msr": null}
+{"arm": "t2", "rep": 7, "cyc_per_iter": 16415466.60733945, "agg_bw_self_gbps": 21.539, "agg_mbm_bw_gbps": 21.39826432074302, "occ_mean_bytes": 364444.0975609756, "msr": null}
+{"arm": "t3", "rep": 7, "cyc_per_iter": 42532649.45971564, "agg_bw_self_gbps": 24.174, "agg_mbm_bw_gbps": 23.94567562180429, "occ_mean_bytes": 79122.73170731707, "msr": null}
+{"arm": "quiescent", "rep": 8, "cyc_per_iter": 3677719.5625257944, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 2871196.0975609757, "msr": null}
+{"arm": "wb", "rep": 8, "cyc_per_iter": 48529543.70460705, "agg_bw_self_gbps": 24.697, "agg_mbm_bw_gbps": 24.176104943955217, "occ_mean_bytes": 191013.46341463414, "msr": null}
+{"arm": "wb_cat", "rep": 8, "cyc_per_iter": 35472654.02970297, "agg_bw_self_gbps": 24.668, "agg_mbm_bw_gbps": 24.20891393566992, "occ_mean_bytes": 2250202.536585366, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 8, "cyc_per_iter": 3557342.1815095847, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.000250991341219927, "occ_mean_bytes": 3586497.56097561, "msr": null}
+{"arm": "flush_d256kb", "rep": 8, "cyc_per_iter": 16743122.287453184, "agg_bw_self_gbps": 17.029, "agg_mbm_bw_gbps": 33.13917320593071, "occ_mean_bytes": 2518340.6829268294, "msr": null}
+{"arm": "t1", "rep": 8, "cyc_per_iter": 6775605.522348485, "agg_bw_self_gbps": 12.768, "agg_mbm_bw_gbps": 12.755102904345696, "occ_mean_bytes": 2503155.512195122, "msr": null}
+{"arm": "t2", "rep": 8, "cyc_per_iter": 16741476.545369504, "agg_bw_self_gbps": 21.56, "agg_mbm_bw_gbps": 21.418447008072715, "occ_mean_bytes": 605009.1707317074, "msr": null}
+{"arm": "t3", "rep": 8, "cyc_per_iter": 27326110.006097563, "agg_bw_self_gbps": 24.176, "agg_mbm_bw_gbps": 23.9450689540554, "occ_mean_bytes": 235370.1463414634, "msr": null}
+{"arm": "quiescent", "rep": 9, "cyc_per_iter": 3605145.6256576283, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 2909958.2439024393, "msr": null}
+{"arm": "wb", "rep": 9, "cyc_per_iter": 50145656.23529412, "agg_bw_self_gbps": 24.627, "agg_mbm_bw_gbps": 24.113429825093448, "occ_mean_bytes": 214590.43902439025, "msr": null}
+{"arm": "wb_cat", "rep": 9, "cyc_per_iter": 36089359.66935484, "agg_bw_self_gbps": 24.599, "agg_mbm_bw_gbps": 24.144818069120536, "occ_mean_bytes": 2307746.3414634145, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 9, "cyc_per_iter": 3699331.211454659, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.00020091606375477892, "occ_mean_bytes": 3654830.8292682925, "msr": null}
+{"arm": "flush_d256kb", "rep": 9, "cyc_per_iter": 16881617.53773585, "agg_bw_self_gbps": 17.023, "agg_mbm_bw_gbps": 33.145975919627645, "occ_mean_bytes": 2465991.8048780486, "msr": null}
+{"arm": "t1", "rep": 9, "cyc_per_iter": 6911481.922750097, "agg_bw_self_gbps": 12.785, "agg_mbm_bw_gbps": 12.77061420243201, "occ_mean_bytes": 2535523.9024390243, "msr": null}
+{"arm": "t2", "rep": 9, "cyc_per_iter": 16375926.690759378, "agg_bw_self_gbps": 21.624, "agg_mbm_bw_gbps": 21.48265219051997, "occ_mean_bytes": 360448.0, "msr": null}
+{"arm": "t3", "rep": 9, "cyc_per_iter": 33992292.11005693, "agg_bw_self_gbps": 24.18, "agg_mbm_bw_gbps": 23.94894439264327, "occ_mean_bytes": 138264.9756097561, "msr": null}
+{"arm": "quiescent", "rep": 10, "cyc_per_iter": 3658638.4189244662, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 2924344.1951219514, "msr": null}
+{"arm": "wb", "rep": 10, "cyc_per_iter": 48898431.155737706, "agg_bw_self_gbps": 24.704, "agg_mbm_bw_gbps": 24.18702642012049, "occ_mean_bytes": 194609.9512195122, "msr": null}
+{"arm": "wb_cat", "rep": 10, "cyc_per_iter": 36130708.11895161, "agg_bw_self_gbps": 24.687, "agg_mbm_bw_gbps": 24.235275513080985, "occ_mean_bytes": 2227824.3902439023, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 10, "cyc_per_iter": 3745914.6947656088, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.0002437642769652595, "occ_mean_bytes": 3537345.56097561, "msr": null}
+{"arm": "flush_d256kb", "rep": 10, "cyc_per_iter": 16763776.032802248, "agg_bw_self_gbps": 17.032, "agg_mbm_bw_gbps": 33.18086225402912, "occ_mean_bytes": 2350904.1951219514, "msr": null}
+{"arm": "t1", "rep": 10, "cyc_per_iter": 7141869.073453094, "agg_bw_self_gbps": 12.821, "agg_mbm_bw_gbps": 12.809527625813947, "occ_mean_bytes": 2592668.0975609757, "msr": null}
+{"arm": "t2", "rep": 10, "cyc_per_iter": 16426942.712844037, "agg_bw_self_gbps": 21.597, "agg_mbm_bw_gbps": 21.45279112563521, "occ_mean_bytes": 376032.7804878049, "msr": null}
+{"arm": "t3", "rep": 10, "cyc_per_iter": 25296815.581920903, "agg_bw_self_gbps": 24.157, "agg_mbm_bw_gbps": 23.92719110413124, "occ_mean_bytes": 247758.0487804878, "msr": null}
+{"arm": "quiescent", "rep": 11, "cyc_per_iter": 3586384.3023958122, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 3249626.536585366, "msr": null}
+{"arm": "wb", "rep": 11, "cyc_per_iter": 49752414.708333336, "agg_bw_self_gbps": 24.703, "agg_mbm_bw_gbps": 24.189884937189046, "occ_mean_bytes": 249356.48780487804, "msr": null}
+{"arm": "wb_cat", "rep": 11, "cyc_per_iter": 35480940.120792076, "agg_bw_self_gbps": 24.653, "agg_mbm_bw_gbps": 24.198636252485294, "occ_mean_bytes": 2471985.951219512, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 11, "cyc_per_iter": 3559843.010991207, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.0002692814217288808, "occ_mean_bytes": 3781906.7317073173, "msr": null}
+{"arm": "flush_d256kb", "rep": 11, "cyc_per_iter": 16919080.940397352, "agg_bw_self_gbps": 17.022, "agg_mbm_bw_gbps": 33.13392008076466, "occ_mean_bytes": 2834831.6097560977, "msr": null}
+{"arm": "t1", "rep": 11, "cyc_per_iter": 9400391.558066212, "agg_bw_self_gbps": 12.815, "agg_mbm_bw_gbps": 12.800829281891113, "occ_mean_bytes": 1722318.0487804879, "msr": null}
+{"arm": "t2", "rep": 11, "cyc_per_iter": 16329759.668795621, "agg_bw_self_gbps": 21.622, "agg_mbm_bw_gbps": 21.480862147547075, "occ_mean_bytes": 389219.9024390244, "msr": null}
+{"arm": "t3", "rep": 11, "cyc_per_iter": 42456090.187203795, "agg_bw_self_gbps": 24.204, "agg_mbm_bw_gbps": 23.97079573052214, "occ_mean_bytes": 212592.39024390245, "msr": null}
+{"arm": "quiescent", "rep": 12, "cyc_per_iter": 3620465.3917106865, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": null, "occ_mean_bytes": 3152121.7560975607, "msr": null}
+{"arm": "wb", "rep": 12, "cyc_per_iter": 48860723.82786885, "agg_bw_self_gbps": 24.676, "agg_mbm_bw_gbps": 24.16050207087115, "occ_mean_bytes": 184220.0975609756, "msr": null}
+{"arm": "wb_cat", "rep": 12, "cyc_per_iter": 35898183.1763527, "agg_bw_self_gbps": 24.672, "agg_mbm_bw_gbps": 24.21495301605043, "occ_mean_bytes": 2332522.1463414636, "msr": {"v_closid": 1, "v_mask": 65280, "a_closid": 2, "a_mask": 255, "disjoint": true}}
+{"arm": "wc", "rep": 12, "cyc_per_iter": 3654761.2767179487, "agg_bw_self_gbps": null, "agg_mbm_bw_gbps": 0.0001810916587708371, "occ_mean_bytes": 3814275.1219512196, "msr": null}
+{"arm": "flush_d256kb", "rep": 12, "cyc_per_iter": 16620294.422862453, "agg_bw_self_gbps": 16.997, "agg_mbm_bw_gbps": 33.09696436331179, "occ_mean_bytes": 2820046.048780488, "msr": null}
+{"arm": "t1", "rep": 12, "cyc_per_iter": 7522822.753994954, "agg_bw_self_gbps": 12.801, "agg_mbm_bw_gbps": 12.787078369757063, "occ_mean_bytes": 2438418.7317073173, "msr": null}
+{"arm": "t2", "rep": 12, "cyc_per_iter": 16323757.680036463, "agg_bw_self_gbps": 21.624, "agg_mbm_bw_gbps": 21.48421957055279, "occ_mean_bytes": 437572.68292682926, "msr": null}
+{"arm": "t3", "rep": 12, "cyc_per_iter": 42890199.4784689, "agg_bw_self_gbps": 24.102, "agg_mbm_bw_gbps": 23.87179630664048, "occ_mean_bytes": 81120.78048780488, "msr": null}

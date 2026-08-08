@@ -497,6 +497,17 @@ mid-campaign package churn.
   mechanisms (aggressor-side, idle-distance) were directly tested and
   eliminated, and the surviving candidate (loaded-queueing asymmetry) is
   now measured, not just inferred.**
+
+  **Independent corroboration, from the clean-CCX co-measured session**
+  (`PHASE2_CLEAN_CCX_OUTCOMES.md`): comparing CCX1's 1T/2T/3T concurrency
+  sweep against CCX0's original retained A6 data at the same thread
+  counts shows CCX0's excess **grows monotonically with contention
+  intensity** — +3% at 1 thread, +42% at 2 threads, +81% at 3 threads.
+  A static topology/distance difference would not produce a scaling
+  relationship with load; a queueing/arbitration asymmetry that only
+  bites under contention would. Two independent measurements (loaded
+  XI-latency ratio, and now concurrency-intensity scaling) point the
+  same direction.
 - **This needs to reach the paper's AMD section**: the *headline* CAT
   number (9.87x, or the cross-CCX ~9.7-10.0x band) is fine to use as-is.
   What changed is narrower and more interesting: the uncontended WB

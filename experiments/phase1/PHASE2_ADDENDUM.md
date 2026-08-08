@@ -73,15 +73,43 @@ Four numbers, all measured this campaign, n>=12 or cross-validated:
 > hold is now scoped to this one open item, not the broader "does 9.87x
 > generalize" concern it started as.
 
-Three orthogonal, deployable-class mechanisms (capacity partitioning,
-residency bounding, concurrency reduction) converge on a ~6-7x floor; only
-the mechanism that is exempt from the coherent path *by memory type*
-(WC) gets below it. Adopted as the paper's AMD figure. Two-level thesis:
-at the LLC, write-back bundles prefetching with *allocation* (Intel; H2
-fixes it, E2b is the silicon evidence); at the fabric, cacheable-coherent
-bundles prefetching with *transaction-pool enrollment* (AMD; no deployed or
-emulated residency/capacity/concurrency knob reaches it -- only
-type-licensed exemption does).
+> **⚠️ CORRECTED AGAIN, 2026-08-09**: the "three mechanisms converge on a
+> ~6-7x floor" claim below is **retracted**. It was built entirely from
+> CCX0 data (old epoch for flush-behind/concurrency-cap, new epoch for
+> CAT) — exactly the epoch/CCX mixing flagged as a risk. A clean-CCX
+> co-measured session (CCX1, n=12, one session, MSR-verified,
+> `e1_residual_decomp/PHASE2_CLEAN_CCX_OUTCOMES.md`) pre-registered and
+> then falsified the prediction that flush-behind sits in the same band
+> as CAT: **flush-behind = 4.61x [4.56,4.70] vs CAT's 9.74x [9.67,9.93]
+> on the same CCX, same session — not the same equivalence class at
+> all.** Residency bounding (flush-behind) removes something
+> way-partitioning (CAT) cannot; the "single un-partitionable floor"
+> framing was wrong. See below for the corrected picture.
+
+Superseded framing, corrected 2026-08-09: **not** three mechanisms
+converging on one floor. Two distinct outcomes on a clean CCX (CCX1,
+one co-measured session):
+
+| Mechanism | Tax (clean CCX1) | 95% CI | Note |
+|---|---:|---:|---|
+| CAT, 8/8 way split | 9.74x | [9.67,9.93] | large, chip-wide-invariant residual (9.66-10.03x across all 4 CCXes) |
+| Concurrency cap, 3T | 9.95x | [8.70,11.75] | same rough band as CAT on CCX1, but CI is wide and the knee's specific shape (2T≈98% of 3T bw) did not replicate here -- needs a dedicated re-derivation, not just a spot value |
+| **Flush-behind, best D (256 KiB)** | **4.61x** | **[4.56,4.70]** | **measurably better than CAT and concurrency-capping on the same CCX, same session** |
+| WC (path-exempt by memory type) | 0.996x | [0.984,1.011] | parity, confirmed on both CCX0 and CCX1 |
+
+The corrected mechanism story: capacity-partitioning (CAT) and raw
+concurrency limits leave a large, roughly chip-wide-invariant residual
+(~9.7-10.0x) that a way-mask or a thread-count cap cannot remove.
+Residency-bounding (flush-behind) does better — it targets LLC
+*occupancy* directly rather than just partitioning or throttling access,
+and measurably removes more of the tax on a representative CCX. Only the
+memory-type exemption (WC) reaches parity outright. Two-level thesis
+holds, refined: at the LLC, write-back bundles prefetching with
+*allocation* (Intel; H2 fixes it, E2b is the silicon evidence); at the
+fabric, cacheable-coherent bundles prefetching with *transaction-pool
+enrollment* (AMD) — capacity/concurrency controls cannot reach it, but
+residency-bounding reaches it *better* than partitioning does, and only
+type-licensed exemption reaches it outright.
 
 ## The Phase 2.4 hole: closed using data already in hand
 
