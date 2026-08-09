@@ -234,8 +234,24 @@ def main():
                 "HNF_SF_FINITE", "HNF_SF_SETS", "HNF_SF_WAYS", "HNF_H3", "HNF_DMT",
                 "HNF_MSHR", "L1_MSHR", "L2_MSHR", "PF_DEGREE_L1", "PF_DEGREE_L2",
                 "PF_OFF_CORES", "LLC_RP", "LLC_RP_HP", "LLC_RP_LEADERS",
+                "ALL_CXL", "RUBY_RANDOMIZATION", "SEED",
             ] if k in os.environ
         },
+        # Per-process memory-pool placement (REPO_DISCIPLINE.md #3 lesson,
+        # discovered the hard way): se.py hardcodes cpu0 -> DRAM pool,
+        # cpu1+ -> CXL pool whenever --cxl-mem-size is set (ALL_CXL=1
+        # overrides everyone onto CXL). This determines which SimpleMemory
+        # controller (and therefore which latency) each process's traffic
+        # actually lands on -- config.json alone does not surface this, it
+        # has to be cross-checked against per-controller stats.txt traffic
+        # (bytesRead/numReads by mem_ctrls index) to confirm which process
+        # landed where, same as this manifest's `memories` field does for
+        # the controllers themselves.
+        "mem_pool_policy": (
+            "ALL_CXL forces every process onto CXL pool 1"
+            if os.environ.get("ALL_CXL", "0") not in ("0", "", "false", "False")
+            else "default: cpu0 -> DRAM pool 0, cpu1+ -> CXL pool 1"
+        ),
     }
 
     outpath = os.path.join(args.outdir, "manifest.json")

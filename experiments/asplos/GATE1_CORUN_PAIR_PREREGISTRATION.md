@@ -146,3 +146,55 @@ see both are real, on the same curve, at different pressure points.
 
 **Tag**: `table-corun-v2` — to be applied to the gem5 repo at the commit
 this run executed against (`a309523389`) once this write-up is committed.
+
+## Follow-on finding: tab:gem5's own WB column may not be reproducible with the current harness
+
+Reading `Sec5_Evaluation.tex` directly (not just the margin notes) surfaces
+something Gate 1's archaeology missed: **the paper's own text already
+states the 1.34x/2.57x split is expected, not an anomaly** — the prose
+sentence introducing the co-run pair explicitly says the aggressor
+"streams from CXL through the full STREAMING path," and `tab:gem5`'s own
+caption says *"The model is calibrated to the local-DRAM operating point
+(sim 2.57x vs. hw 2.61x at 53%); the CXL tax is milder because CXL
+bandwidth caps the LLC fill rate."* — i.e. the co-run-pair prose (CXL
+aggressor, 1.34x) and `tab:gem5`'s WB column (local-DRAM aggressor,
+2.57x) were never meant to be the same number. `\cref{tab:gem5}` at
+lines 241/434 reads correctly as "unlike \cref{tab:gem5}" earlier in the
+same paragraph (a deliberate contrast, not a same-number citation) —
+this session's re-run adds empirical confirmation of that contrast
+(1.22x vs 2.57x, correct direction) rather than exposing a new bug. The
+paper-fix is now smaller than originally scoped: tighten the prose so a
+reader skimming just the `(\cref{tab:gem5})` parenthetical doesn't read
+it as a numeric match, not "fix a wrong cross-reference."
+
+**But this reopens a different, sharper question**: is `tab:gem5`'s own
+"local-4"/WB column (2.57x at 53%, local-DRAM aggressor) even
+reproducible with the *current* harness? Traced `se.py`'s CXL-pool
+assignment directly (not assumed): whenever `--cxl-mem-size` is set,
+process-to-pool assignment is **hardcoded** — `cpu0 -> DRAM pool 0,
+cpu1+ -> CXL pool 1` — with `ALL_CXL=1` as the only override, and it only
+forces *everyone* onto the CXL pool (calibration mode for single-core
+CXL runs). **There is no `ALL_LOCAL` equivalent** to put a two-core
+victim+aggressor pair on local DRAM together. Confirmed by direct
+measurement (this run's own `mem_ctrls0`/`mem_ctrls1` traffic split,
+above): the aggressor (cpu1) landing on CXL is not incidental, it is the
+code's only available two-core configuration short of a script edit.
+
+**Implication**: `tab:gem5`'s "local-4" WB column cannot currently be
+re-instantiated by re-running `b4run.sh`'s existing `wb`/`st` tags at any
+WSS — doing so only ever regenerates more points on the *same* CXL-
+aggressor curve this pre-registration already measured, under a
+different label. Producing a faithful `table-gem5-v2` for the *local-4*
+column specifically requires either: (a) a small, reviewable change to
+`se.py`'s pool-assignment block (e.g. an `ALL_LOCAL` env var mirroring
+`ALL_CXL`, or a `--pool-map` override) to put both processes in DRAM
+pool 0, or (b) accepting that the local-DRAM operating point is out of
+scope for a current-HEAD re-run and re-labeling `tab:gem5`'s WB/local-4
+column as historical/unreproduced (same provenance class as the rest of
+the table). **Not decided here — this is a fork the campaign's own Gate
+0/Gate 1 discipline says should go to the user, not be resolved by
+quietly patching `configs/deprecated/example/se.py` mid-investigation.**
+The CXL/pool-assignment env vars (`ALL_CXL`) and the pool policy itself
+have been added to `gate1_manifest.py`'s provenance capture either way,
+since this was a real gap the tool had regardless of which path is
+chosen.
