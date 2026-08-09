@@ -101,13 +101,18 @@ actually failed partway through (a real compile error in unit-test
 sources) while its own log confidently reported `BUILD_EXIT=0`, and the
 failure was only caught by noticing the resulting directory structure
 looked wrong, not by the exit-code check that exists specifically to
-catch this. **Use `${PIPESTATUS[0]}`** (bash) to capture the first
-command's exit status in a pipeline, or better, avoid the pipe entirely
-when the exit code matters (`cmd > log 2>&1; echo EXIT=$?`) and `tail`/`cat`
-the log separately if live output is wanted. This is the same failure
-shape as everything else in this document — a status check that looks
-like it verifies the right thing but actually verifies something
-adjacent — just now caught in shell scripting instead of a config file.
+catch this. **`${PIPESTATUS[N]}` is itself easy to get wrong** — it's
+indexed by pipeline *stage*, not "the command you care about": for
+`yes '' | scons ... | tee log`, index 0 is `yes` (which routinely exits
+141/SIGPIPE once the downstream reader stops consuming — a red herring,
+not a real failure), and the actual build's exit code is index 1. Found
+this by re-triggering the same mistake one level down while writing the
+fix for the first one. **Best practice: avoid the pipe entirely when the
+exit code matters** (`cmd > log 2>&1; echo EXIT=$?`, `tail`/`cat` the log
+separately for live output) rather than counting pipeline stages under
+time pressure. This is the same failure shape as everything else in this
+document, twice in a row — a status check that looks like it verifies
+the right thing but actually verifies something adjacent.
 
 ## 9. Provenance goes on the commit, not just in a chat message or a memory note.
 
