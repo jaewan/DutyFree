@@ -61,7 +61,36 @@ accurately-titled commits — it is not bureaucracy, it is what makes
 bisection possible six months later when something regresses and nobody
 remembers which of five bundled changes did it.
 
-## 5. Provenance goes on the commit, not just in a chat message or a memory note.
+## 6. Build variant configs are part of the repository, not local state.
+
+`build_opts/` in the gem5 repo is gitignored, but 22 standard gem5
+defconfigs (`ARM`, `X86`, `MIPS`, etc.) were tracked before that ignore
+rule was added — new custom variants (`Intel_8592`, the config behind
+every published gem5 number in this campaign) silently fell through the
+gap: buildable from one person's local `build_Intel_8592/` cache, not
+from the repository. This is the exact same defect class as everything
+else in this document — an artifact (here, the resolved Kconfig:
+`RUBY=y`, `PROTOCOL=CHI`, `NUMBER_BITS_PER_SET=256`, `USE_X86_ISA=y`)
+existed only as one machine's cached state, never committed, never
+independently reproducible. **Any custom build variant used for a
+paper-bound number gets its `build_opts/<name>` file force-added
+(`git add -f`) to the repo**, and verified by actually seeding a fresh
+checkout from it (`scons defconfig build_<variant>/gem5.opt
+build_opts/<variant>`), not just assumed to work.
+
+## 7. The manifest records how the binary was built, not just how it was run.
+
+Per-run manifests (`gate1_manifest.py` and its silicon-side counterpart)
+capture the instantiated *simulation* config, but a build variant with
+the wrong Kconfig options produces silently-wrong results no run-time
+manifest would catch. Every manifest also records: the exact scons
+invocation, the build variant name, and a hash of the resolved
+`gem5.build/config` (or equivalent) — so a future audit can tell, from
+the manifest alone, whether two runs claiming the "same config" were
+actually built from the same Kconfig, not just given the same command-
+line flags at run time.
+
+## 8. Provenance goes on the commit, not just in a chat message or a memory note.
 
 Every merge, tag, and correction in this campaign is traceable via `git
 log`/`git tag`/PR comments, not just via what someone remembers being

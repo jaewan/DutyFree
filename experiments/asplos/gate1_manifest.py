@@ -187,6 +187,33 @@ def main():
     cfg = load_config(args.outdir)
     manifest = extract_manifest(cfg)
 
+    # Build-side provenance (REPO_DISCIPLINE.md #7): a manifest that only
+    # records the run-time simulation config can't catch a wrong Kconfig
+    # baked into the binary itself -- the Intel_8592 variant's own config
+    # was undiscoverable from the repo alone until this was added.
+    binary_path = None
+    for tok in (args.cmdline or "").split():
+        if tok.endswith("gem5.opt") or tok.endswith("gem5.fast") or tok.endswith("gem5.debug"):
+            binary_path = tok
+            break
+    variant_dir = None
+    build_config_hash = None
+    build_config_text = None
+    if binary_path:
+        # .../build_<variant>/gem5.opt -> variant = <variant>
+        parts = binary_path.replace("\\", "/").split("/")
+        for p in parts:
+            if p.startswith("build_"):
+                variant_dir = p
+                break
+        if variant_dir:
+            cfg_path = os.path.join(args.gem5_repo, variant_dir, "gem5.build", "config")
+            if os.path.exists(cfg_path):
+                with open(cfg_path) as f:
+                    build_config_text = f.read()
+                import hashlib
+                build_config_hash = hashlib.sha256(build_config_text.encode()).hexdigest()[:16]
+
     manifest["_provenance"] = {
         "outdir": os.path.abspath(args.outdir),
         "commit_sha": sh("git rev-parse HEAD", cwd=args.gem5_repo),
@@ -194,6 +221,14 @@ def main():
         "dirty_tree": bool(sh("git status --porcelain", cwd=args.gem5_repo)),
         "branch": sh("git rev-parse --abbrev-ref HEAD", cwd=args.gem5_repo),
         "cmdline": args.cmdline,
+        "build_variant": variant_dir,
+        "build_config_hash": build_config_hash,
+        "build_config_text": build_config_text,
+        "build_opts_tracked_in_git": (
+            bool(sh(f"git ls-files build_opts/{variant_dir.replace('build_', '')}",
+                     cwd=args.gem5_repo))
+            if variant_dir else None
+        ),
         "env": {
             k: os.environ[k] for k in [
                 "HNF_SF_FINITE", "HNF_SF_SETS", "HNF_SF_WAYS", "HNF_H3", "HNF_DMT",
