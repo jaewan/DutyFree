@@ -90,7 +90,26 @@ the manifest alone, whether two runs claiming the "same config" were
 actually built from the same Kconfig, not just given the same command-
 line flags at run time.
 
-## 8. Provenance goes on the commit, not just in a chat message or a memory note.
+## 8. `cmd | tee log; echo EXIT=$?` checks tee's exit code, not cmd's.
+
+A build/test wrapper of the form `some_long_command | tee log.txt; echo
+BUILD_EXIT=$? >> log.txt` reports `tee`'s exit status, not the piped
+command's — `tee` almost always exits 0 regardless of whether its input
+producer succeeded or failed. This produced a real, silent false
+positive this session: an h3sf historical-re-instantiation build
+actually failed partway through (a real compile error in unit-test
+sources) while its own log confidently reported `BUILD_EXIT=0`, and the
+failure was only caught by noticing the resulting directory structure
+looked wrong, not by the exit-code check that exists specifically to
+catch this. **Use `${PIPESTATUS[0]}`** (bash) to capture the first
+command's exit status in a pipeline, or better, avoid the pipe entirely
+when the exit code matters (`cmd > log 2>&1; echo EXIT=$?`) and `tail`/`cat`
+the log separately if live output is wanted. This is the same failure
+shape as everything else in this document — a status check that looks
+like it verifies the right thing but actually verifies something
+adjacent — just now caught in shell scripting instead of a config file.
+
+## 9. Provenance goes on the commit, not just in a chat message or a memory note.
 
 Every merge, tag, and correction in this campaign is traceable via `git
 log`/`git tag`/PR comments, not just via what someone remembers being
