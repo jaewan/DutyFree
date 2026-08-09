@@ -129,10 +129,18 @@ typo.
    to match.
 2. **Re-run each of h1bw/gem5/sens at current `streaming` HEAD
    (`23f27375e9`)** with `gate1_manifest.py` attached, since there is no
-   older commit to faithfully re-instantiate for them. Attempt to locate
-   the `x_alone/x_wb/x_st` scripts specifically (different naming than
-   `b4run.sh`) before assuming they're gone — check `STREAMING_Paper`'s
-   own repo, shell history, and any archived `results/` trees.
+   older commit to faithfully re-instantiate for them. **Searched for the
+   `x_alone/x_wb/x_st` scripts specifically — not found** anywhere
+   accessible (checked `STREAMING_Paper`, `DutyFree`, broad filesystem
+   search for the name pattern). Given `b4run.sh`'s own tag values are
+   exactly `alone`/`wb`/`st`, it is very likely the renamed/evolved
+   successor to the `x_*` scripts, but this is inference, not proof of
+   byte-identical config — a historical reconstruction of the *exact*
+   original run is not possible without the actual script or a commit
+   SHA. Re-runs against h1bw/gem5/sens are therefore **current-HEAD
+   re-runs**, not historical reconstructions — label them as such in the
+   final reconciliation table and in any paper-text update, not as
+   reproductions of the original measurement.
 3. **Re-instantiate tab:h3sf at its actual producing commit
    (`0102eee441`)** specifically — this is the one table where a
    faithful historical re-instantiation is possible and should be done
