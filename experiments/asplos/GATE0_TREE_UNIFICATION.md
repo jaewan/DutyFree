@@ -146,3 +146,17 @@ trusting the display string.
 **Gate 0 is complete.** Every future run in this campaign should build
 from `streaming` HEAD `23f27375e9` (or later), not the pre-Gate-0
 `00fca787bd`.
+
+## Follow-up closed: streaming-path (`st` tag) smoke-test diff
+
+Per the panel's flag that the original smoke test only covered the
+default/WB path, not the enforced `setstreaming` route behind the co-run
+pair — ran `b4run.sh <name> st 0 0` at both the pre-merge SHA
+(binary backed up, restored afterward) and post-merge (`23f27375e9`):
+**identical exit tick (`82319833184`) and byte-identical `stats.txt` on
+every simulated statistic** — only host-performance meta-stats
+(`hostSeconds` etc.) differ, exactly as the default-path check showed.
+The PAT-slot-6 STREAMING PTE-decode commit does not interfere with the
+existing `setstreaming`-pseudo-inst-based streaming path; the two
+mechanisms coexist without observable interaction on this test.
+**Gate 0 has no remaining open items.**
