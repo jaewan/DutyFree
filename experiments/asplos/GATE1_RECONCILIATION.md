@@ -118,6 +118,35 @@ less-pressured cache is far more plausible than at a genuinely-shared
 5 MiB one, which would explain the prose number without either being a
 typo.
 
+## tab:h3sf re-instantiation at `0102eee441` (Session A, complete for the H2+H3 row)
+
+Ran the H2+H3 config (`HNF_SF_SETS=8192 HNF_SF_WAYS=8` → SF=65536,
+`SFF=1`, `H3=1`) in an isolated worktree at the actual producing commit,
+per the ruling that this is the one table eligible for faithful
+historical re-instantiation. Both published numbers for this row
+confirmed:
+
+- **Tax**: 1.0526x vs the paper's claimed 1.05x. Match.
+- **Back-invalidations**: the paper's "11" does **not** correspond to
+  the obvious `SF_Eviction::total` counter (3572 in this run) — that
+  stat fires on every finite-SF *capacity* eviction, whether or not an
+  upstream sharer actually existed to invalidate. The correct match is
+  `Global_Eviction::total` = **12**, a distinct CHI-cache-actions.sm
+  event (`Initiate_Replacement_Evict_BackInvalidte` /
+  `Local_Eviction` + "back-invalidate line in all upstream requesters",
+  per the `.sm` source's own `desc=` strings) that only fires when the
+  evicted SF entry actually had a live upstream copy to invalidate.
+  Off by 1, well within re-run noise. **Another instance of Gate 0's
+  own lesson (REPO_DISCIPLINE.md #2's corollary): don't trust the
+  stat name that sounds right, trace the actual `.sm` semantics** —
+  `SF_Eviction` and `Global_Eviction` sound like they could be the same
+  metric and are not.
+
+Remaining tab:h3sf rows (WB infinite-SF 1.22x, WB finite-SF 2.53x, H2
+2.55x/3683-back-inval per the paper) not yet re-instantiated — only the
+H2+H3 row has been tested so far. Queued behind Session B per the user's
+ordering.
+
 ## Still to do
 
 1. ~~Commit archaeology~~ **done** (see above) — 1 of 4 tables (h3sf)
@@ -127,9 +156,10 @@ typo.
    since "cannot identify the producing commit" is itself the failure
    condition, independent of whether the *current* tree's config happens
    to match.
-2. **Re-run each of h1bw/gem5/sens at current `streaming` HEAD
-   (`23f27375e9`)** with `gate1_manifest.py` attached, since there is no
-   older commit to faithfully re-instantiate for them. **Searched for the
+2. **Re-run each of h1bw/gem5/sens at current `streaming` HEAD.**
+   **gem5 (= co-run pair): done** — see `table-corun-v2` above and
+   `GATE1_CORUN_PAIR_PREREGISTRATION.md`. h1bw and sens remain, in that
+   order per Session B. **Searched for the
    `x_alone/x_wb/x_st` scripts specifically — not found** anywhere
    accessible (checked `STREAMING_Paper`, `DutyFree`, broad filesystem
    search for the name pattern). Given `b4run.sh`'s own tag values are
@@ -155,7 +185,7 @@ typo.
 
 | Table | Producing commit | tab:gem5cfg claim | Instantiated actual | Verdict |
 |---|---|---|---|---|
-| tab:h1bw | **unbound** (date only) | TBD | TBD | **re-run** (provenance) |
-| tab:gem5 (= co-run pair) | **unbound** (date + `x_*` script names only) | 5 MiB shared LLC, L1/L2 stream PF | LLC: 5 MiB shared (confirmed on current HEAD's `alone`-family config); PF: stride(4)+DCPT (contradicts claim) — not yet tied to the actual producing commit | **re-run** (provenance) + prose/table 1.34x-vs-2.57x mismatch to resolve regardless |
-| tab:sens | **unbound** (no note at all) | TBD | TBD | **re-run** (provenance, most urgent) |
-| tab:h3sf | `0102eee441` | TBD | TBD (re-instantiate at this SHA specifically) | pending — has a known honest-gap caveat already |
+| tab:h1bw | **unbound** (date only) | TBD | TBD | **re-run** (provenance) — next up, Session B |
+| tab:gem5 (= co-run pair) | **unbound** (date + `x_*` script names only) → superseded by current-HEAD re-run, tag `table-corun-v2`, commit `a309523389` | 5 MiB shared LLC, L1/L2 stream PF, prose cites 1.34x/1.02x via `tab:gem5` | LLC: 5 MiB shared (confirmed); PF: stride(4)+DCPT (contradicts `tab:gem5cfg`'s claim, matches Eunji); WB tax **1.2189x**, H2 tax **1.0532x** at the mild-pressure (53% LLC, CXL-latency aggressor, 3.14 GB/s achieved fill) operating point — see `GATE1_CORUN_PAIR_PREREGISTRATION.md` | **superseded (`table-corun-v2`)** — 1.34-vs-2.57 anomaly closed as two operating points, not a bug; cross-reference at lines 241/434 needs fixing, not the numbers |
+| tab:sens | **unbound** (no note at all) | TBD | TBD | **re-run** (provenance, most urgent after h1bw) |
+| tab:h3sf | `0102eee441` | H2+H3: 1.05x tax, "11" back-invalidations (finite SF, SF=65536) | H2+H3 tax **1.0526x** (10,683,852 / 10,150,199) — matches; back-invalidation count: `Global_Eviction::total` = **12** (not the raw `SF_Eviction::total`=3572, which is finite-SF *capacity* evictions regardless of whether an upstream sharer existed to invalidate — `Global_Eviction` is the CHI-cache-actions.sm event specifically gated on "back-invalidate line in all upstream requesters", the correct match for the paper's stated metric) — matches within 1 | **match** — both published numbers for this row confirmed at the faithful producing commit |

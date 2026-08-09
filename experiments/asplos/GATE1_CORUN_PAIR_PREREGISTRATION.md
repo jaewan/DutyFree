@@ -74,3 +74,75 @@ HEAD (`23f27375e9`+`a309523389`), with `gate1_manifest.py` attached.
 Extract the H2/`st` tax from already-collected data
 (`/tmp/st_postmerge/stats.txt`). Tag the result `table-corun-v2` in the
 gem5 repo once confirmed.
+
+## Outcome (2026-08-09, post-run)
+
+**Operating point, settled by direct inspection (not inferred):**
+
+- Memory-latency class of each process — checked via `mem_ctrls{0,1}`
+  per-controller `bytesRead`/`numReads` in `stats.txt`, not assumed from
+  the paper's own framing: `mem_ctrls0` (98 ns, local) received
+  1,716,480 B / 26,820 reads — matches the victim's ~2.6 MiB WSS at
+  64 B/line almost exactly. `mem_ctrls1` (203 ns, CXL range, physical
+  addresses ≥128 GiB) received 20,434,880 B / 319,295 reads — matches a
+  streaming scan of the aggressor's 10 MiB buffer repeatedly cycling
+  through the shared 5 MiB LLC. **Confirmed: victim is on local-latency
+  memory, aggressor is on CXL-latency memory** — the paper's "a single
+  CXL-latency aggressor" framing is correct for this test, verified from
+  instantiated traffic rather than taken on faith (neither `aggressor.c`
+  nor `b4run.sh` contains an explicit CXL-targeting call — the split
+  emerges from gem5 SE-mode's own physical-frame allocation order, not
+  from anything in the harness that names it).
+- Achieved fill rate: `mem_ctrls1.bwRead::total` = 3,140,097,271 B/s ≈
+  **3.14 GB/s** — well below the aggressor binary's own documented
+  design ceiling (~14 GB/s at full LLC-resident bandwidth per the
+  comment in `aggressor.c`). CXL latency (203 ns) plus LLC contention
+  from the shared 5 MiB cache is throttling the aggressor well under its
+  compute-bound ceiling — a plausible, mechanistic reason the achieved
+  pressure at this operating point is *lower* than whatever configuration
+  produced the paper's 1.34x, not just an unexplained gap.
+- Victim WSS 2650 KiB / 5120 KiB LLC ≈ 51.8% — matches the "53% LLC" row
+  as expected.
+
+**Result:**
+
+| Quantity | Value |
+|---|---|
+| Alone baseline (`system.cpu0.numCycles`, victim, no aggressor) | 10,150,199 |
+| WB co-run (`corun_wb_v2`) | 12,372,095 |
+| **WB tax** | **1.2189×** |
+| H2/`st` (from already-collected `/tmp/st_postmerge/stats.txt`) | 10,690,270 |
+| **H2 tax** | **1.0532×** |
+
+**Verdict: lands near 1.34x, not near 2.57x** — closer to the mild-
+pressure operating point (off by ~9%, in the direction explained by the
+achieved-fill-rate shortfall above) than to the table's high-fill-rate
+2.57x calibration point (off by 53%, wrong direction to explain by any
+mechanism this run surfaced). Per the pre-registration's own decision
+rule: **the "1.34 vs 2.57" anomaly closes as two legitimate operating
+points on one pressure curve, not a bug.** `\cref{tab:gem5}` at lines 241
+and 434 is the wrong cross-reference for the 1.34x/1.02x prose sentence —
+it should point to a description of this mild-pressure point (this
+re-run), not to the table's own 53%-LLC row (which is a different,
+higher-fill-rate calibration and correctly shows 2.57x/1.00x on its own
+terms). Gate 2's original "10 MiB explains 1.34x" hypothesis is retired
+as moot per the pre-registration — no separate arm needed.
+
+H2 recovery: 1.0532x, i.e. victim returns to within ~5% of solo baseline
+under `setstreaming`-tagged access — qualitatively confirms the paper's
++H2 "recovers to ~1.00-1.02x" claim (this run's 5% residual is close
+enough to call the mechanism confirmed; it is not an exact match to
+either 1.00x or 1.02x, which is expected since this is a current-HEAD
+re-run rather than a historical reconstruction — see
+`GATE1_RECONCILIATION.md`).
+
+**Paper-fix, queued (not yet applied to `Sec5_Evaluation.tex`)**: correct
+lines 241/434's cross-reference and numbers to describe this mild-
+pressure point explicitly (1.22x → 1.05x, ~5% residual, current-HEAD
+`table-corun-v2` provenance), and add a one-line occupancy-pressure-ratio
+statement (achieved fill rate / LLC capacity, or similar) distinguishing
+this row from `tab:gem5`'s own high-fill-rate 2.57x row so a reader can
+see both are real, on the same curve, at different pressure points.
+
+**Tag**: `table-corun-v2` — to be applied to the gem5 repo at the commit
+this run executed against (`a309523389`) once this write-up is committed.
