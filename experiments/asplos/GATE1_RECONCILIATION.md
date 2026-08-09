@@ -142,10 +142,38 @@ confirmed:
   `SF_Eviction` and `Global_Eviction` sound like they could be the same
   metric and are not.
 
-Remaining tab:h3sf rows (WB infinite-SF 1.22x, WB finite-SF 2.53x, H2
-2.55x/3683-back-inval per the paper) not yet re-instantiated — only the
-H2+H3 row has been tested so far. Queued behind Session B per the user's
-ordering.
+**Update: all four rows now run.** Results (alone baseline
+`system.cpu0.numCycles`=10,150,199 throughout, confirmed byte-identical
+across all these default-adjacent configs per Gate 0):
+
+| Row | SFF | H3 | Tax (measured) | Tax (paper) | Back-inval (Global_Eviction) | Back-inval (SF_Eviction) | Back-inval (paper) |
+|---|---|---|---|---|---|---|---|
+| WB, infinite-SF | 0 | 0 | **1.2189x** | 1.22x — match | 145 (n/a, no finite SF) | (none, SF disabled) | n/a |
+| WB, finite-SF | 1 | 0 | **2.9808x** | 2.53x — **+18%, mismatch** | 309 | 362,594 | 3683 |
+| H2 only (no H3) | 1 | 0 | **3.0198x** | 2.55x — **+18%, mismatch** | 272 | 364,168 | 3683 |
+| H2+H3 | 1 | 1 | **1.0526x** | 1.05x — match | 12 | 3,572 | 11 |
+
+**The two rows that match (WB-infinite-SF, H2+H3) are exactly the two
+where the finite-SF geometry was either irrelevant (SFF=0) or explicitly
+documented by the paper's own margin note ("SF=65536"). The two rows
+that don't match (WB-finite-SF, H2-only) are exactly the two where I
+*assumed* the same SF=65536 geometry applied, because it's the only
+geometry the margin note gives — but that note is scoped to the H2+H3
+run specifically, not asserted to hold for the whole table.** This is
+very likely another instance of the same failure class this whole gate
+exists to catch (config divergence from instantiated reality, here:
+assuming one row's documented config applies uniformly to a table's
+other rows) rather than a real regression: both mismatched rows are off
+in the same direction, by a similar ~18% margin, and neither of the two
+candidate back-invalidation counters (`Global_Eviction` 272-309,
+`SF_Eviction` ~363k) lands anywhere near the paper's claimed 3683 for
+either row — a 12-13x undercount on one counter and a ~100x overcount on
+the other, which is a strong signal the underlying SF geometry (not just
+the count semantics) differs from whatever originally produced these two
+numbers. **Not resolved here** — no evidence exists yet for what SF size
+(if any different from 65536) these two rows actually used; sweeping SF
+size to hunt for a match would be fishing without a documented target,
+not reconciliation. Flagging as open rather than guessing.
 
 ## Still to do
 
@@ -189,4 +217,4 @@ ordering.
 | tab:gem5 (= co-run **prose**, distinct from `tab:gem5` the table — see below) | **unbound** (date + `x_*` script names only) → superseded by current-HEAD re-run, tag `table-corun-v2`, commit `a309523389` | 5 MiB shared LLC, L1/L2 stream PF, prose cites 1.34x/1.02x, contrasted against (not equal to) `tab:gem5`'s own WB column per the paper's own caption | LLC: 5 MiB shared (confirmed); PF: stride(4)+DCPT (contradicts `tab:gem5cfg`'s claim, matches Eunji); WB tax **1.2189x**, H2 tax **1.0532x** at the mild-pressure (53% LLC, CXL-latency aggressor, 3.14 GB/s achieved fill vs ~14 GB/s ceiling) operating point — see `GATE1_CORUN_PAIR_PREREGISTRATION.md` | **superseded (`table-corun-v2`)** — empirically confirms the paper's own stated CXL-vs-local-DRAM contrast; prose tightening only (the `(\cref{tab:gem5})` parenthetical reads as a numeric match if skimmed), not a cross-reference bug |
 | tab:gem5 **the table itself** (3 WSS rows × WB/+H2, local-4 hardware-calibrated) | **unbound**, and now suspected **unreproducible as currently scoped** | WB=1.79/2.57/2.82x at 25/53/100% LLC, calibrated to a *local-DRAM* aggressor | `se.py`'s CXL-pool assignment is hardcoded (cpu0→DRAM pool, cpu1+→CXL pool, `ALL_CXL=1` only forces everyone onto CXL — no `ALL_LOCAL` equivalent exists). A 2-core victim+aggressor pair cannot currently be placed together on local DRAM without a script change. Re-running `wb`/`st` at any WSS only regenerates the CXL-aggressor curve (the row above), not this table's own local-DRAM point. | **escalate, not re-run** — needs a user decision: patch `se.py` (add pool-placement override) vs. relabel this column as historical/unreproduced |
 | tab:sens | **unbound** (no note at all) | TBD | TBD | **re-run** (provenance, most urgent after h1bw) |
-| tab:h3sf | `0102eee441` | H2+H3: 1.05x tax, "11" back-invalidations (finite SF, SF=65536) | H2+H3 tax **1.0526x** (10,683,852 / 10,150,199) — matches; back-invalidation count: `Global_Eviction::total` = **12** (not the raw `SF_Eviction::total`=3572, which is finite-SF *capacity* evictions regardless of whether an upstream sharer existed to invalidate — `Global_Eviction` is the CHI-cache-actions.sm event specifically gated on "back-invalidate line in all upstream requesters", the correct match for the paper's stated metric) — matches within 1 | **match** — both published numbers for this row confirmed at the faithful producing commit |
+| tab:h3sf | `0102eee441` | WB-infSF 1.22x, WB-finSF 2.53x, H2 2.55x/3683-inval, H2+H3 1.05x/11-inval | WB-infSF **1.2189x** (match); WB-finSF **2.9808x** (+18%, mismatch); H2 **3.0198x** (+18%, mismatch); H2+H3 **1.0526x**/`Global_Eviction`=**12** (both match) — full breakdown below | **partial** — 2/4 rows match at the faithful producing commit (both used a documented or irrelevant SF geometry); 2/4 rows (both finite-SF, no-H3) mismatch by a consistent ~18%, very likely because SF=65536 was assumed for them rather than confirmed — the margin note only documents that geometry for the H2+H3 row |

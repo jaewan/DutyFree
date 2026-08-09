@@ -1,0 +1,544 @@
+{
+  "caches": [
+    {
+      "path": "system.cpu0.l1d.cache",
+      "type": "RubyCache",
+      "size": 49152,
+      "assoc": 12,
+      "dataAccessLatency": 1,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu0.l1d.sf",
+      "type": "RubyCache",
+      "size": 1024,
+      "assoc": 1,
+      "dataAccessLatency": 0,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu0.l1i.cache",
+      "type": "RubyCache",
+      "size": 32768,
+      "assoc": 8,
+      "dataAccessLatency": 1,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu0.l1i.sf",
+      "type": "RubyCache",
+      "size": 1024,
+      "assoc": 1,
+      "dataAccessLatency": 0,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu0.l2.cache",
+      "type": "RubyCache",
+      "size": 2097152,
+      "assoc": 16,
+      "dataAccessLatency": 1,
+      "tagAccessLatency": 2,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu0.l2.sf",
+      "type": "RubyCache",
+      "size": 1024,
+      "assoc": 1,
+      "dataAccessLatency": 0,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu1.l1d.cache",
+      "type": "RubyCache",
+      "size": 49152,
+      "assoc": 12,
+      "dataAccessLatency": 1,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu1.l1d.sf",
+      "type": "RubyCache",
+      "size": 1024,
+      "assoc": 1,
+      "dataAccessLatency": 0,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu1.l1i.cache",
+      "type": "RubyCache",
+      "size": 32768,
+      "assoc": 8,
+      "dataAccessLatency": 1,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu1.l1i.sf",
+      "type": "RubyCache",
+      "size": 1024,
+      "assoc": 1,
+      "dataAccessLatency": 0,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu1.l2.cache",
+      "type": "RubyCache",
+      "size": 2097152,
+      "assoc": 16,
+      "dataAccessLatency": 1,
+      "tagAccessLatency": 2,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.cpu1.l2.sf",
+      "type": "RubyCache",
+      "size": 1024,
+      "assoc": 1,
+      "dataAccessLatency": 0,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.ruby.hnf.cntrl.cache",
+      "type": "RubyCache",
+      "size": 5242880,
+      "assoc": 20,
+      "dataAccessLatency": 64,
+      "tagAccessLatency": 2,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    },
+    {
+      "path": "system.ruby.hnf.cntrl.sf",
+      "type": "RubyCache",
+      "size": 4194304,
+      "assoc": 8,
+      "dataAccessLatency": 0,
+      "tagAccessLatency": 1,
+      "resourceStalls": false,
+      "start_index_bit": 6
+    }
+  ],
+  "replacement_policies": [
+    {
+      "path": "system.cpu0.SSITReplPolicy",
+      "type": "LRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.branchPred.btb.btbReplPolicy",
+      "type": "LRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.l1d.cache.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.l1d.prefetcher.prefetchers0.table_replacement_policy",
+      "type": "RandomRP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.l1d.prefetcher.prefetchers1.dcpt.table_replacement_policy",
+      "type": "LRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.l1d.sf.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.l1i.cache.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.l1i.sf.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.l2.cache.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.l2.prefetcher.prefetchers0.table_replacement_policy",
+      "type": "RandomRP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu0.l2.sf.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.SSITReplPolicy",
+      "type": "LRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.branchPred.btb.btbReplPolicy",
+      "type": "LRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.l1d.cache.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.l1d.prefetcher.prefetchers0.table_replacement_policy",
+      "type": "RandomRP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.l1d.prefetcher.prefetchers1.dcpt.table_replacement_policy",
+      "type": "LRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.l1d.sf.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.l1i.cache.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.l1i.sf.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.l2.cache.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.l2.prefetcher.prefetchers0.table_replacement_policy",
+      "type": "RandomRP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.cpu1.l2.sf.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.ruby.hnf.cntrl.cache.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    },
+    {
+      "path": "system.ruby.hnf.cntrl.sf.replacement_policy",
+      "type": "TreePLRURP",
+      "btp": null,
+      "hit_priority": null,
+      "num_bits": null
+    }
+  ],
+  "prefetchers": [
+    {
+      "path": "system.cpu0.l1d.prefetchQueue",
+      "type": "MessageBuffer",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l1d.prefetcher",
+      "type": "MultiPrefetcher",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l1d.prefetcher.prefetchers0",
+      "type": "StridePrefetcher",
+      "degree": 4,
+      "latency": 1,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l1d.prefetcher.prefetchers0.table_indexing_policy",
+      "type": "StridePrefetcherHashedSetAssociative",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l1d.prefetcher.prefetchers1",
+      "type": "DCPTPrefetcher",
+      "degree": null,
+      "latency": 1,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l1i.prefetchQueue",
+      "type": "MessageBuffer",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l2.prefetchQueue",
+      "type": "MessageBuffer",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l2.prefetcher",
+      "type": "MultiPrefetcher",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l2.prefetcher.prefetchers0",
+      "type": "StridePrefetcher",
+      "degree": 4,
+      "latency": 1,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l2.prefetcher.prefetchers0.table_indexing_policy",
+      "type": "StridePrefetcherHashedSetAssociative",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu0.l2.prefetcher.prefetchers1",
+      "type": "TaggedPrefetcher",
+      "degree": 2,
+      "latency": 1,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l1d.prefetchQueue",
+      "type": "MessageBuffer",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l1d.prefetcher",
+      "type": "MultiPrefetcher",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l1d.prefetcher.prefetchers0",
+      "type": "StridePrefetcher",
+      "degree": 4,
+      "latency": 1,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l1d.prefetcher.prefetchers0.table_indexing_policy",
+      "type": "StridePrefetcherHashedSetAssociative",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l1d.prefetcher.prefetchers1",
+      "type": "DCPTPrefetcher",
+      "degree": null,
+      "latency": 1,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l1i.prefetchQueue",
+      "type": "MessageBuffer",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l2.prefetchQueue",
+      "type": "MessageBuffer",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l2.prefetcher",
+      "type": "MultiPrefetcher",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l2.prefetcher.prefetchers0",
+      "type": "StridePrefetcher",
+      "degree": 4,
+      "latency": 1,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l2.prefetcher.prefetchers0.table_indexing_policy",
+      "type": "StridePrefetcherHashedSetAssociative",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.cpu1.l2.prefetcher.prefetchers1",
+      "type": "TaggedPrefetcher",
+      "degree": 2,
+      "latency": 1,
+      "on_miss_only": null
+    },
+    {
+      "path": "system.ruby.hnf.cntrl.prefetchQueue",
+      "type": "MessageBuffer",
+      "degree": null,
+      "latency": null,
+      "on_miss_only": null
+    }
+  ],
+  "mshrs": [],
+  "hnf_controllers": [
+    {
+      "path": "system.cpu0.l1d",
+      "sf_finite": false
+    },
+    {
+      "path": "system.cpu0.l1i",
+      "sf_finite": false
+    },
+    {
+      "path": "system.cpu0.l2",
+      "sf_finite": false
+    },
+    {
+      "path": "system.cpu1.l1d",
+      "sf_finite": false
+    },
+    {
+      "path": "system.cpu1.l1i",
+      "sf_finite": false
+    },
+    {
+      "path": "system.cpu1.l2",
+      "sf_finite": false
+    },
+    {
+      "path": "system.ruby.hnf.cntrl",
+      "sf_finite": true
+    }
+  ],
+  "num_cpus": 2,
+  "cpu_types": [
+    "BaseO3CPU"
+  ],
+  "memories": [
+    {
+      "path": "system.mem_ctrls0",
+      "latency": 98000,
+      "range": "0:137438953472"
+    },
+    {
+      "path": "system.mem_ctrls1",
+      "latency": 203000,
+      "range": "137438953472:274877906944"
+    }
+  ],
+  "cache_line_size": 64,
+  "_provenance": {
+    "outdir": "/tmp/h3sf_wb_finsf",
+    "commit_sha": "0102eee4411710caece7f49fd11808c9e58e1310",
+    "commit_subject": "H3 B3 fix: streaming reads issued as ReadOnce (L1/L2 enable_H3_streaming_bypass -> needCacheEntry no-retain) so no streaming line is cached upstream -> no clean evict/WB the HNF flags stale. Clears the in_msg.stale==is_stale assert. H3 arm now runs.",
+    "dirty_tree": true,
+    "branch": "HEAD",
+    "cmdline": "build_Intel_8592/gem5.opt --outdir=/tmp/h3sf_wb_finsf configs/deprecated/example/se.py",
+    "build_variant": "build_Intel_8592",
+    "build_config_hash": "deed4e39751eaf21",
+    "build_config_text": "# BATCH is not set\nM5_BUILD_CACHE=\"\"\n# USE_EFENCE is not set\nHAVE_FENV=y\nHAVE_DEPRECATED_NAMESPACE=y\nHAVE_POSIX_CLOCK=y\n# USE_POSIX_CLOCK is not set\n\n#\n# Ruby\n#\nRUBY=y\n\n#\n# Ruby protocols\n#\nUSE_MULTIPLE_PROTOCOLS=y\nPROTOCOL=\"CHI\"\n# RUBY_PROTOCOL_MOESI_AMD_Base is not set\n# RUBY_PROTOCOL_MESI_Two_Level is not set\n# RUBY_PROTOCOL_MESI_Three_Level is not set\n# RUBY_PROTOCOL_MESI_Three_Level_HTM is not set\n# RUBY_PROTOCOL_MI_example is not set\n# RUBY_PROTOCOL_MOESI_CMP_directory is not set\n# RUBY_PROTOCOL_MOESI_CMP_token is not set\n# RUBY_PROTOCOL_MOESI_hammer is not set\n# RUBY_PROTOCOL_Garnet_standalone is not set\n# RUBY_PROTOCOL_MOESI_AMD_4th_PF is not set\nRUBY_PROTOCOL_CHI=y\n# RUBY_PROTOCOL_MSI is not set\n# end of Ruby protocols\n\n# SLICC_HTML is not set\nNUMBER_BITS_PER_SET=256\n# end of Ruby\n\nHAVE_TUNTAP=y\nBUILD_ISA=y\n\n#\n# ISA\n#\n# USE_ARM_ISA is not set\n\n#\n# Fast Model\n#\n# end of Fast Model\n\n# USE_MIPS_ISA is not set\n# USE_POWER_ISA is not set\n# USE_RISCV_ISA is not set\n# USE_SPARC_ISA is not set\nUSE_X86_ISA=y\n# end of ISA\n\nHAVE_KVM=y\nKVM_ISA=\"x86\"\nUSE_KVM=y\nHAVE_SYSTEMC=y\nUSE_SYSTEMC=y\n# BUILD_GPU is not set\n# USE_TEST_OBJECTS is not set\n",
+    "build_opts_tracked_in_git": false,
+    "env": {
+      "HNF_SF_FINITE": "1",
+      "HNF_SF_SETS": "8192",
+      "HNF_SF_WAYS": "8",
+      "HNF_H3": "0"
+    },
+    "mem_pool_policy": "default: cpu0 -> DRAM pool 0, cpu1+ -> CXL pool 1"
+  }
+}
