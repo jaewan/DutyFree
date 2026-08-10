@@ -14,3 +14,13 @@ __pycache__/
 # Local build/scratch
 *.o
 *.a
+
+# Compiled bench binaries. The .c sources, lib/, and the Makefile are all tracked;
+# `make -C benchmarks/bench` reproduces every binary from them. Whitelist the sources
+# so a new aggressor/victim .c is never silently ignored along with its output.
+benchmarks/bench/aggressor/*
+!benchmarks/bench/aggressor/*.c
+!benchmarks/bench/aggressor/*.h
+benchmarks/bench/victim/*
+!benchmarks/bench/victim/*.c
+!benchmarks/bench/victim/*.h

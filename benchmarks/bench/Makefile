@@ -11,7 +11,9 @@ AGGR_BINS   = aggressor/stream_wb    \
               aggressor/stream_wc    \
               aggressor/stream_nt    \
               aggressor/random_chase \
-              aggressor/forced_turnover
+              aggressor/forced_turnover \
+              aggressor/stream_wb_flushbehind \
+              aggressor/stream_sw_prefetch
 
 ALL_BINS = $(VICTIM_BINS) $(AGGR_BINS)
 
@@ -49,6 +51,14 @@ aggressor/random_chase: aggressor/random_chase.c $(LIB_OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 aggressor/forced_turnover: aggressor/forced_turnover.c $(LIB_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+# stream_wb_flushbehind: WB fetch + clflushopt behind the stream (the non-allocating,
+# fully-coherent middle rung of the AMD ladder). Was built by hand and never listed here.
+aggressor/stream_wb_flushbehind: aggressor/stream_wb_flushbehind.c $(LIB_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+aggressor/stream_sw_prefetch: aggressor/stream_sw_prefetch.c $(LIB_OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 # Library objects
