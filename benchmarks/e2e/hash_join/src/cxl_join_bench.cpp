@@ -35,6 +35,12 @@
 #ifndef MADV_HUGEPAGE
 #define MADV_HUGEPAGE 14
 #endif
+#ifndef MAP_HUGE_SHIFT
+#define MAP_HUGE_SHIFT 26
+#endif
+#ifndef MAP_HUGE_2MB
+#define MAP_HUGE_2MB (21 << MAP_HUGE_SHIFT)
+#endif
 #ifndef MPOL_BIND
 #define MPOL_BIND 2
 #endif

@@ -1,0 +1,39 @@
+{
+  "raw": "results/amd/hash_join_cross_process/amd_hash_join_cross_process_n12.jsonl",
+  "host": "broker/moscxl AMD EPYC 9754",
+  "victim_mode": "morsel --no-stream",
+  "hot_bytes": 8388608,
+  "fact_bytes_logical": "512m",
+  "reps_per_arm": {
+    "quiescent": {
+      "n": 12,
+      "cycles_per_access_mean": 65.74416978333333,
+      "cycles_per_access_median": 65.7205136,
+      "cycles_per_access_sd": 0.6024214393908263,
+      "tax_vs_quiescent_mean": 1.0,
+      "agg_bw_self_gbps_sum_mean": null,
+      "agg_mbm_bw_gbps_mean": 0.012566296151136898,
+      "victim_llc_occ_bytes_mean": 8227384.888888889
+    },
+    "wb": {
+      "n": 12,
+      "cycles_per_access_mean": 361.92295283333334,
+      "cycles_per_access_median": 361.190209,
+      "cycles_per_access_sd": 2.0596658923151816,
+      "tax_vs_quiescent_mean": 5.505019745873857,
+      "agg_bw_self_gbps_sum_mean": 24.338583333333332,
+      "agg_mbm_bw_gbps_mean": 23.216278140393268,
+      "victim_llc_occ_bytes_mean": 770841.7392385392
+    },
+    "wc": {
+      "n": 12,
+      "cycles_per_access_mean": 361.9504465,
+      "cycles_per_access_median": 361.9065405,
+      "cycles_per_access_sd": 0.5022986952256141,
+      "tax_vs_quiescent_mean": 5.505437937582069,
+      "agg_bw_self_gbps_sum_mean": 24.3125,
+      "agg_mbm_bw_gbps_mean": 23.109083227491464,
+      "victim_llc_occ_bytes_mean": 684452.1025641025
+    }
+  }
+}
