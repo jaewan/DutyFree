@@ -1,0 +1,86 @@
+{
+  "raw": "results/amd/hash_join_cross_process/amd_hash_join_cross_process_flush_n12.jsonl",
+  "quiescent_median_cpa": 65.71068335,
+  "clusters": {
+    "wb_low": {
+      "n": 3,
+      "cycles_per_access_mean": 322.66373899999996,
+      "cycles_per_access_median": 322.464596,
+      "tax_vs_quiescent_median": 4.907338952517528,
+      "victim_llc_occ_bytes_mean": 2060551.485380117,
+      "victim_llc_occ_mib_mean": 1.9650950292397662,
+      "wall_dur_s_mean": 14.457985957463583,
+      "agg_bw_self_gbps_sum_mean": 24.691333333333333,
+      "reps": [
+        1,
+        2,
+        6
+      ]
+    },
+    "wb_high": {
+      "n": 9,
+      "cycles_per_access_mean": 477.021223,
+      "cycles_per_access_median": 481.258955,
+      "tax_vs_quiescent_median": 7.323907323206981,
+      "victim_llc_occ_bytes_mean": 326006.88199360046,
+      "victim_llc_occ_mib_mean": 0.31090439032897993,
+      "wall_dur_s_mean": 21.364155345492893,
+      "agg_bw_self_gbps_sum_mean": 24.721666666666668,
+      "reps": [
+        3,
+        4,
+        5,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
+    },
+    "flush_low": {
+      "n": 5,
+      "cycles_per_access_mean": 126.67418260000001,
+      "cycles_per_access_median": 123.919099,
+      "tax_vs_quiescent_median": 1.8858287980351678,
+      "victim_llc_occ_bytes_mean": 8497030.18852174,
+      "victim_llc_occ_mib_mean": 8.103399456521739,
+      "wall_dur_s_mean": 5.688601112365722,
+      "agg_bw_self_gbps_sum_mean": 16.9586,
+      "reps": [
+        1,
+        5,
+        7,
+        8,
+        11
+      ]
+    },
+    "flush_high": {
+      "n": 7,
+      "cycles_per_access_mean": 161.994168,
+      "cycles_per_access_median": 161.801639,
+      "tax_vs_quiescent_median": 2.462333836009331,
+      "victim_llc_occ_bytes_mean": 8299343.448275862,
+      "victim_llc_occ_mib_mean": 7.914870689655173,
+      "wall_dur_s_mean": 7.269386189324515,
+      "agg_bw_self_gbps_sum_mean": 16.98485714285714,
+      "reps": [
+        2,
+        3,
+        4,
+        6,
+        9,
+        10,
+        12
+      ]
+    }
+  },
+  "recovery": {
+    "low_mode": 0.7732910277813443,
+    "high_mode": 0.7687610268033225,
+    "pooled_median": 0.7687203548832351,
+    "low_mode_mean_based": 0.762289320836103,
+    "high_mode_mean_based": 0.7656248178275118
+  },
+  "quiescent_mean_cpa": 65.557216525
+}

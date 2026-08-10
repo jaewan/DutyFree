@@ -74,8 +74,14 @@ Raw data:
   `results/amd/hash_join_cross_process/amd_hash_join_cross_process_flush_n12.jsonl`
 - repaired summary:
   `results/amd/hash_join_cross_process/summary_flush.json`
+- repaired cluster summary:
+  `results/amd/hash_join_cross_process/cluster_summary_flush.json`
 - repaired smoke:
   `results/amd/hash_join_cross_process/smoke_v2b.jsonl`
+- smaps diagnostic run:
+  `results/amd/hash_join_cross_process/amd_hash_join_cross_process_smaps_n12.jsonl`
+- smaps diagnostic summary:
+  `results/amd/hash_join_cross_process/smaps_cluster_summary.json`
 
 ## Original Result, Superseded Control
 
@@ -92,17 +98,36 @@ tax. The hot table is resident in the quiescent arm by CMT occupancy
 
 ## Repaired Flush-Behind Result
 
+The loaded arms are bimodal. The pooled means are useful for rough orientation
+but do not correspond to a single operating point on this machine.
+
 | arm | n | cycles/access mean | cycles/access median | sd | tax mean | tax median | self BW mean | MBM BW mean | victim LLC occ mean |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | quiescent | 12 | 65.56 | 65.71 | 0.70 | 1.000x | 1.000x | n/a | ~0.0004 GB/s | 7.84 MiB |
 | WB CXL aggressor | 12 | 438.43 | 480.41 | 70.72 | 6.688x | 7.311x | 24.71 GB/s | 24.31 GB/s | 0.72 MiB |
 | flush_d256kb | 12 | 147.28 | 161.62 | 18.58 | 2.247x | 2.460x | 16.97 GB/s | 32.06 GB/s | 7.99 MiB |
 
+Per-mode split:
+
+| arm | cluster | n | cycles/access mean | tax vs quiescent mean | victim LLC occ mean | wall mean |
+|---|---|---:|---:|---:|---:|---:|
+| WB | low | 3 | 322.66 | 4.92x | 1.97 MiB | 14.46 s |
+| WB | high | 9 | 477.02 | 7.28x | 0.31 MiB | 21.36 s |
+| flush_d256kb | low | 5 | 126.67 | 1.93x | 8.10 MiB | 5.69 s |
+| flush_d256kb | high | 7 | 161.99 | 2.47x | 7.91 MiB | 7.27 s |
+
+Recovery is stable across the split:
+
+| mode | recovery of WB tax by flush_d256kb |
+|---|---:|
+| low | 76.2% |
+| high | 76.6% |
+
 The repaired run keeps the core result and fixes the control structure:
 external WB stream pressure gives the hash-join tenant a large tax, while
-flush-behind greatly reduces the tax and preserves hot-table occupancy near
-the 8 MiB resident set. WB is bimodal in this run, so medians are the safer
-summary for the loaded WB severity.
+flush-behind recovers about 76.5% of that tax and preserves hot-table
+occupancy near the 8 MiB resident set. The mixed WB mean should not be used as
+a single headline operating point.
 
 ## Interpretation
 
@@ -116,3 +141,30 @@ The 2026-08-10 WC arm is not a no-tax control on this AMD host with the
 Intel `stream_wc` binary. The repaired result should be read against the
 flush-behind rung and the historical clean-CCX1 true-WC result, not against
 MOVNTDQA-on-WB.
+
+The leading hypothesis for the loaded-arm bimodality is per-process variation
+in hot-table backing/index spread, for example THP success versus 4 KiB fallback.
+The repaired runner now drops the first CMT sample for future runs; the
+existing repaired raw retained only aggregate CMT statistics, so the spurious
+initial zero samples cannot be de-biased post hoc without rerunning.
+
+## Smaps Diagnostic
+
+A follow-up n=12 diagnostic added victim-side table backing fields and reran
+the same quiescent/WB/flush_d256kb arms with first-sample CMT dropping enabled.
+The two loaded modes reproduced, and the initial-zero CMT artifact disappeared.
+
+The THP-success-versus-4 KiB-fallback hypothesis is refuted for the current
+vector-backed hot table:
+
+| cluster | table AnonHugePages | KernelPageSize | MMUPageSize |
+|---|---:|---:|---:|
+| WB low | 0 KiB | 4 KiB | 4 KiB |
+| WB high | 0 KiB | 4 KiB | 4 KiB |
+| flush low | 0 KiB | 4 KiB | 4 KiB |
+| flush high | 0 KiB | 4 KiB | 4 KiB |
+
+The bimodality is still real and load-only, but it is not explained by THP
+success versus fallback in this allocation path. The next placement-control
+test, if needed, is to back the hot table explicitly rather than relying on
+`std::vector` heap placement.

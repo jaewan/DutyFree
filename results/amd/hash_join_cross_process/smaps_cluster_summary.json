@@ -1,0 +1,119 @@
+{
+  "raw": "results/amd/hash_join_cross_process/amd_hash_join_cross_process_smaps_n12.jsonl",
+  "quiescent_mean_cpa": 65.41785376666667,
+  "quiescent_median_cpa": 65.36594865,
+  "clusters": {
+    "wb_low": {
+      "n": 1,
+      "reps": [
+        8
+      ],
+      "cycles_per_access_mean": 321.415522,
+      "cycles_per_access_median": 321.415522,
+      "tax_vs_quiescent_mean": 4.9132691382146145,
+      "tax_vs_quiescent_median": 4.917170616172186,
+      "victim_llc_occ_mib_mean": 1.8289620535714286,
+      "wall_dur_s_mean": 14.402352094650269,
+      "agg_bw_self_gbps_sum_mean": 24.744,
+      "table_anon_huge_kb_values": [
+        0
+      ],
+      "table_kernel_page_kb_values": [
+        4
+      ],
+      "table_mmu_page_kb_values": [
+        4
+      ]
+    },
+    "wb_high": {
+      "n": 11,
+      "reps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        9,
+        10,
+        11,
+        12
+      ],
+      "cycles_per_access_mean": 480.5094069090909,
+      "cycles_per_access_median": 480.436519,
+      "tax_vs_quiescent_mean": 7.345233437693916,
+      "tax_vs_quiescent_median": 7.34995099011693,
+      "victim_llc_occ_mib_mean": 0.2835346638655462,
+      "wall_dur_s_mean": 21.52041144804521,
+      "agg_bw_self_gbps_sum_mean": 24.733727272727272,
+      "table_anon_huge_kb_values": [
+        0
+      ],
+      "table_kernel_page_kb_values": [
+        4
+      ],
+      "table_mmu_page_kb_values": [
+        4
+      ]
+    },
+    "flush_low": {
+      "n": 6,
+      "reps": [
+        2,
+        5,
+        7,
+        8,
+        11,
+        12
+      ],
+      "cycles_per_access_mean": 123.84567366666667,
+      "cycles_per_access_median": 123.335618,
+      "tax_vs_quiescent_mean": 1.8931479181264672,
+      "tax_vs_quiescent_median": 1.886848130368257,
+      "victim_llc_occ_mib_mean": 8.786024305555555,
+      "wall_dur_s_mean": 5.562343756357829,
+      "agg_bw_self_gbps_sum_mean": 16.940666666666665,
+      "table_anon_huge_kb_values": [
+        0
+      ],
+      "table_kernel_page_kb_values": [
+        4
+      ],
+      "table_mmu_page_kb_values": [
+        4
+      ]
+    },
+    "flush_high": {
+      "n": 6,
+      "reps": [
+        1,
+        3,
+        4,
+        6,
+        9,
+        10
+      ],
+      "cycles_per_access_mean": 161.1124315,
+      "cycles_per_access_median": 160.8390075,
+      "tax_vs_quiescent_mean": 2.4628205027125794,
+      "tax_vs_quiescent_median": 2.4605931807278987,
+      "victim_llc_occ_mib_mean": 8.457217261904763,
+      "wall_dur_s_mean": 7.230066617329915,
+      "agg_bw_self_gbps_sum_mean": 16.994333333333334,
+      "table_anon_huge_kb_values": [
+        0
+      ],
+      "table_kernel_page_kb_values": [
+        4
+      ],
+      "table_mmu_page_kb_values": [
+        4
+      ]
+    }
+  },
+  "recovery": {
+    "low_mode_mean_based": 0.7717642496386139,
+    "high_mode_mean_based": 0.7694615151551901
+  }
+}

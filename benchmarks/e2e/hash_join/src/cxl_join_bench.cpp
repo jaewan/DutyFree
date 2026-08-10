@@ -1285,6 +1285,7 @@ void run_morsel(Config c) {
   std::vector<Entry> table;
   std::vector<int64_t> keys;
   build_table(table, keys, c.hot_bytes, c.seed);
+  SmapsInfo table_smi = smaps_info(table.data());
   fill_fact(fact, local_n, keys, c.hit_rate, c.seed);
   prefault_region(fact, phys_bytes);
   if (c.policy == "stream") gem5_set_streaming(fact, (long)phys_bytes);
@@ -1355,6 +1356,9 @@ void run_morsel(Config c) {
   std::cout << "\"placement\":\"" << json_escape(placement) << "\",";
   std::cout << "\"no_stream\":" << (no_stream ? "true" : "false") << ",";
   std::cout << "\"local_n\":" << local_n << ",";
+  std::cout << "\"table_anon_huge_kb\":" << table_smi.anon_huge_kb << ",";
+  std::cout << "\"table_kernel_page_kb\":" << table_smi.kernel_page_kb << ",";
+  std::cout << "\"table_mmu_page_kb\":" << table_smi.mmu_page_kb << ",";
   emit_samples(samples);
   std::cout << "\"seconds\":" << std::setprecision(9) << total_sec << ",";
   std::cout << "\"join_mtuples_per_s\":" << (static_cast<double>(n) * c.reps / total_sec / 1e6) << ",";

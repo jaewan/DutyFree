@@ -143,6 +143,8 @@ def parse_flushbehind_result(text: str) -> dict | None:
                 out[key] = float(val) if "." in val else int(val)
             except ValueError:
                 out[key] = val
+        if out.get("mode") != "flushbehind":
+            continue
         out["condition"] = "flush_d256kb"
         return out
     return None
@@ -162,6 +164,8 @@ def parse_amd_aggressor_result(text: str) -> dict | None:
                 out[key] = float(val) if "." in val else int(val)
             except ValueError:
                 out[key] = val
+        if "condition" not in out and "mode" in out:
+            out["condition"] = out["mode"]
         return out
     return None
 
@@ -221,8 +225,8 @@ def collect_aggressors(procs, timeout_s: float) -> list[dict]:
         text = log.read_text(errors="replace") if log.exists() else ""
         rec = (
             parse_aggressor_json(text)
-            or parse_flushbehind_result(text)
             or parse_amd_aggressor_result(text)
+            or parse_flushbehind_result(text)
             or {"parse_error": True}
         )
         rec["log"] = str(log)
@@ -296,10 +300,11 @@ def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
                 agg_bw.append(float(r[key]))
                 break
     occ = {
-        "n": len(occ_samples),
-        "mean": (sum(occ_samples) / len(occ_samples)) if occ_samples else None,
-        "min": min(occ_samples) if occ_samples else None,
-        "max": max(occ_samples) if occ_samples else None,
+        "n": max(0, len(occ_samples) - 1),
+        "dropped_initial_sample": bool(occ_samples),
+        "mean": (sum(occ_samples[1:]) / len(occ_samples[1:])) if len(occ_samples) > 1 else None,
+        "min": min(occ_samples[1:]) if len(occ_samples) > 1 else None,
+        "max": max(occ_samples[1:]) if len(occ_samples) > 1 else None,
     }
     rec = {
         "arm": arm,
