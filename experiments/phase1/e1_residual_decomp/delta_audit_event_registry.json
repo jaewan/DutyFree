@@ -1,0 +1,19 @@
+{
+  "host": "moscxl",
+  "ccx": 1,
+  "victim_cpu": 8,
+  "agg_cores": "9,10,11,12,13,14,15",
+  "resctrl_domain": 1,
+  "perf_events": "rff04,rfe04,r0104,r10ac,r10ad,r01ac,r01ad",
+  "event_names": {
+    "rff04": "l3_lookup_state.all_coherent_accesses_to_l3",
+    "rfe04": "l3_lookup_state.l3_hit",
+    "r0104": "l3_lookup_state.l3_miss",
+    "r10ac": "l3_xi_sampled_latency.ext_near",
+    "r10ad": "l3_xi_sampled_latency_requests.ext_near",
+    "r01ac": "l3_xi_sampled_latency.dram_near",
+    "r01ad": "l3_xi_sampled_latency_requests.dram_near"
+  },
+  "flush_ratio_wb_plus_flush": 0.6897529364115026,
+  "t2_target_gbps": 11.5
+}
