@@ -1,0 +1,103 @@
+{
+  "raw": "results/amd/hash_join_cross_process/amd_hash_join_cross_process_freq_n12.jsonl",
+  "clusters": {
+    "wb_low": {
+      "n": 8,
+      "reps": [
+        1,
+        2,
+        3,
+        4,
+        6,
+        8,
+        10,
+        11
+      ],
+      "cycles_per_access_mean": 322.077832,
+      "cycles_per_access_median": 322.1280735,
+      "perf_cycles_mean": 32426902634.75,
+      "perf_ref_cycles_mean": 32426901202.625,
+      "cycles_per_ref_cycle_mean": 1.0000000434269962,
+      "cycles_per_ref_cycle_median": 0.9999998796007797,
+      "cycles_per_ref_cycle_min": 0.9999997432808773,
+      "cycles_per_ref_cycle_max": 1.0000012916291068,
+      "victim_llc_occ_mib_mean": 2.0094547893170427,
+      "wall_dur_s_mean": 14.48638591170311,
+      "agg_bw_self_gbps_sum_mean": 24.701249999999998
+    },
+    "wb_high": {
+      "n": 4,
+      "reps": [
+        5,
+        7,
+        9,
+        12
+      ],
+      "cycles_per_access_mean": 444.661495,
+      "cycles_per_access_median": 442.294106,
+      "perf_cycles_mean": 44767893107.5,
+      "perf_ref_cycles_mean": 44767906953.75,
+      "cycles_per_ref_cycle_mean": 0.9999996891619414,
+      "cycles_per_ref_cycle_median": 0.9999996929632871,
+      "cycles_per_ref_cycle_min": 0.99999946516251,
+      "cycles_per_ref_cycle_max": 0.9999999055586815,
+      "victim_llc_occ_mib_mean": 0.570874307983683,
+      "wall_dur_s_mean": 19.973359048366547,
+      "agg_bw_self_gbps_sum_mean": 24.7095
+    },
+    "flush_low": {
+      "n": 7,
+      "reps": [
+        1,
+        2,
+        4,
+        8,
+        9,
+        10,
+        11
+      ],
+      "cycles_per_access_mean": 125.06027257142857,
+      "cycles_per_access_median": 123.264141,
+      "perf_cycles_mean": 12592256289.142857,
+      "perf_ref_cycles_mean": 12592259321.285715,
+      "cycles_per_ref_cycle_mean": 0.9999997580660855,
+      "cycles_per_ref_cycle_median": 0.9999997514883382,
+      "cycles_per_ref_cycle_min": 0.9999997003443181,
+      "cycles_per_ref_cycle_max": 0.9999998394821611,
+      "victim_llc_occ_mib_mean": 8.332438302025356,
+      "wall_dur_s_mean": 5.664372410093035,
+      "agg_bw_self_gbps_sum_mean": 16.948428571428572
+    },
+    "flush_high": {
+      "n": 5,
+      "reps": [
+        3,
+        5,
+        6,
+        7,
+        12
+      ],
+      "cycles_per_access_mean": 161.02528180000002,
+      "cycles_per_access_median": 161.045125,
+      "perf_cycles_mean": 16213406168.2,
+      "perf_ref_cycles_mean": 16213409598.8,
+      "cycles_per_ref_cycle_mean": 0.9999997884600454,
+      "cycles_per_ref_cycle_median": 0.9999997865595638,
+      "cycles_per_ref_cycle_min": 0.9999996853845897,
+      "cycles_per_ref_cycle_max": 0.9999998557266075,
+      "victim_llc_occ_mib_mean": 7.966964285714286,
+      "wall_dur_s_mean": 7.275689315795899,
+      "agg_bw_self_gbps_sum_mean": 16.987
+    }
+  },
+  "wb_mode_ratio": {
+    "cpa_high_over_low": 1.380602608502407,
+    "freq_high_over_low": 0.9999996457349606,
+    "frequency_explains_fraction_of_cpa_ratio_minus_1": -9.308003452971778e-07
+  },
+  "flush_mode_ratio": {
+    "cpa_high_over_low": 1.2875814076610934,
+    "freq_high_over_low": 1.0000000303939673,
+    "frequency_explains_fraction_of_cpa_ratio_minus_1": 1.0568822091156829e-07
+  }
+}

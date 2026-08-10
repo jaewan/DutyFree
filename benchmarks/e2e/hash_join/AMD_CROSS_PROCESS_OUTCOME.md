@@ -82,6 +82,10 @@ Raw data:
   `results/amd/hash_join_cross_process/amd_hash_join_cross_process_smaps_n12.jsonl`
 - smaps diagnostic summary:
   `results/amd/hash_join_cross_process/smaps_cluster_summary.json`
+- frequency-check run:
+  `results/amd/hash_join_cross_process/amd_hash_join_cross_process_freq_n12.jsonl`
+- frequency-check summary:
+  `results/amd/hash_join_cross_process/freq_summary.json`
 
 ## Original Result, Superseded Control
 
@@ -168,3 +172,22 @@ The bimodality is still real and load-only, but it is not explained by THP
 success versus fallback in this allocation path. The next placement-control
 test, if needed, is to back the hot table explicitly rather than relying on
 `std::vector` heap placement.
+
+## Frequency Check
+
+A narrow n=12 follow-up wrapped the loaded victim process on cpu8 with
+`perf stat -C 8 -e cycles,ref-cycles`. It refutes DVFS/clock-rate as the
+loaded-arm mode split:
+
+| cluster | n | cycles/access mean | cycles/ref-cycles mean | victim LLC occ mean |
+|---|---:|---:|---:|---:|
+| WB low | 8 | 322.08 | 1.00000004 | 2.01 MiB |
+| WB high | 4 | 444.66 | 0.99999969 | 0.57 MiB |
+| flush low | 7 | 125.06 | 0.99999976 | 8.33 MiB |
+| flush high | 5 | 161.03 | 0.99999979 | 7.97 MiB |
+
+WB high/low cycles/access differs by 1.381x, while cycles/ref-cycles differs
+by less than one part per million in the opposite direction. Flush high/low
+cycles/access differs by 1.288x with no meaningful frequency movement. The
+clock component of the bimodality is therefore effectively zero; the remaining
+explanation is memory/cache placement or retention state under load.

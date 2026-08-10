@@ -225,13 +225,35 @@ def collect_aggressors(procs, timeout_s: float) -> list[dict]:
         text = log.read_text(errors="replace") if log.exists() else ""
         rec = (
             parse_aggressor_json(text)
-            or parse_amd_aggressor_result(text)
             or parse_flushbehind_result(text)
+            or parse_amd_aggressor_result(text)
             or {"parse_error": True}
         )
         rec["log"] = str(log)
         rec["returncode"] = proc.returncode
         out.append(rec)
+    return out
+
+
+def parse_perf_csv(path: Path) -> dict[str, int | None]:
+    out: dict[str, int | None] = {}
+    if not path.exists():
+        return out
+    for line in path.read_text(errors="replace").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split(",")
+        if len(parts) < 3:
+            continue
+        val, event = parts[0].strip(), parts[2].strip()
+        if val in ("<not counted>", "<not supported>"):
+            out[event] = None
+            continue
+        try:
+            out[event] = int(val)
+        except ValueError:
+            out[event] = None
     return out
 
 
@@ -255,6 +277,43 @@ def run_victim(victim: Path, hot_bytes: int, fact_bytes: str, warmups: int, reps
     return subprocess.run(cmd, text=True, capture_output=True, check=False)
 
 
+def run_victim_with_optional_perf(
+    args: argparse.Namespace, arm: str, rep: int
+) -> tuple[subprocess.CompletedProcess[str], dict[str, int | None] | None]:
+    victim = Path(args.victim)
+    cmd = [
+        str(victim),
+        "--mode", "morsel",
+        "--policy", "wb",
+        "--no-stream",
+        "--fact-bytes", args.fact_bytes,
+        "--fact-node", str(HOT_NODE),
+        "--hot-node", str(HOT_NODE),
+        "--hot-bytes", str(args.hot_bytes),
+        "--threads", "1",
+        "--cpu-list", VICTIM_CPU,
+        "--warmups", str(args.warmups),
+        "--reps", str(args.reps_per_call),
+        "--morsel", "1m",
+        "--check",
+    ]
+    if not args.perf_cpu_events:
+        return subprocess.run(cmd, text=True, capture_output=True, check=False), None
+
+    perf_out = Path(args.log_dir) / f"perf_{arm}_rep{rep}.csv"
+    perf_cmd = [
+        "perf", "stat",
+        "-e", args.perf_cpu_events,
+        "-C", str(args.perf_cpu),
+        "-x", ",",
+        "-o", str(perf_out),
+        "--",
+        *cmd,
+    ]
+    proc = subprocess.run(perf_cmd, text=True, capture_output=True, check=False)
+    return proc, parse_perf_csv(perf_out)
+
+
 def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
     write_schemata(VGRP)
     write_schemata(AGRP)
@@ -272,7 +331,7 @@ def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
     sampler = threading.Thread(target=occ_sampler, args=(stop, occ_samples))
     sampler.start()
     t0 = time.time()
-    victim_proc = run_victim(Path(args.victim), args.hot_bytes, args.fact_bytes, args.warmups, args.reps_per_call)
+    victim_proc, perf_counts = run_victim_with_optional_perf(args, arm, rep)
     t1 = time.time()
     stop.set()
     sampler.join()
@@ -315,6 +374,13 @@ def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
         "victim": victim_json,
         "actual_fact_bytes": victim_json.get("fact_bytes"),
         "metric_cycles_per_access": victim_json.get("active_cycles_per_access"),
+        "perf_cpu": args.perf_cpu if args.perf_cpu_events else None,
+        "perf_counts": perf_counts,
+        "perf_cycles_per_ref_cycle": (
+            perf_counts.get("cycles") / perf_counts["ref-cycles"]
+            if perf_counts and perf_counts.get("cycles") is not None and perf_counts.get("ref-cycles")
+            else None
+        ),
         "aggressor_records": agg_records,
         "agg_bw_self_gbps_sum": sum(agg_bw) if agg_bw else None,
         "agg_bw_self_gbps_mean_per_proc": (sum(agg_bw) / len(agg_bw)) if agg_bw else None,
@@ -350,6 +416,8 @@ def main() -> None:
     ap.add_argument("--out", default=str(DEFAULT_ROOT / "amd_hash_join_cross_process_n12.jsonl"))
     ap.add_argument("--log-dir", default=str(DEFAULT_ROOT / "logs"))
     ap.add_argument("--arms", default=",".join(ARM_ORDER))
+    ap.add_argument("--perf-cpu-events", default="")
+    ap.add_argument("--perf-cpu", type=int, default=int(VICTIM_CPU))
     ap.add_argument("--keep-hugepages", action="store_true")
     args = ap.parse_args()
 
