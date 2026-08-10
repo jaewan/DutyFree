@@ -1,0 +1,70 @@
+{
+  "raw": "results/amd/hash_join_cross_process/amd_hash_join_cross_process_flush_n12.jsonl",
+  "host": "broker/moscxl AMD EPYC 9754",
+  "victim_mode": "morsel --no-stream",
+  "placement": "victim cpu8, aggressors cpus9-15",
+  "hot_bytes": 8388608,
+  "configured_fact_bytes": "512m",
+  "arms": {
+    "quiescent": {
+      "n": 12,
+      "cycles_per_access_mean": 65.557216525,
+      "cycles_per_access_median": 65.71068335,
+      "cycles_per_access_min": 64.2513852,
+      "cycles_per_access_max": 66.6149012,
+      "cycles_per_access_sd": 0.7034494412487844,
+      "tax_vs_quiescent_mean": 1.0,
+      "tax_vs_quiescent_median": 1.0,
+      "wall_dur_s_mean": 2.953015983104706,
+      "actual_fact_bytes": [
+        1048576
+      ],
+      "agg_bw_self_gbps_sum_mean": null,
+      "agg_bw_self_gbps_sum_median": null,
+      "agg_mbm_bw_gbps_mean": 0.00042038284557168875,
+      "agg_mbm_bw_gbps_median": 0.00041900254676374113,
+      "victim_llc_occ_bytes_mean": 8218737.777777778,
+      "victim_llc_occ_bytes_median": 8165376.0
+    },
+    "wb": {
+      "n": 12,
+      "cycles_per_access_mean": 438.431852,
+      "cycles_per_access_median": 480.41387999999995,
+      "cycles_per_access_min": 322.232371,
+      "cycles_per_access_max": 483.713798,
+      "cycles_per_access_sd": 70.71701868883709,
+      "tax_vs_quiescent_mean": 6.687774058143631,
+      "tax_vs_quiescent_median": 7.3110467812537205,
+      "wall_dur_s_mean": 19.637612998485565,
+      "actual_fact_bytes": [
+        1048576
+      ],
+      "agg_bw_self_gbps_sum_mean": 24.714083333333335,
+      "agg_bw_self_gbps_sum_median": 24.7145,
+      "agg_mbm_bw_gbps_mean": 24.311961960437156,
+      "agg_mbm_bw_gbps_median": 24.35073545339687,
+      "victim_llc_occ_bytes_mean": 759643.0328402296,
+      "victim_llc_occ_bytes_median": 307826.44705882354
+    },
+    "flush_d256kb": {
+      "n": 12,
+      "cycles_per_access_mean": 147.27750741666668,
+      "cycles_per_access_median": 161.6230915,
+      "cycles_per_access_min": 123.399259,
+      "cycles_per_access_max": 162.594055,
+      "cycles_per_access_sd": 18.57510548743969,
+      "tax_vs_quiescent_mean": 2.2465491249236145,
+      "tax_vs_quiescent_median": 2.4596166598836624,
+      "wall_dur_s_mean": 6.610725740591685,
+      "actual_fact_bytes": [
+        1048576
+      ],
+      "agg_bw_self_gbps_sum_mean": 16.973916666666668,
+      "agg_bw_self_gbps_sum_median": 16.9825,
+      "agg_mbm_bw_gbps_mean": 32.063981107417156,
+      "agg_mbm_bw_gbps_median": 32.17460165315984,
+      "victim_llc_occ_bytes_mean": 8381712.923378311,
+      "victim_llc_occ_bytes_median": 8368847.471304348
+    }
+  }
+}

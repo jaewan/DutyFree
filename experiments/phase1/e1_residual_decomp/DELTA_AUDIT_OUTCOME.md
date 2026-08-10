@@ -88,11 +88,17 @@ The rate-matched T2 arms held the fetch rate fixed at about 11.5 GB/s:
 |---|---:|
 | `flush2_matched - flush1_matched` | -1.098x [-1.203, -0.926] |
 
-This violates the pre-registered estimator assumption. Doubling the
-flush operation rate increased MBM total (22.42 -> 33.60 GB/s) but
-reduced victim tax (2.434x -> 1.336x). T2 is therefore not a valid
-upper-bound estimator in this implementation and is not used as a point
-estimate of delta.
+This violates the pre-registered estimator assumption, but it is still a
+real result. Doubling the flush operation rate increased MBM total
+(22.42 -> 33.60 GB/s) while reducing victim tax (2.434x -> 1.336x) at
+the same fetch rate (11.51 vs 11.50 GB/s). The measured slope is
+negative because the flush-count knob is not only adding flush operations;
+it is also strengthening the non-allocation mechanism by reducing
+aggressor residency and victim eviction.
+
+T2 is therefore not a valid positive overhead estimator. Its useful
+finding is dose-response evidence that the flush-behind family entangles
+flush-op cost with non-allocation strength.
 
 ## T3: additive disjoint-buffer estimator
 
@@ -104,52 +110,73 @@ streaming rate:
 |---|---:|
 | `WB+disjoint-flush - WB matched` | 4.371x [4.137, 4.843] |
 
-This is the primary conservative estimator by the preregistration, but
-its caveat is material: the disjoint-flush control introduced about
-30.21 GB/s of local MBM traffic while keeping the disjoint lines valid
-before flushing. That means the control is not a clean "flush messages
-only" superposition. It is still the largest observed delta band and
-therefore governs the conservative prose under the pre-registered
-triangulation rule.
+This estimator is disqualified by validity gates that should have been
+explicit in the preregistration:
+
+1. **Negative mass:** T3's point estimate (4.371x) exceeds the entire
+   clean-CCX1 flush-to-WC span (3.616x). Subtracting it would place
+   flush-behind below the WC/non-coherent floor, which is physically
+   impossible for this ladder and is a validity failure, not a
+   conservative bound.
+2. **Unmatched control traffic:** the disjoint-flush control introduced
+   about 30.21 GB/s of local MBM traffic while keeping the disjoint lines
+   valid before flushing. Total MBM traffic differs 52.05 vs
+   21.76 GB/s for the matched WB comparator, even though stream self-BW
+   is close (22.39 vs 22.21 GB/s). This is not a matched "flush messages
+   only" superposition; it is WB plus a second local-DRAM aggressor.
+3. **Comparator sign flip:** the same `WB+disjoint-flush` data gives
+   opposite signs depending on comparator:
+
+   | comparator | arithmetic | delta |
+   |---|---:|---:|
+   | throttled WB | `12.550 - 8.179` | +4.371x |
+   | full-rate WB | `12.550 - 13.474` | -0.924x |
+
+   An estimator whose sign depends on which plausible WB baseline is
+   selected has no valid band to contribute.
+
+T3 is therefore not weighted into the final verdict.
 
 ## Verdict
 
-The three estimates disagree by band:
+The estimators disagree, and the largest numerical estimate is invalid:
 
 | source | delta band |
 |---|---|
 | T1 counter contrast | small / not 2x-home; no positive delta sized |
-| T2 double-flush | estimator failed; negative delta, not usable |
-| T3 matched additive control | delta > 1.8 |
+| T2 double-flush | negative slope; dose-response for non-allocation strength, not an overhead estimator |
+| T3 matched additive control | disqualified: delta > span, unmatched local traffic, comparator sign flip |
 
-Pre-registered rule: if the estimates disagree by band, the conservative
-reading, the largest delta, governs until Build B or a cleaner hardware
-discriminator settles it.
+The preregistered "largest delta governs" rule was incomplete. A validity
+gate is required before triangulation: an estimator returning delta larger
+than the whole span, or whose sign flips with comparator choice, is
+disqualified rather than conservatively weighted.
 
-Conservative verdict: **delta > 1.8**, so H3 demotes to
-"structurally unique but quantitatively secondary" for the clean-CCX1
-flush-behind ladder.
+Corrected verdict: **INCONCLUSIVE**, with T1 as the leading valid signal
+toward small delta. T1's XI ext-near request ratio is 1.007x
+(70,333.5 vs 70,840.5), satisfying the preregistered "near 1.05x"
+accounting-artifact branch. It does not by itself prove a clean positive
+H3 share, because no CXL wire-byte PMU was available, but it is the only
+estimator here that did not self-invalidate.
 
-Numerically, T3's conservative delta estimate (4.371x) exceeds the
-entire clean-CCX1 flush-to-WC span (3.616x). This should not be read as
-"negative H3"; it means this additive control is too conservative and
-fully consumes the span for paper-prose purposes. The defensible
-paper-facing H3 share from this rung is therefore not a settled 3.6x;
-under the conservative audit rule it is bounded down to zero until a
-cleaner discriminator supersedes T3.
+The audit's most important methodological finding is that delta may not
+be identifiable from the flush-behind family at all. The flush-count knob
+is inseparable from the non-allocation-strength knob; the `n -> 0` limit
+of flush-behind is plain WB, not a flush-free non-allocating arm. Build B
+remains the clean path to non-allocation without flush operations.
 
 ## Embargo status
 
-The old embargo wording, "upper bound, flush-overhead unresolved," is
-superseded for this dataset, but the 3.6x number still must not be cited
-as H3's quantitative contribution.
+The old embargo wording stays in force: **"upper bound,
+flush-overhead unresolved."** The proposed replacement wording from the
+prior outcome is withdrawn and must not reach the paper. The 3.616x
+clean-CCX1 flush-to-WC span still must not be cited as H3's settled
+quantitative contribution.
 
-Replacement wording:
+Paper-safe wording remains:
 
 > Clean-CCX1 flush-behind leaves a 3.616x flush-to-WC span before
-> subtracting emulation overhead. A conservative delta audit finds that
-> the additive flush-control bound can consume the entire span, so the
-> flush-behind rung does not currently support a settled positive
-> quantitative H3 share; H3 remains structurally unique but
-> quantitatively secondary pending Build B or a cleaner counter/control
-> discriminator.
+> subtracting emulation overhead. We treat this as an upper bound because
+> flush-overhead remains unresolved. The hardware flush-behind family
+> entangles flush cost with non-allocation strength; Build B is required
+> for a clean flush-free non-allocation measurement.
