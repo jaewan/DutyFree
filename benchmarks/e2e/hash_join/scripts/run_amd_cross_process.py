@@ -8,6 +8,7 @@ separate resctrl group from seven same-CCX aggressor processes.
 from __future__ import annotations
 
 import argparse
+import math
 import json
 import os
 import signal
@@ -257,6 +258,124 @@ def parse_perf_csv(path: Path) -> dict[str, int | None]:
     return out
 
 
+def parse_hot_table_line(line: str) -> dict[str, int] | None:
+    if not line.startswith("HOT_TABLE "):
+        return None
+    out: dict[str, int] = {}
+    for tok in line.split()[1:]:
+        if "=" not in tok:
+            continue
+        key, val = tok.split("=", 1)
+        try:
+            out[key] = int(val, 0)
+        except ValueError:
+            continue
+    if {"pid", "base", "bytes"} <= set(out):
+        return out
+    return None
+
+
+def summarize_counts(counts: list[int]) -> dict[str, float | int | None]:
+    if not counts:
+        return {"n": 0, "mean": None, "sd": None, "cov": None, "min": None, "max": None}
+    mean = sum(counts) / len(counts)
+    var = sum((x - mean) ** 2 for x in counts) / len(counts)
+    return {
+        "n": len(counts),
+        "mean": mean,
+        "sd": math.sqrt(var),
+        "cov": (math.sqrt(var) / mean) if mean else None,
+        "min": min(counts),
+        "max": max(counts),
+    }
+
+
+def histogram_mod(vals: list[int], modulus: int) -> list[int]:
+    hist = [0] * modulus
+    for val in vals:
+        hist[val % modulus] += 1
+    return hist
+
+
+def run_lengths(vals: list[int]) -> list[int]:
+    if not vals:
+        return []
+    runs: list[int] = []
+    cur = 1
+    for prev, val in zip(vals, vals[1:]):
+        if val == prev + 1:
+            cur += 1
+        else:
+            runs.append(cur)
+            cur = 1
+    runs.append(cur)
+    return runs
+
+
+def dump_hot_table_pagemap(
+    pid: int, base: int, byte_len: int, args: argparse.Namespace
+) -> dict[str, object]:
+    page_size = args.page_size
+    line_size = args.llc_line_size
+    llc_sets = args.llc_sets
+    first_page = base // page_size
+    last_page = (base + byte_len - 1) // page_size
+    pfns: list[int | None] = []
+    present_pfns: list[int] = []
+    set_counts = [0] * llc_sets
+    pagemap = Path(f"/proc/{pid}/pagemap")
+    with pagemap.open("rb", buffering=0) as fh:
+        for page in range(first_page, last_page + 1):
+            fh.seek(page * 8)
+            raw = fh.read(8)
+            if len(raw) != 8:
+                pfns.append(None)
+                continue
+            entry = int.from_bytes(raw, "little")
+            if not (entry & (1 << 63)):
+                pfns.append(None)
+                continue
+            pfn = entry & ((1 << 55) - 1)
+            pfns.append(pfn)
+            present_pfns.append(pfn)
+            page_start = page * page_size
+            region_start = max(base, page_start)
+            region_end = min(base + byte_len, page_start + page_size)
+            first_line = (region_start - page_start) // line_size
+            last_line = (region_end - page_start + line_size - 1) // line_size
+            for line in range(first_line, last_line):
+                set_counts[((pfn * page_size) // line_size + line) % llc_sets] += 1
+    nonzero_set_counts = [x for x in set_counts if x]
+    sorted_pfns = sorted(present_pfns)
+    runs = run_lengths(sorted_pfns)
+    top_sets = sorted(
+        ((count, idx) for idx, count in enumerate(set_counts) if count),
+        reverse=True,
+    )[:16]
+    return {
+        "pid": pid,
+        "base": base,
+        "bytes": byte_len,
+        "page_size": page_size,
+        "llc_line_size": line_size,
+        "llc_sets": llc_sets,
+        "total_pages": len(pfns),
+        "present_pages": len(present_pfns),
+        "unique_pfns": len(set(present_pfns)),
+        "pfns": pfns,
+        "pfn_min": min(present_pfns) if present_pfns else None,
+        "pfn_max": max(present_pfns) if present_pfns else None,
+        "pfn_run_summary": summarize_counts(runs),
+        "pfn_mod_16_hist": histogram_mod(present_pfns, 16),
+        "pfn_mod_64_hist": histogram_mod(present_pfns, 64),
+        "pfn_mod_512_hist": histogram_mod(present_pfns, 512),
+        "pfn_2m_frame_mod_32_hist": histogram_mod([p // 512 for p in present_pfns], 32),
+        "llc_set_nonzero": len(nonzero_set_counts),
+        "llc_set_count_summary": summarize_counts(nonzero_set_counts),
+        "llc_set_top16": [{"set": idx, "lines": count} for count, idx in top_sets],
+    }
+
+
 def run_victim(victim: Path, hot_bytes: int, fact_bytes: str, warmups: int, reps: int) -> subprocess.CompletedProcess[str]:
     cmd = [
         str(victim),
@@ -279,7 +398,7 @@ def run_victim(victim: Path, hot_bytes: int, fact_bytes: str, warmups: int, reps
 
 def run_victim_with_optional_perf(
     args: argparse.Namespace, arm: str, rep: int
-) -> tuple[subprocess.CompletedProcess[str], dict[str, int | None] | None]:
+) -> tuple[subprocess.CompletedProcess[str], dict[str, int | None] | None, dict[str, object] | None]:
     victim = Path(args.victim)
     cmd = [
         str(victim),
@@ -297,21 +416,68 @@ def run_victim_with_optional_perf(
         "--morsel", "1m",
         "--check",
     ]
-    if not args.perf_cpu_events:
-        return subprocess.run(cmd, text=True, capture_output=True, check=False), None
+    if not args.perf_cpu_events and not args.dump_pagemap:
+        return subprocess.run(cmd, text=True, capture_output=True, check=False), None, None
 
+    full_cmd = cmd
     perf_out = Path(args.log_dir) / f"perf_{arm}_rep{rep}.csv"
-    perf_cmd = [
-        "perf", "stat",
-        "-e", args.perf_cpu_events,
-        "-C", str(args.perf_cpu),
-        "-x", ",",
-        "-o", str(perf_out),
-        "--",
-        *cmd,
-    ]
-    proc = subprocess.run(perf_cmd, text=True, capture_output=True, check=False)
-    return proc, parse_perf_csv(perf_out)
+    if args.perf_cpu_events:
+        full_cmd = [
+            "perf", "stat",
+            "-e", args.perf_cpu_events,
+            "-C", str(args.perf_cpu),
+            "-x", ",",
+            "-o", str(perf_out),
+            "--",
+            *cmd,
+        ]
+
+    proc = subprocess.Popen(
+        full_cmd,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        bufsize=1,
+    )
+    stderr_lines: list[str] = []
+    hot_table: dict[str, int] | None = None
+    hot_event = threading.Event()
+
+    def read_stderr() -> None:
+        nonlocal hot_table
+        assert proc.stderr is not None
+        for line in proc.stderr:
+            stderr_lines.append(line)
+            parsed = parse_hot_table_line(line.strip())
+            if parsed and hot_table is None:
+                hot_table = parsed
+                hot_event.set()
+
+    err_thread = threading.Thread(target=read_stderr)
+    err_thread.start()
+    pagemap_summary = None
+    if args.dump_pagemap:
+        if hot_event.wait(args.pagemap_timeout_s) and hot_table is not None:
+            pagemap_summary = dump_hot_table_pagemap(
+                hot_table["pid"], hot_table["base"], hot_table["bytes"], args
+            )
+        elif proc.poll() is None:
+            proc.terminate()
+            proc.wait(timeout=5)
+            err_thread.join(timeout=5)
+            raise RuntimeError(
+                f"timed out waiting for HOT_TABLE arm={arm} rep={rep}\n"
+                f"stderr={''.join(stderr_lines)}"
+            )
+
+    assert proc.stdout is not None
+    stdout = proc.stdout.read()
+    proc.wait()
+    err_thread.join(timeout=5)
+    completed = subprocess.CompletedProcess(
+        full_cmd, proc.returncode, stdout, "".join(stderr_lines)
+    )
+    return completed, (parse_perf_csv(perf_out) if args.perf_cpu_events else None), pagemap_summary
 
 
 def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
@@ -331,7 +497,7 @@ def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
     sampler = threading.Thread(target=occ_sampler, args=(stop, occ_samples))
     sampler.start()
     t0 = time.time()
-    victim_proc, perf_counts = run_victim_with_optional_perf(args, arm, rep)
+    victim_proc, perf_counts, pagemap_summary = run_victim_with_optional_perf(args, arm, rep)
     t1 = time.time()
     stop.set()
     sampler.join()
@@ -381,6 +547,7 @@ def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
             if perf_counts and perf_counts.get("cycles") is not None and perf_counts.get("ref-cycles")
             else None
         ),
+        "hot_table_pagemap": pagemap_summary,
         "aggressor_records": agg_records,
         "agg_bw_self_gbps_sum": sum(agg_bw) if agg_bw else None,
         "agg_bw_self_gbps_mean_per_proc": (sum(agg_bw) / len(agg_bw)) if agg_bw else None,
@@ -418,6 +585,11 @@ def main() -> None:
     ap.add_argument("--arms", default=",".join(ARM_ORDER))
     ap.add_argument("--perf-cpu-events", default="")
     ap.add_argument("--perf-cpu", type=int, default=int(VICTIM_CPU))
+    ap.add_argument("--dump-pagemap", action="store_true")
+    ap.add_argument("--pagemap-timeout-s", type=float, default=10.0)
+    ap.add_argument("--page-size", type=int, default=4096)
+    ap.add_argument("--llc-line-size", type=int, default=64)
+    ap.add_argument("--llc-sets", type=int, default=16384)
     ap.add_argument("--keep-hugepages", action="store_true")
     args = ap.parse_args()
 

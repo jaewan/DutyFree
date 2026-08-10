@@ -86,6 +86,10 @@ Raw data:
   `results/amd/hash_join_cross_process/amd_hash_join_cross_process_freq_n12.jsonl`
 - frequency-check summary:
   `results/amd/hash_join_cross_process/freq_summary.json`
+- pagemap + frequency run:
+  `results/amd/hash_join_cross_process/amd_hash_join_cross_process_pagemap_n12.jsonl`
+- pagemap + frequency summary:
+  `results/amd/hash_join_cross_process/pagemap_summary.json`
 
 ## Original Result, Superseded Control
 
@@ -191,3 +195,38 @@ by less than one part per million in the opposite direction. Flush high/low
 cycles/access differs by 1.288x with no meaningful frequency movement. The
 clock component of the bimodality is therefore effectively zero; the remaining
 explanation is memory/cache placement or retention state under load.
+
+## Pagemap Placement Check
+
+A second n=12 follow-up dumped `/proc/<victim>/pagemap` for the hot table in
+each rep, while also collecting cpu8 `cycles,ref-cycles` for quiescent and both
+loaded arms. The victim emits a `HOT_TABLE` line with pid/base/bytes before the
+measured loop; the runner samples pagemap immediately, stores the raw PFN list,
+and derives LLC-set and low-physical-bit interleave proxies from those PFNs.
+
+The run reproduced the loaded split, but the static PFN/set placement features
+do not predict it:
+
+| cluster | n | cycles/access mean | cycles/ref-cycles mean | victim LLC occ mean | LLC sets covered | set-count COV | max set lines | AnonHugePages |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| quiescent | 12 | 64.45 | 1.00000015 | 8.18 MiB | 16384 | 0.337 | 16.4 | 0 KiB |
+| WB low | 8 | 323.04 | 0.99999983 | 1.96 MiB | 16384 | 0.352 | 16.4 | 0 KiB |
+| WB high | 4 | 455.06 | 1.00000024 | 0.46 MiB | 16368 | 0.356 | 17.0 | 0 KiB |
+| flush low | 9 | 123.96 | 0.99999962 | 8.27 MiB | 16384 | 0.353 | 17.3 | 0 KiB |
+| flush high | 3 | 160.87 | 0.99999974 | 8.05 MiB | 16363 | 0.351 | 16.7 | 0 KiB |
+
+All records are 4 KiB-backed; `AnonHugePages` is zero throughout. The hot-table
+PFNs cover the full 16,384-set LLC index space in every low/quiescent record
+and almost all sets in the high records. PFN mod-16/mod-64/mod-512 and
+2 MiB-frame mod-32 histograms overlap across high and low states; these are
+only userspace physical-bit proxies for channel/CCD interleave, but they give
+no separable signature. Occupancy remains the only strong correlate of the
+state.
+
+This closes the two cheap explanations. DVFS is refuted by cycles/ref-cycles,
+and static hot-table PFN/index placement, as visible from pagemap at measurement
+start, does not explain the mode. The remaining mechanism is a load-dependent
+retention state or a lower-level physical-address hash effect not captured by
+these simple PFN-derived proxies. Hugetlbfs pinning may still be useful as a
+control, but the current evidence does not justify claiming page placement as
+the mechanism.

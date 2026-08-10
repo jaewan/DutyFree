@@ -1286,6 +1286,15 @@ void run_morsel(Config c) {
   std::vector<int64_t> keys;
   build_table(table, keys, c.hot_bytes, c.seed);
   SmapsInfo table_smi = smaps_info(table.data());
+  std::cerr << "HOT_TABLE"
+            << " pid=" << getpid()
+            << " base=0x" << std::hex << reinterpret_cast<uintptr_t>(table.data()) << std::dec
+            << " bytes=" << (table.size() * sizeof(Entry))
+            << " entries=" << table.size()
+            << " anon_huge_kb=" << table_smi.anon_huge_kb
+            << " kernel_page_kb=" << table_smi.kernel_page_kb
+            << " mmu_page_kb=" << table_smi.mmu_page_kb
+            << "\n";
   fill_fact(fact, local_n, keys, c.hit_rate, c.seed);
   prefault_region(fact, phys_bytes);
   if (c.policy == "stream") gem5_set_streaming(fact, (long)phys_bytes);
