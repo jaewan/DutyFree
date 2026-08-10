@@ -397,7 +397,7 @@ def run_victim(victim: Path, hot_bytes: int, fact_bytes: str, warmups: int, reps
 
 
 def run_victim_with_optional_perf(
-    args: argparse.Namespace, arm: str, rep: int
+    args: argparse.Namespace, arm: str, rep: int, on_warmed=None
 ) -> tuple[subprocess.CompletedProcess[str], dict[str, int | None] | None, dict[str, object] | None]:
     victim = Path(args.victim)
     cmd = [
@@ -416,7 +416,9 @@ def run_victim_with_optional_perf(
         "--morsel", "1m",
         "--check",
     ]
-    if not args.perf_cpu_events and not args.dump_pagemap:
+    if args.victim_pre_measure_sleep_s > 0.0:
+        cmd.extend(["--pre-measure-sleep-s", str(args.victim_pre_measure_sleep_s)])
+    if not args.perf_cpu_events and not args.dump_pagemap and on_warmed is None:
         return subprocess.run(cmd, text=True, capture_output=True, check=False), None, None
 
     full_cmd = cmd
@@ -442,9 +444,10 @@ def run_victim_with_optional_perf(
     stderr_lines: list[str] = []
     hot_table: dict[str, int] | None = None
     hot_event = threading.Event()
+    warmed_called = False
 
     def read_stderr() -> None:
-        nonlocal hot_table
+        nonlocal hot_table, warmed_called
         assert proc.stderr is not None
         for line in proc.stderr:
             stderr_lines.append(line)
@@ -452,6 +455,9 @@ def run_victim_with_optional_perf(
             if parsed and hot_table is None:
                 hot_table = parsed
                 hot_event.set()
+            if line.startswith("HOT_TABLE_WARMED ") and on_warmed is not None and not warmed_called:
+                warmed_called = True
+                on_warmed()
 
     err_thread = threading.Thread(target=read_stderr)
     err_thread.start()
@@ -486,18 +492,48 @@ def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
 
     log_dir = Path(args.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
-    mbm_start = read_mbm(AGRP)
-    t_agg_start = time.time()
-    procs = launch_aggressors(args, arm, args.agg_duration_s, log_dir, rep)
-    if procs:
-        time.sleep(args.agg_settle_s)
+    mbm_start = None
+    t_agg_start = None
+    procs = []
+    if args.arrival_order == "aggressor-first":
+        mbm_start = read_mbm(AGRP)
+        t_agg_start = time.time()
+        procs = launch_aggressors(args, arm, args.agg_duration_s, log_dir, rep)
+        if procs:
+            time.sleep(args.agg_settle_s)
+
+    launch_lock = threading.Lock()
+
+    def launch_after_warm() -> None:
+        nonlocal mbm_start, t_agg_start, procs
+        with launch_lock:
+            if procs:
+                return
+            mbm_start = read_mbm(AGRP)
+            t_agg_start = time.time()
+            procs = launch_aggressors(args, arm, args.agg_duration_s, log_dir, rep)
+            if procs and args.agg_settle_s > 0:
+                time.sleep(args.agg_settle_s)
+
+    if args.arrival_order == "victim-first" and arm == "quiescent":
+        # Keep quiescent as the same victim command, but there is no aggressor arrival.
+        launch_after_warm_cb = None
+    elif args.arrival_order == "victim-first":
+        launch_after_warm_cb = launch_after_warm
+    else:
+        launch_after_warm_cb = None
+
+    if args.arrival_order == "victim-first" and arm != "quiescent" and args.victim_pre_measure_sleep_s <= args.agg_settle_s:
+        raise RuntimeError("--victim-pre-measure-sleep-s must exceed --agg-settle-s for victim-first loaded arms")
 
     occ_samples: list[int] = []
     stop = threading.Event()
     sampler = threading.Thread(target=occ_sampler, args=(stop, occ_samples))
     sampler.start()
     t0 = time.time()
-    victim_proc, perf_counts, pagemap_summary = run_victim_with_optional_perf(args, arm, rep)
+    victim_proc, perf_counts, pagemap_summary = run_victim_with_optional_perf(
+        args, arm, rep, on_warmed=launch_after_warm_cb
+    )
     t1 = time.time()
     stop.set()
     sampler.join()
@@ -536,6 +572,9 @@ def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
         "rep": rep,
         "victim_mode": "morsel_no_stream",
         "wall_dur_s": t1 - t0,
+        "arrival_order": args.arrival_order,
+        "agg_settle_s": args.agg_settle_s,
+        "victim_pre_measure_sleep_s": args.victim_pre_measure_sleep_s,
         "configured_fact_bytes": args.fact_bytes,
         "victim": victim_json,
         "actual_fact_bytes": victim_json.get("fact_bytes"),
@@ -552,7 +591,12 @@ def run_one(args: argparse.Namespace, arm: str, rep: int, outf) -> None:
         "agg_bw_self_gbps_sum": sum(agg_bw) if agg_bw else None,
         "agg_bw_self_gbps_mean_per_proc": (sum(agg_bw) / len(agg_bw)) if agg_bw else None,
         "agg_mbm_bw_gbps": ((mbm_end - mbm_start) / (t_agg_end - t_agg_start) / 1e9)
-        if mbm_start is not None and mbm_end is not None and t_agg_end > t_agg_start
+        if (
+            mbm_start is not None
+            and t_agg_start is not None
+            and mbm_end is not None
+            and t_agg_end > t_agg_start
+        )
         else None,
         "victim_llc_occ_bytes": occ,
     }
@@ -575,6 +619,8 @@ def main() -> None:
     ap.add_argument("--reps-per-call", type=int, default=3)
     ap.add_argument("--agg-duration-s", type=float, default=120.0)
     ap.add_argument("--agg-settle-s", type=float, default=2.0)
+    ap.add_argument("--arrival-order", choices=("aggressor-first", "victim-first"), default="aggressor-first")
+    ap.add_argument("--victim-pre-measure-sleep-s", type=float, default=0.0)
     ap.add_argument("--amd-per-thread-mb", type=int, default=64)
     ap.add_argument("--flush-distance-kb", type=int, default=256)
     ap.add_argument("--flush-per-thread-mb", type=int, default=64)

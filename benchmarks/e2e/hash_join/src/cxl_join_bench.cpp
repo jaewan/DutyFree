@@ -92,6 +92,7 @@ struct Config {
   bool result_hash = false;
   bool scan_memcpy = false;
   bool no_stream = false;
+  double pre_measure_sleep_s = 0.0;
 };
 
 static inline uint64_t rdtsc() {
@@ -1305,6 +1306,14 @@ void run_morsel(Config c) {
     std::exit(10);
   }
   for (int i = 0; i < c.warmups; ++i) warm_table(table);
+  std::cerr << "HOT_TABLE_WARMED"
+            << " pid=" << getpid()
+            << " warmups=" << c.warmups
+            << " pre_measure_sleep_s=" << std::setprecision(9) << c.pre_measure_sleep_s
+            << "\n";
+  if (c.pre_measure_sleep_s > 0.0) {
+    std::this_thread::sleep_for(std::chrono::duration<double>(c.pre_measure_sleep_s));
+  }
   std::atomic<size_t> next{0};
   std::vector<Result> partial(c.threads);
   std::vector<uint64_t> thread_cycles(c.threads, 0);
@@ -1365,6 +1374,7 @@ void run_morsel(Config c) {
   std::cout << "\"placement\":\"" << json_escape(placement) << "\",";
   std::cout << "\"no_stream\":" << (no_stream ? "true" : "false") << ",";
   std::cout << "\"local_n\":" << local_n << ",";
+  std::cout << "\"pre_measure_sleep_s\":" << std::setprecision(9) << c.pre_measure_sleep_s << ",";
   std::cout << "\"table_anon_huge_kb\":" << table_smi.anon_huge_kb << ",";
   std::cout << "\"table_kernel_page_kb\":" << table_smi.kernel_page_kb << ",";
   std::cout << "\"table_mmu_page_kb\":" << table_smi.mmu_page_kb << ",";
@@ -1508,6 +1518,7 @@ Config parse(int argc, char **argv) {
     else if (a == "--result-hash") c.result_hash = true;
     else if (a == "--scan-memcpy") c.scan_memcpy = true;
     else if (a == "--no-stream") c.no_stream = true;
+    else if (a == "--pre-measure-sleep-s") c.pre_measure_sleep_s = std::stod(need("--pre-measure-sleep-s"));
     else {
       std::cerr << "unknown argument: " << a << "\n";
       std::exit(2);

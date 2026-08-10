@@ -90,6 +90,11 @@ Raw data:
   `results/amd/hash_join_cross_process/amd_hash_join_cross_process_pagemap_n12.jsonl`
 - pagemap + frequency summary:
   `results/amd/hash_join_cross_process/pagemap_summary.json`
+- arrival-order runs:
+  `results/amd/hash_join_cross_process/amd_hash_join_order_victim_first_n12.jsonl`,
+  `results/amd/hash_join_cross_process/amd_hash_join_order_aggressor_lead8_n12.jsonl`
+- arrival-order summary:
+  `results/amd/hash_join_cross_process/ordering_summary.json`
 
 ## Original Result, Superseded Control
 
@@ -179,54 +184,91 @@ test, if needed, is to back the hot table explicitly rather than relying on
 
 ## Frequency Check
 
-A narrow n=12 follow-up wrapped the loaded victim process on cpu8 with
-`perf stat -C 8 -e cycles,ref-cycles`. It refutes DVFS/clock-rate as the
-loaded-arm mode split:
+A narrow n=12 follow-up wrapped the victim process on cpu8 with
+`perf stat -C 8 -e cycles` and computes effective frequency as
+`cycles / wall_dur_s`. This is the valid frequency measure on this AMD host;
+`cycles/ref-cycles` is not used because both event names resolve to the same
+underlying counter here. The result refutes DVFS/clock-rate as the loaded-arm
+mode split:
 
-| cluster | n | cycles/access mean | cycles/ref-cycles mean | victim LLC occ mean |
+| cluster | n | cycles/access mean | effective GHz | victim LLC occ mean |
 |---|---:|---:|---:|---:|
-| WB low | 8 | 322.08 | 1.00000004 | 2.01 MiB |
-| WB high | 4 | 444.66 | 0.99999969 | 0.57 MiB |
-| flush low | 7 | 125.06 | 0.99999976 | 8.33 MiB |
-| flush high | 5 | 161.03 | 0.99999979 | 7.97 MiB |
+| quiescent | 12 | 64.45 | 2.2004 | 8.18 MiB |
+| WB low | 8 | 323.04 | 2.2384 | 1.96 MiB |
+| WB high | 4 | 455.06 | 2.2414 | 0.46 MiB |
+| flush low | 9 | 123.96 | 2.2226 | 8.27 MiB |
+| flush high | 3 | 160.87 | 2.2280 | 8.05 MiB |
 
-WB high/low cycles/access differs by 1.381x, while cycles/ref-cycles differs
-by less than one part per million in the opposite direction. Flush high/low
-cycles/access differs by 1.288x with no meaningful frequency movement. The
-clock component of the bimodality is therefore effectively zero; the remaining
+The host is pinned near 2.2 GHz with no boost regime. Loaded arms are
+marginally faster-clocked than quiescent, so the loaded tax has no clock
+inflation and is, if anything, slightly understated. WB high/low cycles/access
+differs by 1.409x while effective GHz differs by only 0.13%; flush high/low
+cycles/access differs by 1.298x while effective GHz differs by 0.24%. The clock
+component of the bimodality is therefore effectively zero; the remaining
 explanation is memory/cache placement or retention state under load.
 
 ## Pagemap Placement Check
 
 A second n=12 follow-up dumped `/proc/<victim>/pagemap` for the hot table in
-each rep, while also collecting cpu8 `cycles,ref-cycles` for quiescent and both
-loaded arms. The victim emits a `HOT_TABLE` line with pid/base/bytes before the
+each rep, while also collecting cpu8 `cycles` for quiescent and both loaded
+arms. The victim emits a `HOT_TABLE` line with pid/base/bytes before the
 measured loop; the runner samples pagemap immediately, stores the raw PFN list,
 and derives LLC-set and low-physical-bit interleave proxies from those PFNs.
 
 The run reproduced the loaded split, but the static PFN/set placement features
 do not predict it:
 
-| cluster | n | cycles/access mean | cycles/ref-cycles mean | victim LLC occ mean | LLC sets covered | set-count COV | max set lines | AnonHugePages |
+| cluster | n | cycles/access mean | effective GHz | victim LLC occ mean | LLC sets covered | set-count COV | max set lines | AnonHugePages |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| quiescent | 12 | 64.45 | 1.00000015 | 8.18 MiB | 16384 | 0.337 | 16.4 | 0 KiB |
-| WB low | 8 | 323.04 | 0.99999983 | 1.96 MiB | 16384 | 0.352 | 16.4 | 0 KiB |
-| WB high | 4 | 455.06 | 1.00000024 | 0.46 MiB | 16368 | 0.356 | 17.0 | 0 KiB |
-| flush low | 9 | 123.96 | 0.99999962 | 8.27 MiB | 16384 | 0.353 | 17.3 | 0 KiB |
-| flush high | 3 | 160.87 | 0.99999974 | 8.05 MiB | 16363 | 0.351 | 16.7 | 0 KiB |
+| quiescent | 12 | 64.45 | 2.2004 | 8.18 MiB | 16384 | 0.337 | 16.4 | 0 KiB |
+| WB low | 8 | 323.04 | 2.2384 | 1.96 MiB | 16384 | 0.352 | 16.4 | 0 KiB |
+| WB high | 4 | 455.06 | 2.2414 | 0.46 MiB | 16368 | 0.356 | 17.0 | 0 KiB |
+| flush low | 9 | 123.96 | 2.2226 | 8.27 MiB | 16384 | 0.353 | 17.3 | 0 KiB |
+| flush high | 3 | 160.87 | 2.2280 | 8.05 MiB | 16363 | 0.351 | 16.7 | 0 KiB |
 
 All records are 4 KiB-backed; `AnonHugePages` is zero throughout. The hot-table
 PFNs cover the full 16,384-set LLC index space in every low/quiescent record
 and almost all sets in the high records. PFN mod-16/mod-64/mod-512 and
 2 MiB-frame mod-32 histograms overlap across high and low states; these are
 only userspace physical-bit proxies for channel/CCD interleave, but they give
-no separable signature. Occupancy remains the only strong correlate of the
-state.
+no separable signature. AMD's real L3 set/slice and memory-channel hash is
+undocumented, so this is evidence against gross static placement effects, not
+proof against every possible physical-address hash effect. Occupancy remains
+the only strong correlate of the state.
 
-This closes the two cheap explanations. DVFS is refuted by cycles/ref-cycles,
+This closes the two cheap explanations. DVFS is refuted by effective GHz,
 and static hot-table PFN/index placement, as visible from pagemap at measurement
 start, does not explain the mode. The remaining mechanism is a load-dependent
 retention state or a lower-level physical-address hash effect not captured by
 these simple PFN-derived proxies. Hugetlbfs pinning may still be useful as a
 control, but the current evidence does not justify claiming page placement as
 the mechanism.
+
+## Arrival-Order Check
+
+A final n=12 ordering test varied when the aggressors arrive relative to the
+victim's warmed hot table:
+
+- `victim-first`: the victim warms the hot table, emits `HOT_TABLE_WARMED`,
+  then the runner launches the aggressor with only a 0.1 s pre-measure gap.
+- `aggressor-lead8`: the aggressor starts first and runs for an 8 s settle
+  period before the victim begins.
+
+The proposed deterministic arrival-order lock-in does not hold. Victim-first
+does not force the previous low state; it creates a tight middle operating
+point. Long aggressor lead does not force high; it remains bimodal and is
+mostly low in this sample.
+
+| condition | arm | cluster | n | cycles/access mean | victim LLC occ mean |
+|---|---|---|---:|---:|---:|
+| victim-first | WB | middle | 12 | 404.21 | 0.37 MiB |
+| victim-first | flush_d256kb | middle | 12 | 143.85 | 7.75 MiB |
+| aggressor-lead8 | WB | low | 7 | 292.39 | 1.77 MiB |
+| aggressor-lead8 | WB | high | 5 | 436.83 | 0.25 MiB |
+| aggressor-lead8 | flush_d256kb | low | 9 | 117.78 | 8.72 MiB |
+| aggressor-lead8 | flush_d256kb | high | 3 | 146.72 | 8.30 MiB |
+
+Arrival order is therefore a perturbation that can select or shift an
+operating point, but it is not the mechanism by itself. The paper result should
+report per-state taxes rather than pooled means, and treat the multiplicity as
+an observed shared-LLC operating property on this host.
