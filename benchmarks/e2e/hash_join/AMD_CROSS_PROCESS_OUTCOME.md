@@ -95,6 +95,41 @@ Raw data:
   `results/amd/hash_join_cross_process/amd_hash_join_order_aggressor_lead8_n12.jsonl`
 - arrival-order summary:
   `results/amd/hash_join_cross_process/ordering_summary.json`
+- frozen victim-first triple:
+  `results/amd/hash_join_cross_process/amd_hash_join_victim_first_triple_n12.jsonl`
+- frozen victim-first summary:
+  `results/amd/hash_join_cross_process/victim_first_triple_summary.json`
+
+## Frozen Victim-First Protocol
+
+The publishable protocol is `victim-first`, named at point of use. The victim
+builds and warms its 8 MiB hot table, emits `HOT_TABLE_WARMED`, and the runner
+then launches the external aggressor with a 0.1 s pre-measure gap. The
+quiescent arm is included in the same n=12 run and uses the same victim command
+without an aggressor.
+
+Absolute tax is arrival-order dependent on this host, so it should never appear
+without its protocol. Across explored protocols, WB loaded states ranged from
+292 to 455 cycles/access.
+
+| protocol | arm | n | cycles/access mean | sd | CV | tax vs same-run quiescent | effective GHz | victim LLC occ mean | aggressor self BW |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| victim-first | quiescent | 12 | 62.66 | 0.76 | 1.22% | 1.000x | 2.2008 | 8.29 MiB | n/a |
+| victim-first | WB | 12 | 406.25 | 1.98 | 0.49% | 6.484x | 2.2317 | 0.39 MiB | 24.72 GB/s |
+| victim-first | flush_d256kb | 12 | 144.21 | 0.62 | 0.43% | 2.302x | 2.1953 | 7.92 MiB | 16.97 GB/s |
+
+Flush-behind recovers 76.3% of the hash-join tenant's WB tax:
+
+`(406.25 - 144.21) / (406.25 - 62.66) = 0.7626`.
+
+It also preserves near-full hot-table LLC occupancy: 7.92 MiB under
+`flush_d256kb` versus 8.29 MiB quiescent, while WB drops to 0.39 MiB. This is
+the first application-level reproduction of the ladder shape, consistent with
+the microbenchmark ladder's roughly 71% H2 contribution.
+
+The WC endpoint is still open because `/dev/cxl_wc` was unavailable. That
+blocks only the H3/δ split of the residual 23.7%, not the H2 recovery claim;
+Build B remains the cleaner path for that residual split.
 
 ## Original Result, Superseded Control
 
@@ -272,3 +307,11 @@ Arrival order is therefore a perturbation that can select or shift an
 operating point, but it is not the mechanism by itself. The paper result should
 report per-state taxes rather than pooled means, and treat the multiplicity as
 an observed shared-LLC operating property on this host.
+
+Mechanism status at the stopping point: aggressor-lead protocols are
+multistable, while the victim-first protocol gives a tight single operating
+point with its own quiescent baseline. Ruled out as primary causes are DVFS
+(flat 2.20-2.24 GHz including quiescent), THP success/fallback (all 4 KiB),
+gross static pagemap placement, and workload inputs. Further diagnostics should
+not change the paper claim: report the named victim-first triple above and keep
+the WC/Build B residual split as future work.

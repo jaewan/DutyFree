@@ -416,7 +416,7 @@ def run_victim_with_optional_perf(
         "--morsel", "1m",
         "--check",
     ]
-    if args.victim_pre_measure_sleep_s > 0.0:
+    if on_warmed is not None and args.victim_pre_measure_sleep_s > 0.0:
         cmd.extend(["--pre-measure-sleep-s", str(args.victim_pre_measure_sleep_s)])
     if not args.perf_cpu_events and not args.dump_pagemap and on_warmed is None:
         return subprocess.run(cmd, text=True, capture_output=True, check=False), None, None

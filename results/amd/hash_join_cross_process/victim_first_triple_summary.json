@@ -1,0 +1,419 @@
+{
+  "arms": {
+    "flush_d256kb": {
+      "agg_bw_self_gbps_sum_mean": 16.974083333333336,
+      "agg_mbm_bw_gbps_mean": 31.531673526415897,
+      "cpa_cv": 0.004312426113257572,
+      "cpa_max": 145.499721,
+      "cpa_mean": 144.21352083333332,
+      "cpa_min": 143.2186,
+      "cpa_sd": 0.6219101531264815,
+      "effective_ghz_mean": 2.195304118860179,
+      "effective_ghz_sd": 0.0039496997699024474,
+      "n": 12,
+      "occ_mib_mean": 7.921746794871795,
+      "occ_mib_sd": 0.24687909870181757
+    },
+    "quiescent": {
+      "agg_bw_self_gbps_sum_mean": null,
+      "agg_mbm_bw_gbps_mean": null,
+      "cpa_cv": 0.012186979323455615,
+      "cpa_max": 64.0284263,
+      "cpa_mean": 62.65824824166666,
+      "cpa_min": 61.8502984,
+      "cpa_sd": 0.7636147757651408,
+      "effective_ghz_mean": 2.200778256129775,
+      "effective_ghz_sd": 0.001762831101221574,
+      "n": 12,
+      "occ_mib_mean": 8.284682765151516,
+      "occ_mib_sd": 0.48138862190987214
+    },
+    "wb": {
+      "agg_bw_self_gbps_sum_mean": 24.720666666666663,
+      "agg_mbm_bw_gbps_mean": 24.207359648790092,
+      "cpa_cv": 0.004864157287629835,
+      "cpa_max": 408.983313,
+      "cpa_mean": 406.2490614166666,
+      "cpa_min": 403.835261,
+      "cpa_sd": 1.9760593326826592,
+      "effective_ghz_mean": 2.2317225470106403,
+      "effective_ghz_sd": 0.004406356287560428,
+      "n": 12,
+      "occ_mib_mean": 0.3921782285146062,
+      "occ_mib_sd": 0.10087944010909076
+    }
+  },
+  "input": "results/amd/hash_join_cross_process/amd_hash_join_victim_first_triple_n12.jsonl",
+  "n_records": 36,
+  "protocol": "victim-first",
+  "records": [
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 63.3865363,
+      "effective_ghz": 2.203332863079482,
+      "occ_mib": 8.578125,
+      "rep": 1,
+      "wall_dur_s": 2.896477699279785
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.717,
+      "agg_mbm_bw_gbps": 24.24621636966571,
+      "arm": "wb",
+      "cpa": 408.807709,
+      "effective_ghz": 2.23028157334644,
+      "occ_mib": 0.3661024305555556,
+      "rep": 1,
+      "wall_dur_s": 18.454385995864868
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.978,
+      "agg_mbm_bw_gbps": 31.544724480194294,
+      "arm": "flush_d256kb",
+      "cpa": 144.265519,
+      "effective_ghz": 2.19259147872461,
+      "occ_mib": 7.266826923076923,
+      "rep": 1,
+      "wall_dur_s": 6.623253107070923
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 62.0377483,
+      "effective_ghz": 2.199301556020124,
+      "occ_mib": 8.008522727272727,
+      "rep": 2,
+      "wall_dur_s": 2.8399243354797363
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.662,
+      "agg_mbm_bw_gbps": 24.121602273875812,
+      "arm": "wb",
+      "cpa": 406.573023,
+      "effective_ghz": 2.2296877728300197,
+      "occ_mib": 0.2834201388888889,
+      "rep": 2,
+      "wall_dur_s": 18.354769229888916
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.983,
+      "agg_mbm_bw_gbps": 31.491155483504063,
+      "arm": "flush_d256kb",
+      "cpa": 143.759406,
+      "effective_ghz": 2.1938204187947146,
+      "occ_mib": 7.978125,
+      "rep": 2,
+      "wall_dur_s": 6.5962700843811035
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 62.2284584,
+      "effective_ghz": 2.2009071377211002,
+      "occ_mib": 8.740056818181818,
+      "rep": 3,
+      "wall_dur_s": 2.8467822074890137
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.717,
+      "agg_mbm_bw_gbps": 24.23820747699179,
+      "arm": "wb",
+      "cpa": 405.61422,
+      "effective_ghz": 2.229674334496403,
+      "occ_mib": 0.3426649305555556,
+      "rep": 3,
+      "wall_dur_s": 18.311428546905518
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.949,
+      "agg_mbm_bw_gbps": 31.479199588870774,
+      "arm": "flush_d256kb",
+      "cpa": 144.818822,
+      "effective_ghz": 2.2082061750783075,
+      "occ_mib": 7.8311298076923075,
+      "rep": 3,
+      "wall_dur_s": 6.643147945404053
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 62.2452689,
+      "effective_ghz": 2.1967629765869225,
+      "occ_mib": 7.4303977272727275,
+      "rep": 4,
+      "wall_dur_s": 2.8512749671936035
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.747,
+      "agg_mbm_bw_gbps": 24.253095523841086,
+      "arm": "wb",
+      "cpa": 404.320553,
+      "effective_ghz": 2.229639409547471,
+      "occ_mib": 0.37455985915492956,
+      "rep": 4,
+      "wall_dur_s": 18.25389075279236
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.974,
+      "agg_mbm_bw_gbps": 31.460375307492736,
+      "arm": "flush_d256kb",
+      "cpa": 143.2186,
+      "effective_ghz": 2.194414189593638,
+      "occ_mib": 8.019375,
+      "rep": 4,
+      "wall_dur_s": 6.571106672286987
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 62.0035344,
+      "effective_ghz": 2.200914771959578,
+      "occ_mib": 8.457386363636363,
+      "rep": 5,
+      "wall_dur_s": 2.836226224899292
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.686,
+      "agg_mbm_bw_gbps": 24.19289215994358,
+      "arm": "wb",
+      "cpa": 403.911855,
+      "effective_ghz": 2.229279146894144,
+      "occ_mib": 0.3670774647887324,
+      "rep": 5,
+      "wall_dur_s": 18.23937463760376
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.992,
+      "agg_mbm_bw_gbps": 31.50504912620781,
+      "arm": "flush_d256kb",
+      "cpa": 143.773457,
+      "effective_ghz": 2.194356647952828,
+      "occ_mib": 8.0775,
+      "rep": 5,
+      "wall_dur_s": 6.595254182815552
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 62.2616818,
+      "effective_ghz": 2.2004232703931224,
+      "occ_mib": 7.639204545454546,
+      "rep": 6,
+      "wall_dur_s": 2.8486740589141846
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.723,
+      "agg_mbm_bw_gbps": 24.064867678769623,
+      "arm": "wb",
+      "cpa": 404.943244,
+      "effective_ghz": 2.2413707361960453,
+      "occ_mib": 0.608274647887324,
+      "rep": 6,
+      "wall_dur_s": 18.28251886367798
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.953,
+      "agg_mbm_bw_gbps": 31.514329503925797,
+      "arm": "flush_d256kb",
+      "cpa": 144.37509,
+      "effective_ghz": 2.194257693821539,
+      "occ_mib": 8.045673076923077,
+      "rep": 6,
+      "wall_dur_s": 6.62303900718689
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 61.8502984,
+      "effective_ghz": 2.200525419201057,
+      "occ_mib": 8.757102272727273,
+      "rep": 7,
+      "wall_dur_s": 2.8297805786132812
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.723,
+      "agg_mbm_bw_gbps": 24.221825175069114,
+      "arm": "wb",
+      "cpa": 404.236625,
+      "effective_ghz": 2.229553960039083,
+      "occ_mib": 0.3527728873239437,
+      "rep": 7,
+      "wall_dur_s": 18.250313758850098
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.982,
+      "agg_mbm_bw_gbps": 31.463702130745066,
+      "arm": "flush_d256kb",
+      "cpa": 143.280589,
+      "effective_ghz": 2.194086180656704,
+      "occ_mib": 7.681875,
+      "rep": 7,
+      "wall_dur_s": 6.574994802474976
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 62.2667476,
+      "effective_ghz": 2.199665364491155,
+      "occ_mib": 7.488636363636363,
+      "rep": 8,
+      "wall_dur_s": 2.8484296798706055
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.746,
+      "agg_mbm_bw_gbps": 24.252474804723846,
+      "arm": "wb",
+      "cpa": 403.835261,
+      "effective_ghz": 2.2295317726538406,
+      "occ_mib": 0.34242957746478875,
+      "rep": 8,
+      "wall_dur_s": 18.23233413696289
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.988,
+      "agg_mbm_bw_gbps": 31.573651528575528,
+      "arm": "flush_d256kb",
+      "cpa": 144.240558,
+      "effective_ghz": 2.193188456034309,
+      "occ_mib": 7.995793269230769,
+      "rep": 8,
+      "wall_dur_s": 6.62168288230896
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 62.1820331,
+      "effective_ghz": 2.1997424559273924,
+      "occ_mib": 8.457386363636363,
+      "rep": 9,
+      "wall_dur_s": 2.8445444107055664
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.74,
+      "agg_mbm_bw_gbps": 24.18314336078524,
+      "arm": "wb",
+      "cpa": 406.475516,
+      "effective_ghz": 2.2417451984769072,
+      "occ_mib": 0.6156684027777778,
+      "rep": 9,
+      "wall_dur_s": 18.350015878677368
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.981,
+      "agg_mbm_bw_gbps": 31.603194238030156,
+      "arm": "flush_d256kb",
+      "cpa": 145.499721,
+      "effective_ghz": 2.1948666338627425,
+      "occ_mib": 8.325721153846153,
+      "rep": 9,
+      "wall_dur_s": 6.673124313354492
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 64.0284263,
+      "effective_ghz": 2.202848703067257,
+      "occ_mib": 8.5625,
+      "rep": 10,
+      "wall_dur_s": 2.9265201091766357
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.715,
+      "agg_mbm_bw_gbps": 24.242591338920825,
+      "arm": "wb",
+      "cpa": 408.791722,
+      "effective_ghz": 2.2299737169103113,
+      "occ_mib": 0.3687065972222222,
+      "rep": 10,
+      "wall_dur_s": 18.45287275314331
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.974,
+      "agg_mbm_bw_gbps": 31.536508300413725,
+      "arm": "flush_d256kb",
+      "cpa": 144.115104,
+      "effective_ghz": 2.193934299144975,
+      "occ_mib": 8.039663461538462,
+      "rep": 10,
+      "wall_dur_s": 6.612188816070557
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 63.8503229,
+      "effective_ghz": 2.20244785646395,
+      "occ_mib": 8.592329545454545,
+      "rep": 11,
+      "wall_dur_s": 2.918740749359131
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.717,
+      "agg_mbm_bw_gbps": 24.187161209179745,
+      "arm": "wb",
+      "cpa": 408.983313,
+      "effective_ghz": 2.229946613675242,
+      "occ_mib": 0.3404947916666667,
+      "rep": 11,
+      "wall_dur_s": 18.462512493133545
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.972,
+      "agg_mbm_bw_gbps": 31.61865033497244,
+      "arm": "flush_d256kb",
+      "cpa": 144.680127,
+      "effective_ghz": 2.1947038673261945,
+      "occ_mib": 7.879206730769231,
+      "rep": 11,
+      "wall_dur_s": 6.63709831237793
+    },
+    {
+      "agg_bw_self_gbps_sum": null,
+      "agg_mbm_bw_gbps": null,
+      "arm": "quiescent",
+      "cpa": 63.5579225,
+      "effective_ghz": 2.2024666986461585,
+      "occ_mib": 8.704545454545455,
+      "rep": 12,
+      "wall_dur_s": 2.9053728580474854
+    },
+    {
+      "agg_bw_self_gbps_sum": 24.755,
+      "agg_mbm_bw_gbps": 24.284238413714732,
+      "arm": "wb",
+      "cpa": 408.495696,
+      "effective_ghz": 2.2299863290617736,
+      "occ_mib": 0.3439670138888889,
+      "rep": 12,
+      "wall_dur_s": 18.43987536430359
+    },
+    {
+      "agg_bw_self_gbps_sum": 16.963,
+      "agg_mbm_bw_gbps": 31.58954229405836,
+      "arm": "flush_d256kb",
+      "cpa": 144.535257,
+      "effective_ghz": 2.195223385331587,
+      "occ_mib": 7.920072115384615,
+      "rep": 12,
+      "wall_dur_s": 6.6297767162323
+    }
+  ],
+  "tax": {
+    "flush_extra_cpa": 81.55527259166666,
+    "flush_recovery_fraction": 0.7626383783721005,
+    "flush_vs_quiescent": 2.3015887753056234,
+    "residual_fraction": 0.23736162162789956,
+    "wb_extra_cpa": 343.59081317499994,
+    "wb_vs_quiescent": 6.483568768948091
+  }
+}
