@@ -1,0 +1,20 @@
+[
+  {
+    "name": "gem5_fused_null_t1_q",
+    "arm": "q",
+    "outdir": "/home/domin/DutyFree/results/gem5/hash_join_fused_null/stats/t1_q",
+    "script": "/home/domin/DutyFree/results/gem5/hash_join_fused_null/t1_q.sh"
+  },
+  {
+    "name": "gem5_fused_null_t1_wb",
+    "arm": "wb",
+    "outdir": "/home/domin/DutyFree/results/gem5/hash_join_fused_null/stats/t1_wb",
+    "script": "/home/domin/DutyFree/results/gem5/hash_join_fused_null/t1_wb.sh"
+  },
+  {
+    "name": "gem5_fused_null_t1_h2",
+    "arm": "h2",
+    "outdir": "/home/domin/DutyFree/results/gem5/hash_join_fused_null/stats/t1_h2",
+    "script": "/home/domin/DutyFree/results/gem5/hash_join_fused_null/t1_h2.sh"
+  }
+]

@@ -208,6 +208,7 @@ the following as a table:
 | CPU model | O3/timing core model and frequency assumption |
 | LLC | Size, associativity, replacement policy, inclusivity |
 | Scaling | Proportional scaling factor for LLC, victim WSS, stream size |
+| Private-cache ratios | L2:LLC ratio, hot-set-to-L2 ratio, and hardware-reference hot-set-to-L2 ratio |
 | Snoop filter | Size/capacity; if unbounded, state that H3/SF-capacity claims are out of scope |
 | L1/L2 prefetchers | Type, degree, distance; whether inherited streaming type is implemented |
 | LLC prefetcher | Disabled unless explicitly justified |
@@ -539,5 +540,8 @@ Escalate before continuing if:
 - The simulator cannot tag `[fact_base,fact_end)` without also tagging the hot table.
 - The snoop-filter model is unbounded but the paper text wants an H3/SF-capacity claim.
 - H2 recovers MPKI but not cycles after software-prefetch overhead has been removed.
+- The scaled geometry has `hot_bytes / private_L2_size < 10x` while the hardware
+  reference is much larger than 10x; either rescale L2/LLC/hot together or report the
+  fused result as a private-cache-ratio model limitation.
 
 These are not bookkeeping failures; they change the paper claim.
