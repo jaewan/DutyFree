@@ -1,0 +1,176 @@
+{
+  "invalid_records_retained": [],
+  "valid_rows": [
+    {
+      "app": "bfs",
+      "cov_percent": 1.2354771913019051,
+      "host": "mos181",
+      "mean_seconds": 0.03565666666666667,
+      "median_seconds": 0.035785,
+      "n": 6,
+      "scale": 20
+    },
+    {
+      "app": "bfs",
+      "cov_percent": 37.28249985395833,
+      "host": "mos181",
+      "mean_seconds": 0.32742,
+      "median_seconds": 0.324855,
+      "n": 6,
+      "scale": 22
+    },
+    {
+      "app": "bfs",
+      "cov_percent": 0.039136949979152,
+      "host": "mos181",
+      "mean_seconds": 0.6819533333333333,
+      "median_seconds": 0.68199,
+      "n": 3,
+      "scale": 24
+    },
+    {
+      "app": "bfs",
+      "cov_percent": 0.25220953210613567,
+      "host": "mos181",
+      "mean_seconds": 1.7798433333333332,
+      "median_seconds": 1.78087,
+      "n": 3,
+      "scale": 25
+    },
+    {
+      "app": "cc",
+      "cov_percent": 0.224914063680953,
+      "host": "mos181",
+      "mean_seconds": 0.32600666666666667,
+      "median_seconds": 0.32565,
+      "n": 3,
+      "scale": 22
+    },
+    {
+      "app": "cc",
+      "cov_percent": 0.18549034595284616,
+      "host": "mos181",
+      "mean_seconds": 1.3540433333333333,
+      "median_seconds": 1.35484,
+      "n": 3,
+      "scale": 24
+    },
+    {
+      "app": "pr",
+      "cov_percent": 0.06418320126820427,
+      "host": "mos181",
+      "mean_seconds": 0.46533,
+      "median_seconds": 0.46521,
+      "n": 3,
+      "scale": 20
+    },
+    {
+      "app": "pr",
+      "cov_percent": 0.10891606495427227,
+      "host": "mos181",
+      "mean_seconds": 2.7492733333333335,
+      "median_seconds": 2.74879,
+      "n": 3,
+      "scale": 22
+    },
+    {
+      "app": "pr",
+      "cov_percent": 0.0637086048541204,
+      "host": "mos181",
+      "mean_seconds": 15.535746666666666,
+      "median_seconds": 15.54127,
+      "n": 3,
+      "scale": 24
+    },
+    {
+      "app": "bfs",
+      "cov_percent": 0.7041839973409781,
+      "host": "moscxl",
+      "mean_seconds": 0.030950000000000002,
+      "median_seconds": 0.03105,
+      "n": 3,
+      "scale": 20
+    },
+    {
+      "app": "bfs",
+      "cov_percent": 0.25420101248916926,
+      "host": "moscxl",
+      "mean_seconds": 0.19433333333333333,
+      "median_seconds": 0.19449,
+      "n": 3,
+      "scale": 22
+    },
+    {
+      "app": "bfs",
+      "cov_percent": 0.38030737593950054,
+      "host": "moscxl",
+      "mean_seconds": 0.6426200000000001,
+      "median_seconds": 0.64246,
+      "n": 3,
+      "scale": 24
+    },
+    {
+      "app": "bfs",
+      "cov_percent": 1.0459732218424465,
+      "host": "moscxl",
+      "mean_seconds": 1.5445233333333332,
+      "median_seconds": 1.55307,
+      "n": 3,
+      "scale": 25
+    },
+    {
+      "app": "cc",
+      "cov_percent": 0.5898184735925932,
+      "host": "moscxl",
+      "mean_seconds": 0.07058666666666667,
+      "median_seconds": 0.07072,
+      "n": 3,
+      "scale": 20
+    },
+    {
+      "app": "cc",
+      "cov_percent": 0.08465149589603728,
+      "host": "moscxl",
+      "mean_seconds": 0.31172666666666665,
+      "median_seconds": 0.3116,
+      "n": 3,
+      "scale": 22
+    },
+    {
+      "app": "cc",
+      "cov_percent": 0.4261875045646944,
+      "host": "moscxl",
+      "mean_seconds": 1.3590033333333333,
+      "median_seconds": 1.35811,
+      "n": 3,
+      "scale": 24
+    },
+    {
+      "app": "pr",
+      "cov_percent": 0.3992648152621809,
+      "host": "moscxl",
+      "mean_seconds": 0.44782,
+      "median_seconds": 0.44827,
+      "n": 3,
+      "scale": 20
+    },
+    {
+      "app": "pr",
+      "cov_percent": 1.3874317691797236,
+      "host": "moscxl",
+      "mean_seconds": 2.1559866666666667,
+      "median_seconds": 2.14012,
+      "n": 3,
+      "scale": 22
+    },
+    {
+      "app": "pr",
+      "cov_percent": 0.3043155124578346,
+      "host": "moscxl",
+      "mean_seconds": 11.506103333333334,
+      "median_seconds": 11.49217,
+      "n": 3,
+      "scale": 24
+    }
+  ]
+}
