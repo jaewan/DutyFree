@@ -151,13 +151,22 @@ def main():
 
     print("P3  HNF_SF_FINITE=0 for every arm by construction; back-inval counters below "
           "should be ~0. A nonzero count is the surprise P3 exists to flag.")
+    # Count SnpCleanInvalid *transactions*, i.e. the `::samples` field of each
+    # cache's inTransLatHist.  Matching the bare name instead sums bucket_size,
+    # gmean, mean, stdev and total in with the counts -- and gem5 prints `nan`
+    # for the stdev of a single-sample histogram, which poisons the whole sum.
     for w in WSSES:
         for p in PLACES:
             r = arms[f"ld_{w}_{p}_wb"]
             sp = f"/tmp/{r['name']}/stats.txt"
             if os.path.exists(sp) and os.path.getsize(sp) > 0:
-                bi = sum(v for _, v in field(open(sp).read().splitlines(), r"SnpCleanInvalid"))
-                print(f"    {r['name']:22} SnpCleanInvalid={bi:.0f}")
+                per = field(open(sp).read().splitlines(),
+                            r"\.inTransLatHist\.SnpCleanInvalid::samples\b")
+                tot = sum(v for _, v in per)
+                where = ", ".join(
+                    f"{n.split('.inTransLatHist')[0].replace('system.', '')}={v:.0f}"
+                    for n, v in per if v)
+                print(f"    {r['name']:22} SnpCleanInvalid transactions={tot:.0f}  [{where}]")
 
     print("\n== placement cross-check (deliverable 4) ==")
     for n, r in arms.items():
@@ -170,7 +179,10 @@ def main():
             note = "  <-- default arm should have CXL traffic"
         print(f"{n:22} pct_on_ctrl0={got if got is not None else float('nan'):7.2f}  "
               f"bytes={ {f'c{k}': int(v) for k, v in sorted(r.get('traffic', {}).items())} }{note}")
-        if r.get("policy") and r.get("observed") and (
+        # `alone` arms cannot distinguish the two policies: the tag runs
+        # victim+dummy, the dummy issues no memory traffic, so ctrl1 is silent
+        # under either placement.  Only the loaded arms are diagnostic.
+        if n.endswith("_wb") and r.get("policy") and r.get("observed") and (
                 ("ALL_LOCAL" in r["policy"]) != ("mem_ctrls0 --" in (r["observed"] or ""))):
             print(f"    !! policy/observed disagree: policy={r['policy']!r} observed={r['observed']!r}"
                   "  (counters win)")
