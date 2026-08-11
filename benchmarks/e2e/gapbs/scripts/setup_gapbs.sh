@@ -10,7 +10,7 @@ if [[ ! -d "$src_dir/.git" ]]; then
   git clone "$url" "$src_dir"
 fi
 
-git -C "$src_dir" fetch origin main
-git -C "$src_dir" checkout --detach origin/main
+git -C "$src_dir" fetch origin master
+git -C "$src_dir" checkout --detach origin/master
 make -C "$src_dir" -j"$(nproc)" bfs pr cc
 git -C "$src_dir" rev-parse HEAD

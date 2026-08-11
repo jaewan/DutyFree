@@ -12,7 +12,7 @@ quiescent only and the later co-run configuration is fixed from these records.
 
 ## Workload and hosts
 
-- Suite: GAP Benchmark Suite (GAPBS), upstream `main`, source commit recorded
+- Suite: GAP Benchmark Suite (GAPBS), upstream `master`, source commit recorded
   in each run record.
 - Applications: breadth-first search (`bfs`), PageRank (`pr`), and connected
   components (`cc`).
