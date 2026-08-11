@@ -9,14 +9,14 @@ causes a substantial tax to a real graph-analytics tenant with dependent and
 reused accesses, and measure the streamer's own end-to-end cost for deployed
 alternatives.
 
-## Fixed victim configuration
+## Victim configuration (amended before first co-run arm)
 
-The sizing gate fixes the victim to GAPBS PageRank: `pr -g 22 -n 4 -r 1 -l`,
-one OpenMP thread, pinned to CPU 32/node 0 on `mos181` and CPU 8/node 0 on
-`moscxl`. The first GAPBS trial is warm-up; the reported victim metric is the
-median of the remaining three `Trial Time` values. This configuration was
-chosen solely by the standalone gate: both hosts have a measured trial time
-over two seconds and a graph footprint far above private L2.
+The earlier `-g 22` common-scale configuration is withdrawn. It only proved a
+private-L2 floor and runtime window; total graph RSS is not the reusable hot
+set. Before any co-run arm, `GAPBS_LLC_OCCUPANCY_PREREGISTRATION.md` selects a
+separate scale per host from measured quiescent CMT occupancy in the 40–60%
+shared-LLC range. The resulting PageRank command remains `pr -g SCALE -n 4
+-r 1 -l`, one pinned OpenMP thread, with its first trial as warm-up.
 
 ## Fixed streamer configuration
 
