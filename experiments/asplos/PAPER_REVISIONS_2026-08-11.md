@@ -414,3 +414,77 @@ numbers should get the same pass.
   the contract to explain it.
 - **Anything touching the 6.92× attribution, `tab:h3sf`, or §4.2.** Embargoed
   until δ resolves.
+
+---
+
+## Pass 4 (2026-08-12): the lead's four defects + panel-aligned edits
+
+Applied directly to `~/STREAMING_Paper/ASPLOS27/Text/`. Build verified: 16
+pages (was 17), 0 errors, 0 undefined refs/citations.
+
+**Defect 1 — "abstract and introduction are ridiculously long."**
+Abstract 363 -> 316 words (-12%); Sec1 1270 -> 1124 (-11%). Both figures are
+*net of ~130 words of new H3 content*, so the prose cut is closer to -22%.
+The cuts: the WB-yes-both / WC-no-both restatement appeared in three
+consecutive intro paragraphs and again in the abstract (kept once); the two
+missing-admission-cell paragraphs merged; page coloring folded into the
+why-now paragraph; the CXL gather-workload enumeration dropped (Sec5 owns it);
+contribution (2)'s fusion/way-partitioning explication compressed. Pass 2
+(R2) had *lengthened* both sections -- that is what this reverses.
+
+**Defect 2 — "no narratives ... no high level intuition and insights."**
+The intro now runs as an argument rather than a list: two requests -> CXL
+forces the choice -> the tax follows allocation -> therefore a bundled
+interface -> no shipped control has the right label -> the cell is empty for
+historical reasons -> Streaming fills it -> and the surplus is H3. The
+essayistic connective tissue the panel flagged is gone; topic sentences now
+carry the claim.
+
+**Defect 3 — "we lost H3."** Confirmed and fixed. H3 had been dropped from
+BOTH the abstract and the intro in pass 2, surviving only in `tab:contract`
+and Sec4's prose. Restored in both, as a *capability* claim framed the way
+panel §4.1 recommends -- H2 is the claimed portable core, H3 is the contract's
+unique dividend. The argument, which is also the paper's best piece of
+intuition and is new text:
+
+> Coherence machinery exists to find, later, every copy of a line that someone
+> is about to write. An epoch that promises no writer exists is a promise that
+> this search will never be needed. A reuse predictor infers a line will not be
+> *read* again -- a claim about loads -- while the structure whose cost it would
+> have to justify tracks *stores*.
+
+**Delta embargo respected.** The 6.92x residual is cited in contribution (2)
+as way-partitioning's insufficiency and is **not** attributed to H3 anywhere.
+H3's page-1 presence is a capability/contract claim, which the embargo permits;
+attributing the measured residual to it is what it forbids.
+
+**Panel items also applied.** Abstract leads with the bind, not the 6.92x
+(§5). "Two vendors disagree" demoted from a standalone contribution to a
+clause of (1), per §4.6's "that is a characterization finding, not a
+contribution" -- 5 contributions -> 4.
+
+### Not done, and why
+
+- **Fold §2 into §1** (panel §5). Directly opposes defect 1; folding makes §1
+  longer. The lead should pick one. Cutting §2's promotional register is
+  separable and still worth doing.
+- **POWER WIMG-I, MIPS CCAs, resctrl pseudo-locking** as near-misses (§4.2),
+  and the near-miss matrix recast of `tab:checklist`. All add length to the
+  sections just cut. Staged, not applied.
+- **The figures** (§5: two-charges fill-path diagram, epoch lifecycle,
+  frontier plot, MSHR sweep, tax-vs-WSS). The paper is still nearly
+  figure-free. This is the largest unaddressed presentation defect.
+- Everything in §7's P0 list that needs an experiment: predictor head-to-head,
+  ranged drain + DoS, the two end-to-end colocated pairs, the ABI/motivation
+  mismatch (sealed SSTables and Parquet are *files*; the current ABI rejects
+  them).
+
+### Flag for the lead, unedited on purpose
+
+Page 1 still says the gem5 model is **"hardware-calibrated"** (abstract, and
+contribution (4)). `GATE1_LOCALDRAM_COLUMN_OUTCOME.md` found the calibration
+claim does not survive: the simulated local-DRAM point at 53% WSS is 1.600x
+against the 2.61x hardware point it is said to be calibrated to, 38.7% low.
+Softening that phrase changes the paper's evidentiary posture on page 1, so it
+is the lead's call, not an editorial fix. It is the highest-priority
+outstanding number defect in the front matter.
