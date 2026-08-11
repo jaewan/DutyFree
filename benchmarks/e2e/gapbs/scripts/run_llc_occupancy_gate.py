@@ -12,8 +12,8 @@ TRIAL = re.compile(r"Trial Time:\s+([0-9.]+)")
 def sh(cmd, check=True):
     return subprocess.run(cmd, text=True, capture_output=True, check=check)
 
-def sudo(cmd):
-    return sh(["sudo", "-n"] + cmd)
+def sudo(cmd, check=True):
+    return sh(["sudo", "-n"] + cmd, check=check)
 
 def read(path):
     return int(Path(path).read_text().strip())

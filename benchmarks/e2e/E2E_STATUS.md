@@ -1,12 +1,13 @@
 # E2E status
 
-Current best candidate: GAPBS PageRank scale 22 as victim with a DuckDB scan
-streamer. The standalone sizing gate passes on both `mos181` and `moscxl`.
+Current candidate: GAPBS PageRank with a DuckDB scan streamer. The
+private-L2/runtime gate passes, but its common `-g 22` selection is withdrawn
+pending a pre-registered per-host CMT shared-LLC occupancy gate.
 
 | bar | status |
 |---|---|
 | magnitude | unmeasured |
-| reproducibility | victim gate passes; co-run unmeasured |
+| reproducibility | private-L2/runtime gate passes; LLC occupancy gate pending |
 | recovery | unmeasured |
 | frontier | preregistered; unmeasured |
 
