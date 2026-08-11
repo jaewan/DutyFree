@@ -1,8 +1,18 @@
 # Staged paper revisions, 2026-08-11
 
-Drop-in replacements for `~/STREAMING_Paper/ASPLOS27/Text/`. **Not applied** —
-that tree autosyncs to Overleaf, so applying is publishing. Each item gives the
-exact current text and its replacement.
+Drop-in replacements for `~/STREAMING_Paper/ASPLOS27/Text/`.
+
+**Status 2026-08-11: R1–R5 applied to the working tree on the user's
+instruction. R6 held (unmeasured `[STREAMER COST]`). Not committed, not
+pushed** — the autosync watcher was confirmed not running, so nothing has
+left the machine; the diff is reviewable with `git -C ~/STREAMING_Paper diff`.
+Builds clean at 17 pages, unchanged from pre-edit, no undefined refs or
+citations. (Local build needs `-pretex='\let\Bbbk\relax' -usepretex`; that
+collision is pre-existing and unrelated.)
+
+**R7 was found while verifying R1 and is also applied** — see below.
+
+Each item gives the exact original text and its replacement.
 
 Prompted by the external positioning review of 2026-08-11. Ordered by
 exposure closed per word changed. R1 is a correctness fix; R2–R3 close
@@ -315,6 +325,44 @@ Note the δ interaction: quantifying flush-behind's *streamer-side* cost is not
 embargoed. What remains embargoed is attributing its *residual* between H2 and
 H3, and citing 3.6 without "upper bound, flush-overhead unresolved." The
 paragraph above deliberately makes no attribution.
+
+---
+
+## R7 — `tab:amdcat` caption attributes the residual to H3 (embargo violation)
+
+**Applied.** Found by grepping for the R1 phrase after applying R1: the same
+overclaim had a second instance at `Appendix.tex:146`, and the caption around
+it carries a worse defect.
+
+The caption asserted the residual **is** the probe-filter/fill-path. That is an
+attribution between H2 and H3, which the δ embargo forbids, and which
+`Sec5_Evaluation.tex:326-330` explicitly declines to make in the body — *"if
+the residual is probe-filter turnover it is H3, not H2 ... which is why we do
+not yet claim \textsc{Streaming} erases the 6.92$\times$."* The appendix stated
+as settled the exact thing §5 says is open.
+
+**Was**
+
+```latex
+CAT leaves a 6.92$\times$ residual at full bandwidth (the victim's working set
+fits its ways, so the residual is the un-partitionable probe-filter/fill-path),
+while non-allocation removes the tax outright.
+```
+
+**Now**
+
+```latex
+CAT leaves a 6.92$\times$ residual at full bandwidth.  The victim's working set
+fits its ways, so the residual is not way-capacity; whether it is
+probe-filter or fill-path turnover is unresolved, and if it is, removing it
+is \emph{H3} rather than \emph{H2} (\S\ref{sec:eval}).  Write-combining
+removes the tax, but caches nowhere and forfeits prefetching.
+```
+
+Worth noting the failure mode: the body was disciplined and the appendix
+caption was not. Captions are written once and re-read rarely, and this one
+had drifted to the pre-embargo claim. The other captions carrying δ-adjacent
+numbers should get the same pass.
 
 ---
 
