@@ -2,13 +2,22 @@
 
 Drop-in replacements for `~/STREAMING_Paper/ASPLOS27/Text/`.
 
-**Status 2026-08-11: R1–R5 applied to the working tree on the user's
-instruction. R6 held (unmeasured `[STREAMER COST]`). Not committed, not
-pushed** — the autosync watcher was confirmed not running, so nothing has
-left the machine; the diff is reviewable with `git -C ~/STREAMING_Paper diff`.
+**Status 2026-08-11: R1–R5 applied on the user's instruction, and the autosync
+watcher committed and pushed them to Overleaf as `215f031` at 15:00:42 KST.**
+They are visible to co-authors. R7 (`Appendix.tex`) was applied a few minutes
+later and is still uncommitted as of this writing; it will go out on the
+watcher's next cycle. R6 held (unmeasured `[STREAMER COST]`).
+
 Builds clean at 17 pages, unchanged from pre-edit, no undefined refs or
 citations. (Local build needs `-pretex='\let\Bbbk\relax' -usepretex`; that
 collision is pre-existing and unrelated.)
+
+Note for future sessions: the watcher is **not** visible to `ps`, `pgrep`,
+`systemctl --user`, or `crontab -l`, and there is no git hook. Do not conclude
+from a process listing that it is off — it is not. Check
+`git reflog show origin/master` for `update by push` entries instead; observed
+pushes on 2026-08-11 at 06:59, 07:30, and 15:00, so the cadence is not a short
+fixed interval. Treat any write to that tree as publication.
 
 **R7 was found while verifying R1 and is also applied** — see below.
 
