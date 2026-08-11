@@ -14,7 +14,7 @@ comes from the INSTANTIATED config tree (config.json), never from a
 script's env-var defaults or a comment's claim about what "should" have
 happened.
 """
-import json, os, subprocess, sys, argparse
+import json, os, re, subprocess, sys, argparse
 
 
 def sh(cmd, cwd=None):
@@ -59,6 +59,68 @@ def find_all_types(cfg, want_types, path="", out=None):
         for item in cfg:
             find_all_types(item, want_types, path, out)
     return out
+
+
+def _mem_pool_observed(outdir):
+    """Wire truth: which memory controllers actually saw traffic.
+
+    `_mem_pool_policy()` reports *intent*, and it reads THIS process's
+    environment -- so a manifest generated in a shell that lacks the run's
+    env silently reports "default" for an overridden run.  Verified
+    2026-08-11: the same completed run manifests as "default" or
+    "ALL_LOCAL" depending only on the manifesting shell.  This function
+    reads the run's own stats.txt instead.  **When the two disagree, the
+    counters are right and the policy string is wrong.**
+    """
+    path = os.path.join(outdir, "stats.txt")
+    if not os.path.exists(path):
+        return None
+    pat = re.compile(r"^system\.mem_ctrls(\d+)\.bytes(?:Read|Written)::total\s+(\d+)")
+    traffic = {}
+    with open(path) as f:
+        for line in f:
+            m = pat.match(line)
+            if m:
+                idx = int(m.group(1))
+                traffic[idx] = traffic.get(idx, 0) + int(m.group(2))
+    if not traffic:
+        return None
+    seen = {k for k, v in traffic.items() if v > 0}
+    if seen == {0}:
+        derived = "all traffic on mem_ctrls0 -- every process on DRAM pool 0"
+    elif seen == {1}:
+        derived = "all traffic on mem_ctrls1 -- every process on CXL pool 1"
+    else:
+        derived = "traffic split across controllers -- mixed pool placement"
+    total = sum(traffic.values())
+    return {
+        "bytes_by_mem_ctrl": {f"mem_ctrls{k}": traffic[k] for k in sorted(traffic)},
+        "pct_on_mem_ctrls0": round(100.0 * traffic.get(0, 0) / total, 2),
+        "derived_placement": derived,
+    }
+
+
+def _mem_pool_policy():
+    """Restate se.py's per-process memory-pool placement for the manifest.
+
+    Mirrors the precedence in gem5/configs/deprecated/example/se.py
+    (CPU_POOLS > ALL_CXL > ALL_LOCAL > default).  Both must change together;
+    the point of recording it here is that a run placed by an override
+    otherwise produces a manifest indistinguishable from a default run.
+    """
+    def flag(name):
+        return os.environ.get(name, "0") not in ("0", "", "false", "False")
+
+    cpu_pools = os.environ.get("CPU_POOLS")
+    if cpu_pools:
+        return f"CPU_POOLS={cpu_pools} (explicit per-CPU pool ids; 0=DRAM, 1=CXL)"
+    if flag("ALL_CXL") and flag("ALL_LOCAL"):
+        return "INVALID: ALL_CXL and ALL_LOCAL both set — se.py would have aborted"
+    if flag("ALL_CXL"):
+        return "ALL_CXL forces every process onto CXL pool 1"
+    if flag("ALL_LOCAL"):
+        return "ALL_LOCAL forces every process onto DRAM pool 0"
+    return "default: cpu0 -> DRAM pool 0, cpu1+ -> CXL pool 1"
 
 
 CACHE_TYPES = {"RubyCache", "SFDirectory"}
@@ -234,24 +296,28 @@ def main():
                 "HNF_SF_FINITE", "HNF_SF_SETS", "HNF_SF_WAYS", "HNF_H3", "HNF_DMT",
                 "HNF_MSHR", "L1_MSHR", "L2_MSHR", "PF_DEGREE_L1", "PF_DEGREE_L2",
                 "PF_OFF_CORES", "LLC_RP", "LLC_RP_HP", "LLC_RP_LEADERS",
-                "ALL_CXL", "RUBY_RANDOMIZATION", "SEED",
+                "ALL_CXL", "ALL_LOCAL", "CPU_POOLS",
+                "RUBY_RANDOMIZATION", "SEED",
             ] if k in os.environ
         },
         # Per-process memory-pool placement (REPO_DISCIPLINE.md #3 lesson,
-        # discovered the hard way): se.py hardcodes cpu0 -> DRAM pool,
-        # cpu1+ -> CXL pool whenever --cxl-mem-size is set (ALL_CXL=1
-        # overrides everyone onto CXL). This determines which SimpleMemory
+        # discovered the hard way): se.py defaults cpu0 -> DRAM pool,
+        # cpu1+ -> CXL pool whenever --cxl-mem-size is set, overridable by
+        # CPU_POOLS / ALL_CXL / ALL_LOCAL in that precedence order (added
+        # 2026-08-11 for tab:gem5's local-DRAM column; the precedence lives in
+        # gem5/configs/deprecated/example/se.py and is restated below -- change
+        # both together). This determines which SimpleMemory
         # controller (and therefore which latency) each process's traffic
         # actually lands on -- config.json alone does not surface this, it
         # has to be cross-checked against per-controller stats.txt traffic
         # (bytesRead/numReads by mem_ctrls index) to confirm which process
         # landed where, same as this manifest's `memories` field does for
         # the controllers themselves.
-        "mem_pool_policy": (
-            "ALL_CXL forces every process onto CXL pool 1"
-            if os.environ.get("ALL_CXL", "0") not in ("0", "", "false", "False")
-            else "default: cpu0 -> DRAM pool 0, cpu1+ -> CXL pool 1"
-        ),
+        "mem_pool_policy": _mem_pool_policy(),
+        # Intent above, fact below. See _mem_pool_observed's docstring: the
+        # policy string is only as good as the env this tool was invoked
+        # with, the counters are what the run actually did.
+        "mem_pool_observed": _mem_pool_observed(args.outdir),
     }
 
     outpath = os.path.join(args.outdir, "manifest.json")
