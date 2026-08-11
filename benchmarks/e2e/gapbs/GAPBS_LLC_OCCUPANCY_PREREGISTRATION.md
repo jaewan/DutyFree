@@ -1,7 +1,8 @@
-# Pre-registration: GAPBS PageRank shared-LLC occupancy gate
+# Superseded: GAPBS PageRank shared-LLC occupancy gate
 
-Dated 2026-08-11. This corrects the earlier private-L2-only sizing gate before
-the first co-run arm.
+Dated 2026-08-11; superseded before any co-run arm by
+`GAPBS_CAT_SENSITIVITY_PREREGISTRATION.md`. CMT is process-wide and cannot
+attribute occupancy to `outgoing_contrib`; it remains an integrity diagnostic.
 
 ## Objective
 

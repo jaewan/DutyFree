@@ -14,8 +14,8 @@ alternatives.
 The earlier `-g 22` common-scale configuration is withdrawn. It only proved a
 private-L2 floor and runtime window; total graph RSS is not the reusable hot
 set. Before any co-run arm, `GAPBS_LLC_OCCUPANCY_PREREGISTRATION.md` selects a
-separate scale per host from measured quiescent CMT occupancy in the 40–60%
-shared-LLC range. The resulting PageRank command remains `pr -g SCALE -n 4
+separate scale per host from the CAT capacity-sensitivity gate. The resulting
+PageRank command remains `pr -g SCALE -n 4
 -r 1 -l`, one pinned OpenMP thread, with its first trial as warm-up.
 
 ## Fixed streamer configuration
