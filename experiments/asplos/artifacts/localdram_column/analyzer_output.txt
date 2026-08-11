@@ -1,0 +1,50 @@
+== arm health ==
+arm                     rc  mrc    iters  cyc/iter  %ctrl0  placement (observed)
+ld_1280_def_alone        0    0  3000000     16.31  100.00  all traffic on mem_ctrls0 -- every process on DRAM pool 0
+ld_1280_def_wb           0    0  3000000     16.31    0.02  traffic split across controllers -- mixed pool placement
+ld_1280_loc_alone        0    0  3000000     16.31  100.00  all traffic on mem_ctrls0 -- every process on DRAM pool 0
+ld_1280_loc_wb           0    0  3000000     16.31  100.00  all traffic on mem_ctrls0 -- every process on DRAM pool 0
+ld_2650_def_alone        0    0  3000000     33.87  100.00  all traffic on mem_ctrls0 -- every process on DRAM pool 0
+ld_2650_def_wb           0    0  3000000     46.34   11.34  traffic split across controllers -- mixed pool placement
+ld_2650_loc_alone        0    0  3000000     33.89  100.00  all traffic on mem_ctrls0 -- every process on DRAM pool 0
+ld_2650_loc_wb           0    0  3000000     54.22  100.00  all traffic on mem_ctrls0 -- every process on DRAM pool 0
+ld_5120_def_alone        0    0  3000000     62.48  100.00  all traffic on mem_ctrls0 -- every process on DRAM pool 0
+ld_5120_def_wb           0    0  3000000    122.44   25.94  traffic split across controllers -- mixed pool placement
+ld_5120_loc_alone        0    0  3000000     62.49  100.00  all traffic on mem_ctrls0 -- every process on DRAM pool 0
+ld_5120_loc_wb           0    0  3000000    140.52  100.00  all traffic on mem_ctrls0 -- every process on DRAM pool 0
+
+producing commit(s): {'b2c6499194'}   dirty_tree: {False}
+
+== tax: each cell's own wb / its own matched alone ==
+WSS (%LLC)     placement   alone c/i     wb c/i     tax  published
+1280 (25%)     CXL (dflt)      16.31      16.31   1.000         --
+1280 (25%)     local DRAM      16.31      16.31   1.000      1.79x
+2650 (52%)     CXL (dflt)      33.87      46.34   1.368         --
+2650 (52%)     local DRAM      33.89      54.22   1.600      2.57x
+5120 (100%)    CXL (dflt)      62.48     122.44   1.960         --
+5120 (100%)    local DRAM      62.49     140.52   2.249      2.82x
+
+== pre-registered predictions ==
+P1  53% local-DRAM tax = 1.600x  (vs re-run CXL 1.2189x, published 2.57x)  -> PARTIAL (rises but not to 2.57x)
+P2  25% tax = 1.000x (CXL) / 1.000x (local), published 1.79x  -> HOLDS (near 1.00x -- row is hot-set<L2, withdraw)
+P3  HNF_SF_FINITE=0 for every arm by construction; back-inval counters below should be ~0. A nonzero count is the surprise P3 exists to flag.
+    ld_1280_def_wb         SnpCleanInvalid transactions=428  [cpu1.l1d=214, cpu1.l1i=214]
+    ld_1280_loc_wb         SnpCleanInvalid transactions=778  [cpu1.l1d=434, cpu1.l1i=344]
+    ld_2650_def_wb         SnpCleanInvalid transactions=1230  [cpu0.l1i=12, cpu1.l1d=684, cpu1.l1i=534]
+    ld_2650_loc_wb         SnpCleanInvalid transactions=2641  [cpu0.l1d=1, cpu0.l1i=12, cpu1.l1d=1560, cpu1.l1i=1068]
+    ld_5120_def_wb         SnpCleanInvalid transactions=2792  [cpu0.l1d=5, cpu0.l1i=12, cpu1.l1d=1393, cpu1.l1i=1382]
+    ld_5120_loc_wb         SnpCleanInvalid transactions=5929  [cpu0.l1d=9, cpu0.l1i=12, cpu1.l1d=3296, cpu1.l1i=2612]
+
+== placement cross-check (deliverable 4) ==
+ld_1280_def_alone      pct_on_ctrl0= 100.00  bytes={'c0': 12416}
+ld_1280_def_wb         pct_on_ctrl0=   0.02  bytes={'c0': 11968, 'c1': 77656256}
+ld_1280_loc_alone      pct_on_ctrl0= 100.00  bytes={'c0': 11840}
+ld_1280_loc_wb         pct_on_ctrl0= 100.00  bytes={'c0': 123633856}
+ld_2650_def_alone      pct_on_ctrl0= 100.00  bytes={'c0': 12992}
+ld_2650_def_wb         pct_on_ctrl0=  11.34  bytes={'c0': 29712320, 'c1': 232244096}
+ld_2650_loc_alone      pct_on_ctrl0= 100.00  bytes={'c0': 12992}
+ld_2650_loc_wb         pct_on_ctrl0= 100.00  bytes={'c0': 489929600}
+ld_5120_def_alone      pct_on_ctrl0= 100.00  bytes={'c0': 505280}
+ld_5120_def_wb         pct_on_ctrl0=  25.94  bytes={'c0': 215723264, 'c1': 615767616}
+ld_5120_loc_alone      pct_on_ctrl0= 100.00  bytes={'c0': 502848}
+ld_5120_loc_wb         pct_on_ctrl0= 100.00  bytes={'c0': 1418215744}
