@@ -1044,7 +1044,12 @@ void run_morsel(Config c) {
     std::fill(thread_tuples.begin(), thread_tuples.end(), 0);
     std::vector<std::thread> th;
     auto t0 = std::chrono::steady_clock::now();
-    for (int t = 0; t < c.threads; ++t) th.emplace_back(worker, t);
+    // main runs worker 0 itself: the thread that builds the hot table is also the
+    // one probing it, so its lines stay Unique-Clean instead of turning Shared-Clean
+    // against an idle main. SE pins one thread per CPU, so an idle main would hold
+    // SC copies forever and every probe would take a cross-core snoop.
+    for (int t = 1; t < c.threads; ++t) th.emplace_back(worker, t);
+    worker(0);
     for (auto &x : th) x.join();
     double sec = seconds_since(t0);
     total_sec += sec;
@@ -1111,7 +1116,12 @@ void run_hot_probe(Config c) {
     };
     std::vector<std::thread> th;
     auto t0 = std::chrono::steady_clock::now();
-    for (int t = 0; t < c.threads; ++t) th.emplace_back(worker, t);
+    // main runs worker 0 itself: the thread that builds the hot table is also the
+    // one probing it, so its lines stay Unique-Clean instead of turning Shared-Clean
+    // against an idle main. SE pins one thread per CPU, so an idle main would hold
+    // SC copies forever and every probe would take a cross-core snoop.
+    for (int t = 1; t < c.threads; ++t) th.emplace_back(worker, t);
+    worker(0);
     for (auto &x : th) x.join();
     double sec = seconds_since(t0);
     total_sec += sec;
