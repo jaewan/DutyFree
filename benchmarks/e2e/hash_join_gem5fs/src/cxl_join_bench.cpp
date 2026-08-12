@@ -36,6 +36,9 @@
 #ifndef MAP_HUGE_2MB
 #define MAP_HUGE_2MB (21 << 26)  /* 21 << MAP_HUGE_SHIFT */
 #endif
+#ifndef PROT_STREAMING
+#define PROT_STREAMING 0x10      /* Linux 6.8 claude-draft2: PAT slot 6 */
+#endif
 #ifndef MPOL_BIND
 #define MPOL_BIND 2
 #endif
@@ -253,6 +256,22 @@ void prefault_region(void *p, uint64_t bytes) {
     q[off] = static_cast<char>(q[off] + 1);
   }
   if (bytes) q[bytes - 1] = static_cast<char>(q[bytes - 1] + 1);
+}
+
+// Publish the fact region as an immutable Streaming read epoch. Must be
+// called after the last write to the region and before the measured loop:
+// the kernel rewrites every PTE in the range to PAT slot 6 and clears the
+// writable bit, so any later write faults.
+//
+// A failure here must never degrade silently into a WB run - that would be
+// recorded as an H2 result while the hardware saw plain WB.
+void publish_streaming(void *p, uint64_t bytes) {
+  if (mprotect(p, bytes, PROT_READ | PROT_STREAMING) != 0) {
+    std::cerr << "FATAL: mprotect(PROT_STREAMING) failed for [" << p << ", "
+              << static_cast<void *>(static_cast<char *>(p) + bytes)
+              << "): " << std::strerror(errno) << "\n";
+    std::exit(11);
+  }
 }
 
 struct SmapsInfo {
@@ -686,6 +705,10 @@ void run_stream(Config c) {
     std::cerr << "FATAL: fact placement failed: " << placement << "\n";
     std::exit(10);
   }
+  // H2 aggressor arm: tag the stream region so its clean fills bypass the LLC.
+  // Same placement as run_morsel - after the last write, before the loop.
+  bool streaming = (c.policy == "h2") || (c.policy == "stream");
+  if (streaming) publish_streaming(fact, c.fact_bytes);
   uint64_t checksum = 0;
   for (int i = 0; i < c.warmups; ++i) checksum ^= c.line_stride ? stream_read_lines(fact, n) : stream_read(fact, n, c.policy, c.pf_distance, c.stream_count);
   struct rusage ru_before {};
@@ -707,6 +730,7 @@ void run_stream(Config c) {
   emit_json_prefix(c, fact, c.fact_bytes, cpus);
   std::cout << "\"placement\":\"" << json_escape(placement) << "\",";
   std::cout << "\"line_stride\":" << (c.line_stride ? "true" : "false") << ",";
+  std::cout << "\"streaming_tagged\":" << (streaming ? "true" : "false") << ",";
   std::cout << "\"prefault_seconds\":" << std::setprecision(9) << prefault_sec << ",";
   std::cout << "\"anon_huge_kb\":" << smi.anon_huge_kb << ",";
   std::cout << "\"kernel_page_kb\":" << smi.kernel_page_kb << ",";
@@ -981,6 +1005,11 @@ void run_morsel(Config c) {
     std::cerr << "FATAL: fact placement failed: " << placement << "\n";
     std::exit(10);
   }
+  // W4/H2: tag exactly [fact_base, fact_end) as Streaming. The hot table
+  // stays WB. Done outside the measured region - epoch-entry cost is an OS
+  // number (paper section 6), not part of the H2 benefit measurement.
+  bool streaming = (c.policy == "h2") || (c.policy == "stream");
+  if (streaming) publish_streaming(fact, c.fact_bytes);
   for (int i = 0; i < c.warmups; ++i) warm_table(table);
   std::atomic<size_t> next{0};
   std::vector<Result> partial(c.threads);
@@ -1026,6 +1055,7 @@ void run_morsel(Config c) {
   }
   emit_json_prefix(c, fact, c.fact_bytes, cpus);
   std::cout << "\"placement\":\"" << json_escape(placement) << "\",";
+  std::cout << "\"streaming_tagged\":" << (streaming ? "true" : "false") << ",";
   emit_samples(samples);
   std::cout << "\"seconds\":" << std::setprecision(9) << total_sec << ",";
   std::cout << "\"join_mtuples_per_s\":" << (static_cast<double>(n) * c.reps / total_sec / 1e6) << ",";
