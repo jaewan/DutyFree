@@ -488,3 +488,93 @@ against the 2.61x hardware point it is said to be calibrated to, 38.7% low.
 Softening that phrase changes the paper's evidentiary posture on page 1, so it
 is the lead's call, not an editorial fix. It is the highest-priority
 outstanding number defect in the front matter.
+
+---
+
+## Pass 5 (2026-08-13): task #27 — Gate 1 propagated into the paper
+
+The lead resolved the flag above: soften the calibration claim everywhere.
+Nine sites, all now edited. Source of record for every number below is
+`GATE1_LOCALDRAM_COLUMN_OUTCOME.md` and the reconciliation table in
+`GATE1_RECONCILIATION.md`.
+
+### The finding being propagated
+
+Re-instantiated at gem5 commit `b2c6499194` with aggressor placement verified
+from per-controller counters (not from the command line), 12/12 arms clean,
+`ITERS=3e6`:
+
+| WSS (% LLC) | alone c/i | CXL aggr. | local-DRAM aggr. | published | gap |
+|---|---:|---:|---:|---:|---:|
+| 1280 (25%)  | 16.31 | 1.000x | 1.000x | 1.79x | -44.1% |
+| 2650 (52%)  | 33.87 | 1.368x | 1.600x | 2.57x | -37.7% |
+| 5120 (100%) | 62.48 | 1.960x | 2.249x | 2.82x | -20.2% |
+
+No configuration in the pre-registered space reproduces the published column.
+The 25% row is the fourth instance of the hot-set-fits-private-L2 collapse: at
+the model's 5 MiB LLC a 25%-WSS victim is 1280 KiB, resident in the 2 MiB
+private L2, so there is no shared-cache tax for H2 to remove and 1.000x is the
+correct answer, not a failed measurement.
+
+### The nine edits
+
+**`Sec5_Evaluation.tex`**
+1. `\heading{Method}` (~l.58) — "one point is *validated* rather than scaled and
+   reproduces hardware within 2%" was false. Now: one point is *anchored*, the
+   model reads 39% low against it, magnitudes are lower bounds.
+2. Calibration prose (~l.110) — rewritten. The 1.00x +H2 column certifies only
+   that the policy was implemented as written; the WB arm beside it is the one
+   whose fidelity is testable, and it does not pass as a calibration. States
+   1.60x vs 2.61x, 39% low, direction-and-mechanism-not-magnitude.
+3. Co-run pair (~l.138) — arm-identity fix. The pair was described as "a milder
+   point on the same pressure curve as tab:gem5's WB column"; that column is
+   now a *local-DRAM* arm while the pair is CXL-latency at 3.14 GB/s. Named as
+   two points on one curve, not one measurement.
+4. (~l.415) — "the comparison no machine can perform is supplied by a model
+   calibrated to within 2%" -> "supplied by a model that under-predicts the
+   hardware tax it is nearest, and is therefore a lower bound."
+5. Section opener (l.4-6) — "hardware-calibrated" -> "hardware-anchored...
+   bounds its benefit from below."
+
+**`tab:gem5` (rows + caption)** — 25% row withdrawn to `---{\dagger}` with the
+private-L2 reason stated in the caption. WB column republished at
+1.60x/2.25x bound to commit `b2c6499`. `\ddagger` added to the +H2 column:
+Gate 1's 12 arms were {3 WSS} x {alone, wb} x {CXL, local} — **no H2 arms were
+re-instantiated at that commit**. Printing the old +H2 values beside a new WB
+column without that marker would itself be the arm-identity failure Gate 1
+exists to catch. The alternative — dropping the gem5 columns — would gut the
+section, so explicit disclosure was chosen over both silence and deletion.
+
+**`Abstract.tex`** (l.37) and **`Sec1_Introduction.tex`** contribution (4) —
+"hardware-calibrated" -> "hardware-anchored... bounds the benefit from below,"
+with the abstract carrying the under-prediction clause inline. This is the
+front-matter posture change the lead signed off on.
+
+**`Appendix.tex`** — `tab:gem5cfg`'s `\textbf{validated}: sim 2.57x, hw 2.61x`
+cell -> `anchor point: sim 1.60x, hw 2.61x`; caption rewritten to say plainly
+that the row was previously described as validated and what re-instantiation
+found; the "Scaling / calibration" sub-header and the intro sentence's
+"validated against hardware" both retermed to anchoring.
+
+### Why the error's direction matters, and where it is stated
+
+The model understating the WB tax understates what non-allocation removes, so
+every claim the model is cited for is bounded conservatively. That sentence
+appears three times (Sec5 method, Sec5 calibration prose, appendix caption)
+because each is a place a reviewer may enter the argument. It is a defence of
+the claim, not of the model: the model is now explicitly not calibrated.
+
+### Build
+
+`latexmk -pdf -g -interaction=nonstopmode -pretex='\let\Bbbk\relax' -usepretex
+main.tex`. Exit 12 (the known `\Bbbk` pretex quirk), `main.log` clean: 0
+errors, 0 undefined references. 17 pages total, up one from 16 — the growth is
+entirely in the appendix caption. Body still ends at p11; references start p12,
+appendix p14. The 11-page body limit is intact.
+
+### Not done here
+
+`tab:sens` (#25) and `tab:h1bw` (#26) remain unbound-provenance re-run
+candidates; neither table's text was touched, because there is no Gate 1 result
+to propagate for them yet. `tab:h3sf`'s two mismatched rows already carry their
+own caveat from the previous pass.
