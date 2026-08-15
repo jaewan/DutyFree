@@ -190,6 +190,17 @@ void pin_cpu(int cpu) {
 static inline void gem5_set_streaming(void *addr, long size) {
     __asm__ volatile(".byte 0x0f, 0x04, 0x55, 0x00" : : "D"(addr), "S"(size));
 }
+// SE mode has no working NUMA syscalls -- mbind is registered ignoreFunc
+// (src/arch/x86/linux/syscall_tbl64.cc), a silent no-op, which is why
+// alloc_bytes's GEM5 branch used to skip placement entirely (task #22).
+// bindpool (M5OP_BIND_POOL=0x56, pseudo_inst.cc) is SE mode's real
+// placement primitive: it backs a not-yet-touched VA range from a named
+// pool (0=DRAM, 1=CXL, process.hh:301). Must be called before first
+// touch -- SE cannot migrate an already-backed page.
+static inline void gem5_bind_pool(void *addr, uint64_t size, uint64_t pool) {
+    __asm__ volatile(".byte 0x0f, 0x04, 0x56, 0x00"
+                     : : "D"(addr), "S"(size), "d"(pool));
+}
 #else
 static inline void gem5_set_streaming(void *, long) {}
 #endif
@@ -197,11 +208,24 @@ static inline void gem5_set_streaming(void *, long) {}
 void *alloc_bytes(uint64_t bytes, int node, bool huge2m, const char *name) {
   void *p = nullptr;
 #ifdef GEM5
-  (void)node;
-  (void)name;
+  (void)huge2m;
   int flags = MAP_PRIVATE | MAP_ANONYMOUS;
   p = mmap(nullptr, bytes, PROT_READ | PROT_WRITE, flags, -1, 0);
-  if (p == MAP_FAILED) p = nullptr;
+  if (p == MAP_FAILED) {
+    p = nullptr;
+  } else {
+    // node 0 -> DRAM pool 0; any other requested node (this bench's own
+    // default is fact_node=2 for "the CXL one") -> CXL pool 1. Call before
+    // any write touches these pages (task #22 fix: this branch used to
+    // silently skip placement entirely).
+    uint64_t pool = (node == 0) ? 0 : 1;
+    gem5_bind_pool(p, bytes, pool);
+    if (getenv("GEM5_BINDPOOL_VERBOSE")) {
+      std::cerr << "[gem5_bind_pool] " << name << " addr=" << p
+                << " bytes=" << bytes << " node=" << node
+                << " -> pool=" << pool << "\n";
+    }
+  }
 #else
   int flags = MAP_PRIVATE | MAP_ANONYMOUS;
   if (huge2m) {
