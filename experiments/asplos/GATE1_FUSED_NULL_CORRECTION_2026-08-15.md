@@ -184,8 +184,34 @@ So the follow-up's "n=3 per cell, CoV 0.09-1.64%" is three `--reps` sharing
 one stochastic trajectory and one evolving cache state — not independent
 samples. This is not specific to #22: **no gem5 number in this project
 currently has a variance estimate**, including `tab:gem5`, `tab:sens` and
-`tab:h1bw`. A real one requires a `SEED` sweep, which `se.py` supports
-explicitly for that purpose.
+`tab:h1bw`.
+
+### 6.1 Amendment (same day): `SEED` is not the variance lever
+
+The paragraph above originally closed by recommending a `SEED` sweep. A
+later control run falsifies that recommendation, and the correction matters
+more than the original point.
+
+An 18-run `SEED` sweep did produce differing results (CoV 0.023-0.34%), which
+looked like a working variance mechanism. But a **control run at a fixed
+seed, with byte-identical instantiated config** (l1d TBEs 64/16, l2 48/32,
+verified from `config.json`), did **not** reproduce its counterpart: 562,510
+vs 562,777 HNF fills, a 0.047% drift — the *same magnitude* as the cross-seed
+spread at that cell (0.043%). So the variation is run-to-run
+nondeterminism, not a seed-controlled quantity, and `SEED` cannot be shown to
+be doing the work.
+
+Reconciling this with the bit-identical RUN1/RUN2 above: those runs left
+`SEED` unset, so `seedRandom()` was never called and the randomised paths
+took a fixed trajectory. Setting `SEED` *enables* divergence but does not
+make it reproducible.
+
+Practical consequence, unchanged in direction and stronger in force: a
+variance estimate is still obtainable, but by **repeated identical runs**,
+not by a seed sweep — and any future claim of reproducibility for a gem5
+number in this project must be demonstrated, not assumed from determinism.
+Runs with randomisation enabled are not bit-reproducible even at a fixed
+seed.
 
 ## 7. Hypotheses tested and refuted (recorded so they are not re-run)
 
