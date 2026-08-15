@@ -1,53 +1,77 @@
-# Where the Linux prototype actually is — and why it is a single point of failure
+# The Linux prototype was never missing — the submodule pointed at an empty branch
 
-Written 2026-08-16, after `git submodule update --init linux` returned an
-empty repo (one commit, `LICENSE` + `README.md`, no patch).
+Written 2026-08-16. **This file supersedes its own first version**, which
+concluded the prototype was outside version control and at risk of being lost.
+That conclusion was wrong, and the corrected finding is much less alarming.
 
-## Located
+## What was actually wrong
 
-| fact | value |
-|---|---|
-| path | `/home/jb/tmp_dutyfree_exp/DutyFree-Linux` |
-| host | `mos182` (`ssh c4`) |
-| running kernel | `6.8.0+` |
-| evidence | `/lib/modules/6.8.0+/build` -> that path |
-| build stamp | `Linux version 6.8.0+ (jb@mos182) ... #5 SMP PREEMPT_DYNAMIC Thu Jul 30 17:34:44 KST 2026` |
-| corroboration | `aggressor.c`: "Linux 6.8 claude-draft2: PAT slot 6" |
+`git submodule update --init linux` produced a repo containing only `LICENSE`
+and `README.md`. The cause:
 
-Searched and ruled out first: `mos181` (this host, whole `/home/domin`),
-`mos182` `~`, `moscxl` `~`. The only `PROT_STREAMING` text anywhere reachable
-is `gem5/testcase/dirtax/aggressor.c`, which defines the constant itself.
+| | commit | contents |
+|---|---|---|
+| `origin/main` (what the submodule recorded) | `1d8334d` | empty — "Initial commit" |
+| `origin/claude-draft2` (the prototype) | `63dab9b` | **v6.8 + 10 commits** |
+| `origin/claude-draft` (earlier draft) | `2827b5a` | superseded |
 
-## Not accessible to this account
+The `DutyFree` submodule pointer recorded `1d8334d`, the tip of an empty
+default branch. The prototype has been pushed to `jaewan/DutyFree-Linux` all
+along, on a non-default branch. Verified on the build host: local `HEAD` ==
+`origin/claude-draft2` exactly, **zero unpushed commits**, working tree clean.
 
-`/home/jb` is `drwxr-x--- jb jb`; `domin` (uid 1004) is not in group `jb`.
-`domin` does hold `sudo` on `mos182`, so it is technically reachable, but
-reading a colleague's home directory and republishing its contents is a
-consent question, not a technical one. Not done. Escalated to the lead.
+So: not a lost artifact, not an unreplicated copy, not a consent problem. A
+one-line submodule misconfiguration.
 
-## Why this is urgent independent of the ABI decision
+## The prototype, as it actually exists
 
-1. **The paper's central systems contribution has no reachable
-   implementation.** `Sec4_Streaming.tex` makes present-tense claims ("the
-   prototype admits anonymous and device-DAX mappings", "the prototype
-   enforces I1 for CPU mappings"), and §5 reports a measured ~48 ms epoch
-   entry. An artifact evaluator cloning `DutyFree` gets an empty submodule.
-2. **It is one unreplicated copy**, in a directory named `tmp_dutyfree_exp`,
-   on one machine, owned by one user, with the corresponding GitHub repo
-   (`jaewan/DutyFree-Linux`) empty. Any of: a cleanup script, a reimage, a
-   disk failure, or that user moving on, loses the artifact behind the paper.
-3. **It blocks estimating the sealed-memfd work** properly
-   (`SEALED_MEMFD_ESTIMATE_2026-08-16.md` is structural for exactly this
-   reason), and it blocks that work being reviewable once done.
+`git describe` = `v6.8-10-g63dab9b1239c`. The series:
 
-## The two ways forward
+```
+eb342571ead0  x86/pat: add Streaming memory type (PAT slot 6)
+7df49f05cb39  x86/cache: add WBNOINVD inline and IPI broadcast helper
+3389eff9cded  mm, x86: introduce PROT_STREAMING and VM_STREAMING plumbing
+037af838cf7a  mm, x86: implement mprotect(PROT_STREAMING) transitions
+d5f06074dfca  mm/streaming: add debugfs PTE query interface
+d273e0b50100  mm/streaming: KUnit suite, kselftests, and documentation
+7836f7b123ce  mm/streaming: support hugetlb mappings
+123d6ae32009  mm/streaming: hugetlb selftest, KUnit case and docs
+8d947c88c8db  x86/cache, mm/streaming: broadcast WBNOINVD to one CPU per core
+63dab9b1239c  x86/mman: include linux/types.h for bool in arch_validate_prot()
+```
 
-- **Preferred: `jb` pushes it** to `jaewan/DutyFree-Linux` and the submodule
-  pointer is updated. Cleanest — preserves authorship, avoids copying a
-  colleague's tree, and lets `jb` exclude anything unrelated or private that
-  happens to live under `tmp_dutyfree_exp`.
-- **Fallback: retrieve via `sudo`** with the lead's explicit go-ahead, review
-  what is captured before committing, and attribute it to `jb`.
+`PROT_STREAMING 0x10` is defined at
+`include/uapi/asm-generic/mman-common.h:14`. The build host is `mos182`
+(`ssh c4`), running `6.8.0+` built from
+`/home/jb/tmp_dutyfree_exp/DutyFree-Linux` by `jb`, 2026-07-30, `#5`. That
+working tree is a 30 GB build tree; only the 1.6 GB source is tracked.
 
-Note the mtime on `/home/jb` is today, so `jb` is active on the machine and
-reachable.
+Note the series includes **KUnit tests, kselftests, and documentation** — a
+better-developed artifact than the paper's prose currently suggests.
+
+## The fix applied
+
+- Submodule pointer `1d8334d` -> `63dab9b`.
+- Added `branch = claude-draft2` to `.gitmodules`, so `git submodule update
+  --remote` tracks the prototype rather than the empty default.
+
+## What remains genuinely worth doing
+
+1. **Make `claude-draft2` the default branch** of `jaewan/DutyFree-Linux`, or
+   merge it to `main`. Anyone cloning the repo directly (not via the
+   submodule) still lands on an empty tree. This is the actual artifact risk,
+   and it is a GitHub setting.
+2. The `tmp_dutyfree_exp` build tree on `mos182` remains the only *build*, but
+   the source is safe on GitHub, so this is a convenience issue rather than a
+   preservation one.
+
+## Correction of method, recorded deliberately
+
+The first version of this file escalated to the lead for permission to
+`sudo`-read a colleague's home directory, on the premise that the artifact
+existed only there. The premise was wrong and one `git rev-parse` against
+`origin` would have shown it. The lesson generalises to this project's own
+rule: *an empty checkout is a claim about a pointer, not about the world* —
+check the remote's other branches before concluding anything is missing. The
+sudo access, once granted, was used only to read git metadata; nothing was
+copied, and the fix came from the public repository.
