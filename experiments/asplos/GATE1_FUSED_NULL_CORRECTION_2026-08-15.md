@@ -244,6 +244,48 @@ experiment runs one sequential stream); and `pfUseful` reads 0 in all arms
 against millions of prefetches issued — the counter is not wired through the
 Ruby path and must not be cited in either direction.
 
+## 7.1 Resolved: H2's fill-suppression gap is prefetch-mediated
+
+An MSHR sweep found H2's HNF fill suppression degrading with concurrency
+(77.3% at `L1_MSHR`=16 -> 57.2% at 64), which would matter for every gem5 H2
+claim if it were a protocol defect. It is not, and it is now localised.
+
+Three hypotheses were refuted from instantiated state before the right one:
+replacement-TBE starvation (raising `L1_REPL` 16->64 and `L2_REPL` 32->48
+left suppression at 57.0-57.2%), prefetch *inheritance*, and prefetch
+*volume* (L2 `pfIssued` **falls** 87% at depth 64 while the leak grows, so
+volume is the wrong variable).
+
+Decisive test — prefetchers disabled via `PF_OFF_CORES=0`, matched controls,
+`--reps 1`, fact 16 MiB:
+
+| prefetch | `L1_MSHR` | wb fills | stream fills | suppression |
+|---|---:|---:|---:|---:|
+| on | 16 | 528,103 | 298,486 | 43.5% |
+| on | 64 | 528,243 | 356,235 | **32.6%** |
+| off | 16 | 517,542 | 289,660 | **44.0%** |
+| off | 64 | 517,542 | 289,659 | **44.0%** |
+
+With prefetching off the depth-dependence disappears completely — stream
+fills differ by **one line** across a 4x MSHR change. So the gap is entirely
+prefetch-mediated: some prefetch-filled lines are not carrying the STREAMING
+attribute into their private-cache entry, so their later clean victims arrive
+at the HNF unmarked and allocate. The candidate site is the attribute chain
+`tbe.isStreaming := in_msg.isStreaming` (`CHI-cache-actions.sm` ~263) ->
+`cache_entry.isStreaming := tbe.isStreaming` (~3440) -> recovered on
+replacement (~409): a locally generated prefetch does not arrive as an
+incoming CHI request on `reqRdyPort`, and `tbe.is_local_pf` exists precisely
+to distinguish that path. Confirming the exact line needs a protocol trace
+and was not done.
+
+**Direction of the error is conservative, which is why this does not
+invalidate anything.** Under-enforcement means streaming lines that *should*
+have bypassed the L3 instead filled it, so the model reports **less** H2
+benefit than a correct implementation would. Every gem5 H2 magnitude in this
+project is therefore a lower bound on this axis too, consistent with the
+posture Gate 1 already established. All existing paper numbers also run at
+the default `L1_MSHR`=16, the better-behaved end.
+
 ## 8. What would be worth doing next, in order
 
 1. **MSHR-depth sweep of the pure-stream H2-vs-WB bandwidth** (16/32/64).
