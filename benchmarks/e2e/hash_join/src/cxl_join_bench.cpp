@@ -187,8 +187,13 @@ void pin_cpu(int cpu) {
 #ifdef GEM5
 // H2: mark [addr,addr+size) STREAMING (M5OP_SET_STREAMING=0x55) so the CHI
 // HNF bypasses the LLC data array for these clean read-only lines.
+// The "memory" clobber is load-bearing, not decoration: both ops are ordered
+// against the caller's accesses to [addr,addr+size) (set_streaming re-marks
+// PTEs and flushes TLBs; bind_pool must land before first touch). Without it
+// the compiler may sink a store below, or hoist one above, the op.
 static inline void gem5_set_streaming(void *addr, long size) {
-    __asm__ volatile(".byte 0x0f, 0x04, 0x55, 0x00" : : "D"(addr), "S"(size));
+    __asm__ volatile(".byte 0x0f, 0x04, 0x55, 0x00"
+                     : : "D"(addr), "S"(size) : "memory");
 }
 // SE mode has no working NUMA syscalls -- mbind is registered ignoreFunc
 // (src/arch/x86/linux/syscall_tbl64.cc), a silent no-op, which is why
@@ -199,7 +204,7 @@ static inline void gem5_set_streaming(void *addr, long size) {
 // touch -- SE cannot migrate an already-backed page.
 static inline void gem5_bind_pool(void *addr, uint64_t size, uint64_t pool) {
     __asm__ volatile(".byte 0x0f, 0x04, 0x56, 0x00"
-                     : : "D"(addr), "S"(size), "d"(pool));
+                     : : "D"(addr), "S"(size), "d"(pool) : "memory");
 }
 #else
 static inline void gem5_set_streaming(void *, long) {}
@@ -220,11 +225,17 @@ void *alloc_bytes(uint64_t bytes, int node, bool huge2m, const char *name) {
     // silently skip placement entirely).
     uint64_t pool = (node == 0) ? 0 : 1;
     gem5_bind_pool(p, bytes, pool);
-    if (getenv("GEM5_BINDPOOL_VERBOSE")) {
-      std::cerr << "[gem5_bind_pool] " << name << " addr=" << p
-                << " bytes=" << bytes << " node=" << node
-                << " -> pool=" << pool << "\n";
-    }
+    // Emitted unconditionally, and deliberately not behind getenv: gem5 SE
+    // gives the guest only what --env supplies and never inherits the host
+    // environment (se.py:101), so an env-gated diagnostic can never fire in
+    // the one build where it is compiled. check_pages_on_node() is still a
+    // `return true` stub under GEM5, so this line plus the per-controller
+    // bytesRead in stats.txt is the only in-band placement evidence a run
+    // leaves behind.
+    std::cerr << "BIND_POOL " << name << " addr=0x" << std::hex
+              << reinterpret_cast<uintptr_t>(p) << std::dec
+              << " bytes=" << bytes << " node=" << node
+              << " pool=" << pool << "\n";
   }
 #else
   int flags = MAP_PRIVATE | MAP_ANONYMOUS;
@@ -358,6 +369,20 @@ size_t table_capacity(uint64_t hot_bytes) {
   size_t cap = std::max<size_t>(1024, hot_bytes / sizeof(Entry));
   size_t pow2 = 1;
   while (pow2 < cap) pow2 <<= 1;
+  // probe() masks rather than divides, so the table must be a power of two --
+  // which means --hot-bytes is quantized, silently, by up to 2x. That is how
+  // a run requesting 10 MiB was recorded as 10 MiB while instantiating 16 MiB
+  // (task #22 follow-up). The requested size is a claim; this is the fact, so
+  // say so on stderr whenever the two differ.
+  uint64_t actual = static_cast<uint64_t>(pow2) * sizeof(Entry);
+  if (actual != hot_bytes) {
+    std::cerr << "HOT_TABLE_ROUNDED requested_bytes=" << hot_bytes
+              << " instantiated_bytes=" << actual
+              << " entries=" << pow2
+              << " ratio=" << (static_cast<double>(actual) / hot_bytes)
+              << "  (--hot-bytes must be a power of two times "
+              << sizeof(Entry) << " to be honoured exactly)\n";
+  }
   return pow2;
 }
 
