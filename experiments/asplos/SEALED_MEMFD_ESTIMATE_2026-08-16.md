@@ -1,124 +1,101 @@
-# Sealed-memfd admission: what it would take, and why the estimate is structural
+# Sealed-memfd admission: code-grounded estimate
 
-Written 2026-08-16. The lead asked for an estimate after checking out the
-prototype. The checkout changes the answer, so that comes first.
+Written 2026-08-16. **Supersedes the first version of this file**, which was
+structural because the prototype appeared to be outside version control. It
+was not — the submodule pointed at an empty default branch (see
+`PROTOTYPE_LOCATION_2026-08-16.md`). The prototype is
+`DutyFree-Linux` `claude-draft2` = `63dab9b`, `v6.8-10-g63dab9b1239c`, now
+wired into the submodule. Everything below is read from that code.
 
-## 1. The prototype is not in version control
+## 1. What the prototype actually admits
 
-`git submodule update --init linux` succeeds and yields **one commit
-(`1d8334d`, "Initial commit") containing `LICENSE` and `README.md` — 24 KB
-total.** The README reads "Linux Patch for DutyFree". There is no patch.
+`mm/streaming.c:streaming_validate_entry()` (415-line file) rejects, in order:
 
-Searched exhaustively across both repos:
+| check | reason given in-tree |
+|---|---|
+| `xen_pv_domain()` | Xen PV overrides `ptep_modify_prot_transaction()` |
+| `vma->vm_flags & VM_PAT` | "`track_pfn_remap()` already owns the cache bits ... typically device-DAX" |
+| `VM_PFNMAP \| VM_MIXEDMAP` | "**Device-DAX / PFN-only mappings are out of prototype scope**" |
+| `(VM_SHARED && vm_file)` | "Writable file-backed mappings can have writeback I/O in flight against dirty page-cache entries" |
+| `userfaultfd_wp(vma)` | PTE markers race the post-pass cache-bit rewrite |
 
-- The only `PROT_STREAMING` code is `gem5/testcase/dirtax/aggressor.c`, which
-  **defines the constant itself** (`#ifndef PROT_STREAMING / #define
-  PROT_STREAMING 0x10 /* Linux 6.8 claude-draft2: PAT slot 6 */`) and is
-  marked "FS mode only" — a guest program that expects a patched kernel.
-- No `.patch` for Linux (only a gem5 CHI/H3 patch and an unrelated
-  Kconfiglib makefile patch).
-- No `pgprot` / `_PAGE_PAT` / `pat_enabled` code anywhere.
+So the admitted set is **private anonymous mappings, including hugetlb**
+(commit `7836f7b`). The rejection set is codified as a test in
+`tools/testing/selftests/mm/streaming_reject.c`.
 
-**The prototype does exist**, though: `RANGED_DRAIN_DOS_WRITEUP.md` reports the
-epoch-entry cost as *"Measured ~48 ms, size-independent, scaling with
-logical-CPU count (64 on the measurement host)"*. That is a real measurement
-from a real kernel, on a 64-logical-CPU machine (`c4`/`mos182` is 2x32). So the
-kernel lives on a host, not in git.
+`Documentation/arch/x86/pat-streaming.rst`'s own "Out of scope" list confirms:
+device-DAX/PFNMAP, KSM/autoNUMA/compaction, KVM memslot fences, and
+"**multiple concurrent streaming users contending on the same physical
+pages**."
 
-Two consequences, and the second is the serious one:
+**This corrected a false claim in the paper** — `Sec4_Streaming.tex` said "the
+prototype admits anonymous and device-DAX mappings" and "records frame-type
+ownership". Device-DAX is explicitly rejected, and there is no ownership record
+anywhere in `mm/streaming.c`. Fixed 2026-08-16 with a margin note carrying this
+evidence.
 
-1. **I cannot ground an estimate in the code.** Everything below is structural
-   — derived from the ABI as described in `Sec4_Streaming.tex` and from how
-   Linux's mprotect/memfd/PAT paths work in general. Treat the numbers as
-   design-level, not code-level.
-2. **Artifact evaluation would fail on this today.** The paper's central
-   systems claim is a kernel ABI; a reviewer cloning `DutyFree` gets an empty
-   submodule. This needs fixing regardless of what is decided about sealed
-   memfd, and it is cheaper to fix now than under a rebuttal clock.
+## 2. Why sealed memfd is a small change — the existing rationale supports it
 
-## 2. A correction to my own earlier analysis
+The blocker is one predicate: `(VM_SHARED && vm_file) -> -EINVAL`. Its stated
+reason is *writable* file-backed mappings with dirty page-cache writeback in
+flight.
 
-Yesterday I argued sealed memfd is the right carrier because `F_SEAL_WRITE`
-gives a kernel-enforced, object-level I1. That still holds. But I overstated
-what it buys:
+**A sealed memfd is exactly not that.** `F_SEAL_WRITE` cannot be applied while
+a writable mapping exists, no writable mapping can be created afterwards, and
+seals are one-way for the object's lifetime. And shmem has no writeback to a
+backing file — it pages to swap. So admitting sealed shmem is *consistent with*
+the reason the check exists rather than a weakening of it. That is the
+strongest possible position for a patch: it narrows the exception to precisely
+the case the original rationale does not cover.
 
-**`F_SEAL_WRITE` gives I1. It does not give I0.**
+The machinery downstream already works carrier-independently:
 
-- **I1** ("no CPU may write during the epoch") is *exactly* what the seal
-  provides, and provides better than `mprotect` does: sealing fails if a
-  writable mapping exists, no new writable mapping can be created, and seals
-  are one-way — they cannot be removed for the object's lifetime. For a shared
-  object this is strictly stronger than any per-mapping check.
-- **I0** ("a physical frame has a uniform memory type within its coherence
-  domain") is untouched by sealing. A sealed memfd can still be mapped WB by
-  one process and `Streaming` by another; both are read-only, so the seal is
-  satisfied while I0 is violated. Nothing about immutability implies type
-  uniformity.
+- `streaming_apply_cache_bits()` walks the VMA and rewrites PTE cache bits
+  under each PTE lock, then invalidates TLBs.
+- `vma_set_page_prot()` is overridden so that "page faults, COW and swap-in all
+  install slot-6 PTEs without any extra plumbing in the fault path"
+  (`pat-streaming.rst:142`).
+- hugetlb leaves are rewritten in place via `streaming_hugetlb_entry()`.
 
-For anonymous private memory I0 is nearly free — the frames have one mapper.
-**The moment the carrier is shared, I0 becomes the hard half**, and that is the
-real content of the `MAP_SHARED` check. This sharpens rather than weakens the
-recommendation: sealing is still the right way in, but the work is I0, not I1.
+None of that is anonymous-specific.
 
-## 3. Structural estimate
+## 3. What is genuinely missing: I0 across address spaces
 
-Assuming a working prototype on the measurement host.
+Confirmed by reading, not inferred: there is **no frame-type ownership record**
+in `mm/streaming.c` (the only `owner` is a debugfs `.owner = THIS_MODULE`). The
+prototype does not arbitrate conflicting types — it *avoids* the problem by
+rejecting every carrier where two mappers could disagree.
 
-**(a) Carrier admission + seal validation — small, ~1-2 days.**
-Relax the entry check from "anonymous or device-DAX" to additionally accept a
-shmem/memfd VMA, and require the backing file's seals to include
-`F_SEAL_WRITE`. Require `F_SEAL_GROW`/`F_SEAL_SHRINK` too, since a resize
-during an epoch would change the frame set underneath a recorded type. This is
-a predicate over the VMA's file plus a seals query; tens of lines.
+The moment a sealed memfd is shared by N processes, I0 ("a physical frame has a
+uniform memory type within its coherence domain") requires all N sets of PTEs
+to agree, and there is no cross-`mm` mechanism to make them. This is the
+prototype's own "multiple concurrent streaming users contending on the same
+physical pages", tracked as Steps B–F.
 
-**(b) I0 across address spaces — the real work, ~1-2 weeks.**
-Entry must record type ownership over the *physical frames* and refuse a later
-conflicting mapping from any process, not just the declaring one. Linux already
-has the right shape of mechanism, and the paper already cites it: the x86 PAT
-memtype reservation tree (`arch/x86/mm/pat/memtype.c`, the `track_pfn` family)
-exists precisely to refuse conflicting type reservations over physical ranges.
-Reserving at epoch entry and releasing at exit is the natural implementation.
-The work is in wiring shmem's fault path to consult it and to fail a WB mapping
-of frames currently under a `Streaming` reservation.
+Note this is the **same** design question the paper's §4 now names. Sealing
+solves I1 and does nothing for I0. That split is the real content.
 
-**(c) The risk item: shmem reclaim, swap, migration, THP split.**
-Sealed memfd pages are still shmem pages — reclaimable, swappable, migratable,
-subject to compaction and KSM. The paper already states the requirement
-("migration, compaction, and KSM must preserve the type on the destination or
-end the epoch, never silently alias it"), and for anonymous memory the
-prototype presumably handles it. Shared shmem adds writeback and page-cache
-paths. This is where an estimate can double.
+## 4. Estimate
 
-**Defensible shortcut**: require the object's pages to be pinned for the epoch
-(`mlock`/`FOLL_LONGTERM`-style), which removes reclaim and migration from the
-picture entirely. That is an honest prototype restriction — say it in the paper
-— and it likely collapses (c) to near zero, bringing the total to **under a
-week**.
-
-**Cheaper still, if the goal is only to demonstrate the argument**: admit a
-sealed memfd only while it has a single mapper (verified by mapcount). That
-sidesteps cross-address-space I0 completely and still exercises the whole
-declaration chain end to end. It does *not* cover Plasma's real multi-reader
-case, so it must be labelled as a demonstration, not a general implementation.
-
-**Summary:**
-
-| scope | estimate | what it demonstrates |
+| scope | estimate | basis |
 |---|---|---|
-| single-mapper sealed memfd | ~2-3 days | the full declaration chain, honestly scoped |
-| + pinned pages, multi-mapper | ~1 week | Plasma's real sharing pattern |
-| + reclaim/migration correctness | 2-3 weeks | production-shaped |
+| **single-mapper sealed memfd** | **~1 day** | relax one predicate + `F_SEAL_WRITE`/`GROW`/`SHRINK` query; downstream PTE path unchanged; test harness (`streaming_basic.c`, `streaming_reject.c`, KUnit) already exists |
+| **multi-mapper, pages pinned** | **~1–2 weeks** | needs cross-`mm` type agreement, which does not exist today; pinning avoids the swap/reclaim half |
+| **+ swap/reclaim/migration correct** | beyond that | explicitly Steps B–F; the prototype currently *refuses* swap-paged pages rather than integrating |
 
-## 4. Recommendation
+Requiring `F_SEAL_GROW`/`F_SEAL_SHRINK` as well as `F_SEAL_WRITE` matters: a
+resize under an epoch would change the frame set beneath a recorded type.
 
-The middle row is the target: **sealed memfd, multi-mapper, pages pinned for
-the epoch**, with the pinning stated as a prototype restriction. It covers the
-Ray plasma motivation, exercises I0's genuinely hard case, and is roughly a
-week rather than a month.
+## 5. Recommendation
 
-But the ordering matters: **get the prototype into version control first.**
-It is a prerequisite for anyone estimating this properly (including me), for
-artifact evaluation, and for the sealed-memfd work itself being reviewable. An
-empty submodule behind a paper whose contribution is an OS/hardware contract is
-the single cheapest thing on this list to fix and the most expensive to be
-caught on.
+**Do the one-day version first**, even if the multi-mapper case is later
+dropped for schedule. It is the difference between "our prototype takes
+anonymous memory" and "our prototype consumes a sealed, shared object of
+exactly the kind Ray Plasma produces" — and it exercises the full declaration
+chain (application seal → OS memory type → hardware non-allocation) end to end
+for a single reader. That is the paper's thesis demonstrated rather than
+asserted, for roughly a day of work against a codebase that already has KUnit
+and kselftest scaffolding to hang it on.
+
+Whether to then spend 1–2 weeks on multi-mapper I0 is a schedule call against
+#28, and I would not make it before #28 has run.
