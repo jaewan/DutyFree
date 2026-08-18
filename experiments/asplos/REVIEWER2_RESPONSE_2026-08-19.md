@@ -101,6 +101,14 @@ solving it.
 
 ## Q4 — Is `Streaming` defensible without H3?
 
+> **Revised 2026-08-19 after Q1 landed.** The recommendation below originally
+> said to move H2's case *off* victim protection, because a predictor tied it.
+> That rested on the single-core measurement and is **wrong**. Cross-core, a
+> tuned predictor recovers *none* of a co-runner's tax (1.67x against
+> write-back's 1.65x, where H2 reaches 1.01x) — see
+> `Q1_CROSSCORE_PREDICTOR_2026-08-19.md`. Victim protection is exactly where
+> H2's case belongs. The revised answer is at the end of this section.
+
 **Yes, but it becomes a different paper, and a narrower one.**
 
 What survives H3's removal:
@@ -135,3 +143,21 @@ guarantee**, both of which a predictor structurally cannot provide, rather than
 on victim hit rate, where a predictor now demonstrably ties. That reframing
 costs the paper a headline number and buys it a claim that survives the
 comparison the reviewer asked for.
+
+### Revised answer (2026-08-19)
+
+**Yes, and less narrowly than I first judged.** With Q1 in hand, H2 has a
+measured, exclusive benefit on the axis the paper actually claims: it returns a
+co-runner from a 1.655x tax to 1.012x, cutting the victim's misses to memory by
+99%, where a tuned reuse predictor delivers **-2.4%** of the available benefit.
+That is not an accuracy gap a better predictor closes — a replacement policy
+admits before it retains, so the eviction that displaces the neighbour has
+already happened. Prediction is self-serving; declaration is other-serving.
+
+So H2 stands on its own without H3, and it stands on victim protection rather
+than only on admission counts and the guarantee. What H3 still uniquely
+provides is snoop-filter relief, which H2 explicitly does not, and the
+coherence exemption no load-side observation can license. Keep H3 as the
+architectural surplus, evidenced by argument and the TLA+ check; stop asking it
+for a performance number. Nothing about the paper's structure now depends on
+H3 carrying weight it cannot.
