@@ -1,8 +1,9 @@
-# Sealed-memfd admission: implemented, compile-tested, not boot-tested
+# Sealed-memfd admission: implemented, boot-tested, merged to main
 
 Written 2026-08-16. Implements the one-day tier from
 `SEALED_MEMFD_ESTIMATE_2026-08-16.md`. Branch `streaming-sealed-memfd`
-(`f2f3a8b`) on `jaewan/DutyFree-Linux`, PR #2 against `claude-draft2`.
+(`f2f3a8b`) on `jaewan/DutyFree-Linux`, merged to `main` via PR #2
+(merge commit `a9534e5`).
 
 ## What changed
 
@@ -35,21 +36,40 @@ sealed path, but the comment asserted something no longer true and was
 corrected. Worth recording: the dangerous part of this change was not the
 predicate, it was a comment three hundred lines away that depended on it.
 
-## Testing status, stated plainly
+## Testing status
 
-- `mm/streaming.o` builds clean, x86_64 defconfig + `CONFIG_PAT_STREAMING`,
-  **no warnings**.
-- New `tools/testing/selftests/mm/streaming_memfd.c` covers all three
-  outcomes: sealed single-mapper accepted, unsealed shared rejected, sealed
-  multiply-mapped rejected. Compiles clean; skips gracefully on a kernel
-  without `PROT_STREAMING` (verified by running it on `mos181`).
-- **Not boot-tested.** No Streaming-capable kernel was available here; the
-  only one is `6.8.0+` on `mos182`, built from a tree this account cannot
-  write. The selftest must be run there before the claim is made anywhere.
+Updated 2026-08-18: **boot-tested and merged.** PR #2 merged to `main`
+(`a9534e5`); the submodule tracks it.
 
-Until it is boot-tested, **the paper must not claim sealed-memfd support.**
-`Sec4_Streaming.tex` currently says the prototype admits private anonymous
-mappings including hugetlb, which remains accurate for the merged tree.
+Built the branch (x86_64 defconfig + `CONFIG_PAT_STREAMING`, `CONFIG_DEBUG_FS`,
+EFI disabled, gcc-13) and booted it under QEMU with a minimal initramfs
+running the whole `streaming_*` suite. No regressions:
+
+| test | result |
+|---|---|
+| `streaming_basic` | 7/7 pass — incl. PTE cache bits == PAT slot 6, `raw=0x840000005eff50b5` |
+| `streaming_reject` | 3 pass, 1 skip (userfaultfd unavailable) |
+| `streaming_memfd` | 3/3 pass |
+
+Two results worth keeping:
+
+1. `streaming_reject`'s pre-existing `MAP_SHARED file VMA -> EINVAL` case
+   **still passes.** It maps a regular file, which never takes the sealed
+   exception, so narrowing the predicate did not widen the hole it guarded.
+   That is the regression that mattered, and it did not happen.
+2. The single-mapper I0 restriction is exercised *positively* — a sealed memfd
+   with a second mapper is rejected — rather than only asserted in a comment.
+
+Toolchain note for reproduction: a 6.8 tree does **not** build with gcc-15.
+C23 defaults make `bool`/`false` keywords, which breaks
+`arch/x86/boot/compressed` and the EFI stub because they compile with their own
+CFLAGS. Use gcc-13. (Installed `gcc-13`, `flex`, `bison`, `libelf-dev`,
+`libssl-dev` on `mos181` for this.)
+
+QEMU boot is sufficient evidence here because the test observes guest-side
+behaviour only: `mprotect()` return codes and guest PTE bits. It does not
+depend on host cache behaviour, so nothing about the result rests on the
+hypervisor.
 
 ## Why this was worth a day
 
