@@ -88,3 +88,50 @@ otherwise see a monotone table beside a non-monotone one.
    1.60$\times$ and 1.369$\times$ stop looking contradictory.
 3. **Say once** that the tax-vs-WSS ratio peaks near 100% of LLC and declines
    beyond it, so the two shapes read as one story.
+
+---
+
+# RESOLVED (2026-08-20, later): the gap is aggressor memory placement
+
+The DMT $\times$ placement decomposition completed. Victim 2650 KiB (53% LLC),
+16 MiB WB aggressor, infinite SF, 3 seeds each.
+
+| arm | cyc/access | tax | victim DRAM | HNF data writes |
+|---|---:|---:|---:|---:|
+| victim alone, DMT on | 33.89 ± 0.01 | 1.000x | 0.0 MB | 1.30 M |
+| victim alone, DMT off | 33.88 ± 0.01 | 1.000x | 0.0 MB | 1.30 M |
+| WB, **CXL**, DMT on | 45.21 ± 0.03 | 1.334x | 29.0 MB | 4.60 M |
+| WB, **CXL**, DMT off | 46.38 ± 0.04 | **1.369x** | 28.5 MB | 4.54 M |
+| WB, **local-DRAM**, DMT on | 52.00 ± 0.04 | 1.535x | 538.8 MB | 8.51 M |
+| WB, **local-DRAM**, DMT off | 54.39 ± 0.01 | **1.605x** | 518.4 MB | 8.20 M |
+
+**Aggressor placement is the entire effect: +0.236 (DMT off), +0.200 (DMT on).
+DMT is a minor term: -0.035 to -0.071.**
+
+Both published endpoints reproduce at one victim size:
+
+- `tab:gem5`'s **1.60x** $\leftarrow$ local-DRAM aggressor, DMT off: **1.605x**
+- `tab:sens` / `tab:h3sf`'s **1.369x** $\leftarrow$ CXL aggressor, DMT off:
+  **1.369x**
+
+So the two tables were never in conflict. They are one curve sampled at two
+aggressor placements, and neither caption said so.
+
+**Mechanism, visible in the traffic.** A 98 ns aggressor sustains roughly twice
+the fill rate of a 203 ns one: HNF data-array writes 8.51 M vs 4.60 M, victim
+DRAM reads 538.8 MB vs 29.0 MB. It pollutes harder, so it taxes harder.
+
+**Correction to my earlier reading of `tab:sens`'s arm.** I took its recorded
+"local-DRAM" to mean the aggressor. It means the *victim*: the aggressor draws
+from the CXL pool by default placement, which is exactly why the table lands on
+1.369x rather than 1.605x. The caption now states the aggressor's pool
+explicitly, since that is the term that moves the number.
+
+**Coherent with the paper's silicon data.** `tab:gem5`'s hardware columns
+already show local-4 (2.61x) above CXL-8 (2.03x) at 53% WSS -- same ordering,
+same reason. The model reproduces a hardware-visible effect, which is a small
+independent fidelity check nobody had claimed.
+
+**Methodological by-product.** DMT moves the tax by under 0.07, so the
+DMT-off rows forced by finite-SF (`tab:h3sf`) are comparable with DMT-on numbers
+elsewhere to within that. That was previously an unquantified worry.
