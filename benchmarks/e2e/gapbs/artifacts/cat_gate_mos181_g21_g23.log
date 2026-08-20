@@ -3,3 +3,10 @@ g21 full inv0 eff= 320 MiB median=0.724860s valid=True
 g21 full inv1 eff= 320 MiB median=0.724330s valid=True
 g21 full inv2 eff= 320 MiB median=0.724180s valid=True
 g21 min  inv0 eff=  16 MiB median=0.950440s valid=True
+g21 min  inv1 eff=  16 MiB median=0.945570s valid=True
+g21 min  inv2 eff=  16 MiB median=0.949980s valid=True
+g22 full inv0 eff= 320 MiB median=2.744610s valid=True
+g22 full inv1 eff= 320 MiB median=2.748220s valid=True
+g22 full inv2 eff= 320 MiB median=2.753000s valid=True
+g22 min  inv0 eff=  16 MiB median=3.086030s valid=True
+g22 min  inv1 eff=  16 MiB median=3.083720s valid=True

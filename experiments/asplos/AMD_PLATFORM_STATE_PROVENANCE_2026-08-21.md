@@ -55,7 +55,7 @@ is still applied.
 It does mean two things:
 
 1. **No AMD result in the paper can be re-measured under the stated protocol
-   until `moscxl` is re-frozen.** That includes `tab:amdcat`, whose 6.92%%
+   until `moscxl` is re-frozen.** That includes `tab:amdcat`, whose 6.92x
    CAT residual is under the §3 embargo, and the AMD hash-join arms.
 2. **The `tab:appplat` platform-state row is, for the AMD column, an
    unverifiable claim.** It is very probably true. Nothing in the repository
