@@ -1,0 +1,5 @@
+mos181: cpu32 L3 domain 0 (0-63,128-191), 320 MiB / 20 ways = 16 MiB per way; full=fffff min=1 (1 way(s), reported floor 1, sparse_masks=0); freeze={'governor': 'performance', 'intel_no_turbo': '1', 'cpufreq_boost': None, 'loadavg': '0.08 0.04 0.00 1/3123 1533917'}
+g21 full inv0 eff= 320 MiB median=0.724860s valid=True
+g21 full inv1 eff= 320 MiB median=0.724330s valid=True
+g21 full inv2 eff= 320 MiB median=0.724180s valid=True
+g21 min  inv0 eff=  16 MiB median=0.950440s valid=True
