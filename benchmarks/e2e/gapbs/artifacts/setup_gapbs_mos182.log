@@ -1,0 +1,10 @@
+Cloning into '/home/domin/DutyFree/benchmarks/e2e/gapbs/third_party/gapbs'...
+From https://github.com/sbeamer/gapbs
+ * branch            master     -> FETCH_HEAD
+HEAD is now at 2972aeb update ci
+make: Entering directory '/home/domin/DutyFree/benchmarks/e2e/gapbs/third_party/gapbs'
+g++ -std=c++11 -O3 -Wall -fopenmp src/bfs.cc -o bfs
+g++ -std=c++11 -O3 -Wall -fopenmp src/pr.cc -o pr
+g++ -std=c++11 -O3 -Wall -fopenmp src/cc.cc -o cc
+make: Leaving directory '/home/domin/DutyFree/benchmarks/e2e/gapbs/third_party/gapbs'
+2972aeb2703165bafd921222f4ed7196f542d3a8

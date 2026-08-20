@@ -1,0 +1,20 @@
+gapbs 2972aeb2703165bafd921222f4ed7196f542d3a8
+mos182: cpu16 L3 domain 0 (0-31,64-95), 60 MiB / 15 ways = 4 MiB per way; full=7fff min=1 (1 way(s), reported floor 1, sparse_masks=0); freeze={'governor': 'performance', 'intel_no_turbo': '1', 'cpufreq_boost': None, 'loadavg': '0.17 0.05 0.01 4/2107 761718'}
+g21 full inv0 eff=  60 MiB median=0.594970s valid=True
+g21 full inv1 eff=  60 MiB median=0.594890s valid=True
+g21 full inv2 eff=  60 MiB median=0.594180s valid=True
+g21 min  inv0 eff=   4 MiB median=0.855780s valid=True
+g21 min  inv1 eff=   4 MiB median=0.852770s valid=True
+g21 min  inv2 eff=   4 MiB median=0.851600s valid=True
+g22 full inv0 eff=  60 MiB median=2.003390s valid=True
+g22 full inv1 eff=  60 MiB median=2.003210s valid=True
+g22 full inv2 eff=  60 MiB median=2.002860s valid=True
+g22 min  inv0 eff=   4 MiB median=2.702530s valid=True
+g22 min  inv1 eff=   4 MiB median=2.698340s valid=True
+g22 min  inv2 eff=   4 MiB median=2.697640s valid=True
+g23 full inv0 eff=  60 MiB median=8.050440s valid=True
+g23 full inv1 eff=  60 MiB median=8.052290s valid=True
+g23 full inv2 eff=  60 MiB median=8.050020s valid=True
+g23 min  inv0 eff=   4 MiB median=10.817490s valid=True
+g23 min  inv1 eff=   4 MiB median=10.828920s valid=True
+g23 min  inv2 eff=   4 MiB median=10.818270s valid=True

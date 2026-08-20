@@ -40,6 +40,68 @@
         "passes": false,
         "ratio": 1.0982,
         "scale": 23
+      },
+      {
+        "full_cov": 0.00109,
+        "full_median_s": 15.56526,
+        "full_mib": 320,
+        "min_cov": 0.00041,
+        "min_median_s": 17.4246,
+        "min_mib": 16,
+        "n_full": 9,
+        "n_min": 3,
+        "passes": false,
+        "ratio": 1.1195,
+        "scale": 24
+      }
+    ],
+    "rule": {
+      "cov_max": 0.05,
+      "ratio_min": 2.0
+    },
+    "selected_scale": null
+  },
+  "mos182": {
+    "invalid_records": [],
+    "rows": [
+      {
+        "full_cov": 0.00092,
+        "full_median_s": 0.59489,
+        "full_mib": 60,
+        "min_cov": 0.00216,
+        "min_median_s": 0.85277,
+        "min_mib": 4,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": false,
+        "ratio": 1.4335,
+        "scale": 21
+      },
+      {
+        "full_cov": 0.00023,
+        "full_median_s": 2.00331,
+        "full_mib": 60,
+        "min_cov": 0.00083,
+        "min_median_s": 2.69841,
+        "min_mib": 4,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": false,
+        "ratio": 1.347,
+        "scale": 22
+      },
+      {
+        "full_cov": 0.00035,
+        "full_median_s": 8.05209,
+        "full_mib": 60,
+        "min_cov": 0.0006,
+        "min_median_s": 10.81798,
+        "min_mib": 4,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": false,
+        "ratio": 1.3435,
+        "scale": 23
       }
     ],
     "rule": {
