@@ -69,3 +69,50 @@ a DuckDB streamer**.
 No co-run tax, recovery, or frontier result. No streamer and no aggressor is
 launched. CMT occupancy is recorded per trial as a diagnostic only and is
 explicitly not attributed to `outgoing_contrib` nor used in the selection.
+
+## 5. Prediction recorded before the g24--g25 extension (2026-08-21)
+
+Scales 21--23 have landed. `moscxl` passes at g21 (2.574x) and g22 (2.124x)
+and fails at g23 (1.670x); `mos181` fails all three (1.312x, 1.123x, 1.098x).
+Per decision 4, `moscxl` stops -- it has passed, and the rule takes the
+*smallest* passing scale, so g24/g25 cannot change its selection -- while
+`mos181` extends to g24--g25.
+
+**Predicted outcome of that extension: `mos181` fails both, and PageRank has no
+passing scale on the 320 MiB host.** The ratio is monotonically decreasing in
+scale on both hosts, and the mechanism accounts for it: the full-mask arm loses
+its advantage as soon as the graph outgrows the full mask. At g21 the CSR is
+about 268 MB and fits inside 320 MiB, which is why the Intel full-mask arm is
+unusually fast there and the ratio is at its highest; from g22 (about 537 MB)
+the full-mask arm is already DRAM-bound, and further scale can only shrink the
+gap. The Intel g22 -> g23 full-mask time rises 4.2x (2.748 s -> 11.485 s)
+against a 2x increase in work, which is that transition showing up directly.
+
+This is recorded as a prediction and not as a reason to skip the runs. The
+pre-registration names g21--g25, and a monotone trend across three points plus
+a mechanism is an argument, not a measurement.
+
+## 6. What a failure on `mos181` would and would not license
+
+The minimum-way arm confines the victim to one way, which is **harsher than any
+co-runner can be through the capacity channel**: a co-runner competes for ways,
+it cannot confine. So a ceiling measured this way is a ceiling on the
+capacity-mediated tax -- and the capacity-mediated tax is exactly the quantity
+non-allocation could recover. If PageRank on `mos181` moves only 1.10--1.31x
+across the entire CAT range, then no aggressor can hand H2 more than that to
+recover on this victim and host, and the pre-gate has done its job: it stops a
+multi-day co-run campaign whose headroom was capped at 1.31x before it starts.
+
+Two limits on that reading, stated so it is not over-claimed. The bound is on
+the capacity channel only: a co-runner also adds memory-bandwidth and
+DRAM/CXL queueing pressure, which way-confinement does not, so total
+interference is not bounded by this gate. And a CAT way mask is shared rather
+than isolated -- the default group retains the full mask -- so the victim's one
+way is not private to it.
+
+Finally, the arithmetic behind the Intel failure is worth naming on its own:
+20 ways over a 320 MB LLC makes one way 16 MiB, which is larger than the
+*entire* LLC of the AMD host in the same table. On this platform CAT cannot
+express a small allocation at all. That is a granularity limit, independent of
+the context-scoping argument in \S2, and it is why the same workload is
+capacity-sensitive on the smaller-LLC host and not on the larger one.
