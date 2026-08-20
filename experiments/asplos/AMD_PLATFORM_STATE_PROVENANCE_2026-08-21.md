@@ -86,3 +86,23 @@ silent, because hugepage placement is an experimental variable on this host.
    honest form is a footnote that the Intel hosts' state is scripted and
    captured while the AMD host's was applied by hand and is not recorded.
    That is a page-1-adjacent evidentiary posture question, hence §9.
+
+## Addendum: one state change on `moscxl` was left in place
+
+`resctrl` was **not mounted** on `moscxl` when this session began, though the
+host supports L3 CAT (`cat_l3`, `rdt_a`, `cqm_occup_llc`, `mba`). It was
+mounted in order to run the gate, and has been left mounted, because
+`emr_freeze.sh` step 1 and `bergamo_freeze.sh` step 1 both require it and the
+co-run campaign cannot run without it. Mounting exposes the interface with
+every group at the full mask and changes no allocation.
+
+Everything else touched on that host was restored and verified: the
+per-core `performance` governor diagnostic (cpu8 and cpu264) is back to
+`schedutil`, `numa_balancing` is back to 1, and no resctrl group created by
+any run remains. The same check on `mos181` and `mos182` shows no stray groups
+and unchanged governors.
+
+Note also that `moscxl` has `perf_event_paranoid=4` and zero 2 MB hugepages on
+all three nodes. Neither was changed. Both depart from `benchmarks/README.md`'s
+frozen protocol and both would need setting before any campaign that needs PMU
+counters or pre-allocated hugepages on that host.
