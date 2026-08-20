@@ -6,10 +6,17 @@ campaign since 2026-08-11 has run on three hosts and two victims.
 **Victim: GAPBS PageRank at `-g 21` on `moscxl` (AMD EPYC 9754) only.** It is
 the sole configuration to pass a capacity-sensitivity gate: 2.580x, against a
 2x bar, at CoV within bounds and robust across the whole observed spread
-(2.561--2.794x). Both Intel hosts fail at every scale measured -- `mos181`
-1.10--1.31x, `mos182` 1.34--1.43x, at CoV under 0.25%. The pre-registered
-alternative victim, HNSW, was built and gated rather than assumed and fails on
-every host including AMD (1.257--1.325x).
+(2.561--2.794x). Both Intel hosts fail at every scale measured -- `mos181` 1.10--1.31x across
+the **complete** pre-registered range g21--g25, `mos182` 1.34--1.43x, at CoV
+under 0.25%. The pre-registered alternative victim, HNSW, was built and gated
+rather than assumed and fails on all three hosts including AMD (1.257x,
+1.325x, 1.544x).
+
+Across two victims, three hosts and five scales, **no Intel configuration
+reaches 2x**, and AMD reaches it only with PageRank. The host ordering inverts
+between the victims -- `mos181` is the least sensitive host for PageRank and
+the most for HNSW -- so sensitivity belongs to the victim/host pair, not to
+either alone.
 
 So the real-application arm is single-vendor whichever candidate victim is
 chosen. That is now a measured statement, not a fallback. It does not touch the
@@ -22,6 +29,14 @@ and a non-allocating aggressor on AMD.
 | reproducibility | gate CoV 0.02--0.25% on Intel; `mos181` g22/g24 reproduce the 2026-08-11 sizing gate to ~0.1%; `moscxl` full-mask arm bimodal, three causes eliminated, selection unaffected |
 | recovery | unmeasured |
 | frontier | preregistered; unmeasured |
+
+A quantitative by-product worth carrying into the paper: on `mos181` a 320 MiB
+LLC cuts HNSW's DRAM traffic **8.44x** (122.7 GB to 14.5 GB, occupancy
+verified at 305 MiB) and returns only **1.54x** in runtime. The
+time-per-traffic ratio falls monotonically with LLC size -- 1.05 at 16 MiB,
+0.72 at 60 MiB, 0.18 at 320 MiB. A shared-cache tax requires a victim whose
+misses serialise; bandwidth saved is not time saved. This is the gem5 task #22
+MLP explanation reproduced on silicon with traffic measured.
 
 ## Before any co-run arm is taken
 

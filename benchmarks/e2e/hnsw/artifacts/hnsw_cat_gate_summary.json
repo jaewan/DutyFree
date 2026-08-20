@@ -1,4 +1,29 @@
 {
+  "mos181": {
+    "freeze_state": {
+      "cpufreq_boost": null,
+      "governor": "performance",
+      "intel_no_turbo": "1",
+      "loadavg": "0.73 0.94 0.98 1/2992 1539480"
+    },
+    "full_cov": 0.01184,
+    "full_median_s": 1.621767,
+    "full_mib": 320,
+    "hnswlib_commit": "d9b3608c83d83b46c96e25088cb1d729b29dcfe9",
+    "index_sha256": "0a7759aa9c885829a56729c0dd0eba8cdda8d8dea2421203224512cf094888ac",
+    "invalid_records": [],
+    "min_cov": 0.00581,
+    "min_median_s": 2.502752,
+    "min_mib": 16,
+    "n_full": 18,
+    "n_min": 18,
+    "passes": false,
+    "ratio": 1.5432,
+    "rule": {
+      "cov_max": 0.05,
+      "ratio_min": 2.0
+    }
+  },
   "mos182": {
     "freeze_state": {
       "cpufreq_boost": null,

@@ -19,7 +19,7 @@ gate.
 | | | | | g22 | 2.748220 s | 3.085530 s | 1.123 | fail |
 | | | | | g23 | 11.484790 s | 12.612240 s | 1.098 | fail |
 | | | | | g24 | 15.565260 s | 17.431470 s | 1.120 | fail |
-| | | | | g25 | -- | -- | -- | running |
+| | | | | g25 | 38.993160 s | 42.971250 s | 1.102 | fail |
 | `mos182` (8462Y+) | 60 MB / 15 | 60 MiB | 4 MiB | g21 | 0.594890 s | 0.852770 s | 1.433 | fail |
 | | | | | g22 | 2.003310 s | 2.698410 s | 1.347 | fail |
 | | | | | g23 | 8.052090 s | 10.817980 s | 1.343 | fail |
@@ -29,7 +29,14 @@ gate.
 
 **Selected: `moscxl` at g21.** The rule takes the smallest passing scale, so
 g22's pass is not the selection and higher scales could not change it, which is
-why `moscxl` stopped at g23. Neither Intel host has a passing scale.
+why `moscxl` stopped at g23. Neither Intel host has a passing scale, and
+`mos181` has now failed the **complete** pre-registered range g21--g25.
+
+The g24--g25 extension was run because the pre-registration names that range,
+even though a monotone trend across three points already predicted the result.
+That prediction, recorded in
+`GAPBS_CAT_SENSITIVITY_RUN_DECISIONS.md` §5 before the runs, **held**: 1.120x
+and 1.102x. It is the one prediction in this gate that did.
 
 Reproducibility against the independent 2026-08-11 sizing gate, ten days and a
 different runner apart: `mos181` g22 full 2.748220 s against 2.748790 s, and

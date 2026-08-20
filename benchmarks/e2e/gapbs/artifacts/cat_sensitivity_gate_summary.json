@@ -45,14 +45,27 @@
         "full_cov": 0.00109,
         "full_median_s": 15.56526,
         "full_mib": 320,
-        "min_cov": 0.00041,
-        "min_median_s": 17.4246,
+        "min_cov": 0.00077,
+        "min_median_s": 17.43147,
         "min_mib": 16,
         "n_full": 9,
-        "n_min": 3,
+        "n_min": 9,
         "passes": false,
-        "ratio": 1.1195,
+        "ratio": 1.1199,
         "scale": 24
+      },
+      {
+        "full_cov": 0.00115,
+        "full_median_s": 38.99316,
+        "full_mib": 320,
+        "min_cov": 0.00204,
+        "min_median_s": 42.97125,
+        "min_mib": 16,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": false,
+        "ratio": 1.102,
+        "scale": 25
       }
     ],
     "rule": {

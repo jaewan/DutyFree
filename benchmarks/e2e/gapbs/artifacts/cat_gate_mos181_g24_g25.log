@@ -9,3 +9,6 @@ g24 min  inv2 eff=  16 MiB median=17.431470s valid=True
 g25 full inv0 eff= 320 MiB median=38.970840s valid=True
 g25 full inv1 eff= 320 MiB median=38.993160s valid=True
 g25 full inv2 eff= 320 MiB median=39.059050s valid=True
+g25 min  inv0 eff=  16 MiB median=42.967660s valid=True
+g25 min  inv1 eff=  16 MiB median=42.947030s valid=True
+g25 min  inv2 eff=  16 MiB median=43.005560s valid=True
