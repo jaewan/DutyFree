@@ -1,0 +1,100 @@
+{
+  "mos181": {
+    "invalid_records": [],
+    "rows": [
+      {
+        "full_cov": 0.00117,
+        "full_median_s": 0.72433,
+        "full_mib": 320,
+        "min_cov": 0.00248,
+        "min_median_s": 0.94983,
+        "min_mib": 16,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": false,
+        "ratio": 1.3113,
+        "scale": 21
+      },
+      {
+        "full_cov": 0.00187,
+        "full_median_s": 2.74822,
+        "full_mib": 320,
+        "min_cov": 0.00101,
+        "min_median_s": 3.08553,
+        "min_mib": 16,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": false,
+        "ratio": 1.1227,
+        "scale": 22
+      },
+      {
+        "full_cov": 0.00031,
+        "full_median_s": 11.48479,
+        "full_mib": 320,
+        "min_cov": 0.0008,
+        "min_median_s": 12.61224,
+        "min_mib": 16,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": false,
+        "ratio": 1.0982,
+        "scale": 23
+      }
+    ],
+    "rule": {
+      "cov_max": 0.05,
+      "ratio_min": 2.0
+    },
+    "selected_scale": null
+  },
+  "moscxl": {
+    "invalid_records": [],
+    "rows": [
+      {
+        "full_cov": 0.03905,
+        "full_median_s": 0.48829,
+        "full_mib": 16,
+        "min_cov": 0.00191,
+        "min_median_s": 1.2598,
+        "min_mib": 1,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": true,
+        "ratio": 2.58,
+        "scale": 21
+      },
+      {
+        "full_cov": 0.04477,
+        "full_median_s": 1.7494,
+        "full_mib": 16,
+        "min_cov": 0.00858,
+        "min_median_s": 3.71837,
+        "min_mib": 1,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": true,
+        "ratio": 2.1255,
+        "scale": 22
+      },
+      {
+        "full_cov": 0.0024,
+        "full_median_s": 7.53379,
+        "full_mib": 16,
+        "min_cov": 0.00073,
+        "min_median_s": 12.57882,
+        "min_mib": 1,
+        "n_full": 9,
+        "n_min": 9,
+        "passes": false,
+        "ratio": 1.6697,
+        "scale": 23
+      }
+    ],
+    "rule": {
+      "cov_max": 0.05,
+      "ratio_min": 2.0
+    },
+    "selected_scale": 21
+  }
+}

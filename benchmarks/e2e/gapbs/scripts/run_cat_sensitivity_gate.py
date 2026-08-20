@@ -16,7 +16,11 @@ GAPBS = ROOT / "benchmarks/e2e/gapbs/third_party/gapbs"
 OUT = ROOT / "benchmarks/e2e/gapbs/artifacts"
 RESCTRL = Path("/sys/fs/resctrl")
 # Pinned victim CPU per host, identical to the sizing gate that selected g22.
-CFG = {"mos181": "32", "moscxl": "8"}
+# Pinned victim CPU per host. mos181/moscxl match the sizing gate that
+# selected g22; mos182 (8462Y+, 60 MiB L3 over 15 ways) uses cpu16 because on
+# a 32-core-per-socket part cpu32 sits on socket 1. The L3 domain is read from
+# sysfs regardless of this choice.
+CFG = {"mos181": "32", "moscxl": "8", "mos182": "16"}
 TRIAL = re.compile(r"Trial Time:\s+([0-9.]+)")
 
 
@@ -33,6 +37,13 @@ def slurp(path, default=None):
         return Path(path).read_text().strip()
     except OSError:
         return default
+
+
+def gapbs_commit():
+    """Pin provenance: the 2026-08-11 sizing gate recorded 2972aeb."""
+    r = subprocess.run(["git", "-C", str(GAPBS), "rev-parse", "HEAD"],
+                       text=True, capture_output=True)
+    return r.stdout.strip() if r.returncode == 0 else "unavailable"
 
 
 def cpu_l3(cpu):
@@ -100,6 +111,8 @@ def main():
     env = {**os.environ, "OMP_NUM_THREADS": "1", "OMP_PROC_BIND": "true",
            "OMP_PLACES": "cores"}
     frozen = freeze_state(cpu)
+    commit = gapbs_commit()
+    print(f"gapbs {commit}")
     print(f"{host}: cpu{cpu} L3 domain {domain} ({shared}), {l3_bytes >> 20} MiB / "
           f"{ways} ways = {way_bytes >> 20} MiB per way; full={full_mask} "
           f"min={min_mask} ({min_bits} way(s), reported floor "
@@ -141,6 +154,7 @@ def main():
                     rc = proc.wait()
                     times = [float(x) for x in TRIAL.findall("".join(lines))]
                     rec = {"campaign": "gapbs_cat_sensitivity_gate", "host": host,
+                           "gapbs_commit": commit,
                            "scale": scale, "mask_label": label, "invocation": inv,
                            "command": cmd, "cpu_requested": cpu,
                            "l3_domain": domain, "l3_bytes": l3_bytes, "l3_ways": ways,

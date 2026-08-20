@@ -1,0 +1,19 @@
+moscxl: cpu8 L3 domain 1 (8-15,264-271), 16 MiB / 16 ways = 1 MiB per way; full=ffff min=1 (1 way(s), reported floor 0, sparse_masks=1); freeze={'governor': 'schedutil', 'intel_no_turbo': None, 'cpufreq_boost': '1', 'loadavg': '0.20 0.14 0.06 1/5329 54091'}
+g21 full inv0 eff=  16 MiB median=0.489210s valid=True
+g21 full inv1 eff=  16 MiB median=0.451790s valid=True
+g21 full inv2 eff=  16 MiB median=0.488670s valid=True
+g21 min  inv0 eff=   1 MiB median=1.261420s valid=True
+g21 min  inv1 eff=   1 MiB median=1.259800s valid=True
+g21 min  inv2 eff=   1 MiB median=1.256140s valid=True
+g22 full inv0 eff=  16 MiB median=1.749230s valid=True
+g22 full inv1 eff=  16 MiB median=1.749400s valid=True
+g22 full inv2 eff=  16 MiB median=1.750630s valid=True
+g22 min  inv0 eff=   1 MiB median=3.721410s valid=True
+g22 min  inv1 eff=   1 MiB median=3.715080s valid=True
+g22 min  inv2 eff=   1 MiB median=3.709970s valid=True
+g23 full inv0 eff=  16 MiB median=7.528080s valid=True
+g23 full inv1 eff=  16 MiB median=7.545450s valid=True
+g23 full inv2 eff=  16 MiB median=7.533790s valid=True
+g23 min  inv0 eff=   1 MiB median=12.576250s valid=True
+g23 min  inv1 eff=   1 MiB median=12.578820s valid=True
+g23 min  inv2 eff=   1 MiB median=12.579160s valid=True

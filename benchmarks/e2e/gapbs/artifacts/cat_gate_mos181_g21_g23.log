@@ -15,3 +15,5 @@ g23 full inv0 eff= 320 MiB median=11.483610s valid=True
 g23 full inv1 eff= 320 MiB median=11.484790s valid=True
 g23 full inv2 eff= 320 MiB median=11.486540s valid=True
 g23 min  inv0 eff=  16 MiB median=12.612240s valid=True
+g23 min  inv1 eff=  16 MiB median=12.624260s valid=True
+g23 min  inv2 eff=  16 MiB median=12.600600s valid=True

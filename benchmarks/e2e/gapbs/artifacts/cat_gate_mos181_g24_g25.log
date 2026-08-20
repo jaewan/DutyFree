@@ -1,0 +1,3 @@
+gapbs 2972aeb2703165bafd921222f4ed7196f542d3a8
+mos181: cpu32 L3 domain 0 (0-63,128-191), 320 MiB / 20 ways = 16 MiB per way; full=fffff min=1 (1 way(s), reported floor 1, sparse_masks=0); freeze={'governor': 'performance', 'intel_no_turbo': '1', 'cpufreq_boost': None, 'loadavg': '0.65 0.95 0.80 2/3006 1535584'}
+g24 full inv0 eff= 320 MiB median=15.540260s valid=True
