@@ -1,0 +1,52 @@
+{
+  "mos182": {
+    "freeze_state": {
+      "cpufreq_boost": null,
+      "governor": "performance",
+      "intel_no_turbo": "1",
+      "loadavg": "0.00 0.26 0.49 1/2065 763573"
+    },
+    "full_cov": 0.00098,
+    "full_median_s": 1.712451,
+    "full_mib": 60,
+    "hnswlib_commit": "d9b3608c83d83b46c96e25088cb1d729b29dcfe9",
+    "index_sha256": "0a7759aa9c885829a56729c0dd0eba8cdda8d8dea2421203224512cf094888ac",
+    "invalid_records": [],
+    "min_cov": 0.00158,
+    "min_median_s": 2.269547,
+    "min_mib": 4,
+    "n_full": 18,
+    "n_min": 18,
+    "passes": false,
+    "ratio": 1.3253,
+    "rule": {
+      "cov_max": 0.05,
+      "ratio_min": 2.0
+    }
+  },
+  "moscxl": {
+    "freeze_state": {
+      "cpufreq_boost": "1",
+      "governor": "schedutil",
+      "intel_no_turbo": null,
+      "loadavg": "0.35 0.66 0.40 1/5285 60238"
+    },
+    "full_cov": 0.00205,
+    "full_median_s": 2.069736,
+    "full_mib": 16,
+    "hnswlib_commit": "d9b3608c83d83b46c96e25088cb1d729b29dcfe9",
+    "index_sha256": "c816b629d3af93ad4b160946668bc08bc61f7f6045e9df579a40452f9d8fa7fa",
+    "invalid_records": [],
+    "min_cov": 0.0023,
+    "min_median_s": 2.601822,
+    "min_mib": 1,
+    "n_full": 18,
+    "n_min": 18,
+    "passes": false,
+    "ratio": 1.2571,
+    "rule": {
+      "cov_max": 0.05,
+      "ratio_min": 2.0
+    }
+  }
+}
