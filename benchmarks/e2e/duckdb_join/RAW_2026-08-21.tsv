@@ -1,0 +1,66 @@
+# DuckDB v1.1.3 (19864453f7) as e2e victim. Panel-session measurements, 2026-08-21.
+# All victim runs: single DuckDB thread (SET threads=1), pinned via numactl --physcpubind, --membind as stated.
+# Query shapes: chain8 = many-to-many join, build=N rows over N/8 distinct keys, probe=10M rows (100M where noted).
+# Times = per-query "Run Time (s)" from DuckDB .timer; first sample of each invocation discarded.
+host	experiment	victim_cpu	victim_membind	arm	agg_mode	agg_threads	agg_bw_gbps	llc_occ_MiB	median_s	tax_or_ratio
+# --- A. MLP=1 pointer-chase latency ladder (cxl_join_bench --mode latency), ns
+mos181	latency_ladder	40	n/a	2MiB_node0_quiet	none	0	0	-	13.72	-
+mos181	latency_ladder	40	n/a	8MiB_node0_quiet	none	0	0	-	36.25	-
+mos181	latency_ladder	40	n/a	32MiB_node0_quiet	none	0	0	-	48.53	-
+mos181	latency_ladder	40	n/a	128MiB_node0_quiet	none	0	0	-	54.41	-
+mos181	latency_ladder	40	n/a	128MiB_node2_quiet	none	0	0	-	54.32	-
+mos181	latency_ladder	40	n/a	512MiB_node0_quiet	none	0	0	-	87.79	-
+mos181	latency_ladder	40	n/a	512MiB_node2_quiet	none	0	0	-	127.01	-
+mos181	latency_loaded	40	node0	128MiB	wb_local	8	108	-	141.47	2.60
+mos181	latency_loaded	40	node2	128MiB	wb_local	8	108	-	270.75	4.98
+mos181	latency_loaded	40	node2	128MiB	wb_load_cxl	8	24.5	-	413.34	7.61
+mos181	latency_loaded	40	node2	128MiB	wb_prefetchnta_cxl	8	17.5	-	71.85	1.32
+mos181	latency_loaded	40	node2	512MiB	wb_load_cxl	8	24.5	-	804.4	6.33
+mos181	latency_loaded	40	node0	512MiB	wb_local	8	108	-	142.15	1.62
+# --- B. DuckDB build-size sweep, node0, 100M probe rows, unique keys: ns per probe tuple
+mos181	ns_per_tuple	40	node0	build_1024	none	0	0	-	4.74	13.6cyc
+mos181	ns_per_tuple	40	node0	build_262144	none	0	0	-	7.41	21.5cyc
+mos181	ns_per_tuple	40	node0	build_2000000	none	0	0	-	46.71	135cyc
+mos181	ns_per_tuple	40	node0	build_8000000	none	0	0	-	61.54	178cyc
+# perf on build_2000000: l1d_pend_miss.pending/pending_cycles = 4.23 (effective MLP); dtlb_load_misses.walk_active = 22% of cycles
+# --- C. CAT capacity-sensitivity gate: full mask vs 1 way, n=3
+mos181	cat_gate_joinuniq_b2M	40	node0	full/1way	none	0	0	194/34	4.681/5.714	1.221
+mos181	cat_gate_joinuniq_b2M	40	node2	full/1way	none	0	0	181/20	4.748/7.794	1.641
+mos181	cat_gate_joinuniq_b4M	40	node2	full/1way	none	0	0	184/16	5.214/8.495	1.630
+mos181	cat_gate_joinuniq_b8M	40	node2	full/1way	none	0	0	299/27	6.452/9.508	1.474
+mos181	cat_gate_groupby_4Mgroups	40	node2	full/1way	none	0	0	212/16	3.817/6.594	1.727
+mos181	cat_gate_chain8_b4M	40	node0	full/1way	none	0	0	225/33	1.635/2.449	1.498
+mos181	cat_gate_chain8_b4M	40	node2	full/1way	none	0	0	204/24	1.567/3.812	2.432
+mos181	cat_gate_chain32_b4M	40	node2	full/1way	none	0	0	180/36	1.255/2.567	2.045
+mos181	cat_gate_star3join_1.5Mdim	40	node2	full/1way	none	0	0	261/17	2.990/4.941	1.652
+mos181	cat_gate_star3join_1.5Mdim	40	node0	full/1way	none	0	0	268/23	2.864/3.550	1.239
+moscxl	cat_gate_chain8_b256K	8	node0	full/1way	none	0	0	13/0	0.741/1.785	2.409
+moscxl	cat_gate_chain8_b256K	8	node2	full/1way	none	0	0	14/0	0.736/4.214	5.726
+moscxl	cat_gate_joinuniq_b256K	8	node0	full/1way	none	0	0	14/0	0.065/0.144	2.215
+moscxl	cat_gate_joinuniq_b256K	8	node2	full/1way	none	0	0	14/0	0.080/0.330	4.125
+mos182	cat_gate_chain8_b250K	4	node0	full/1way	none	0	0	46/5	0.373/0.691	1.853
+mos182	cat_gate_chain8_b250K	4	node2	full/1way	none	0	0	32/8	0.723/1.428	1.975
+mos182	cat_gate_chain8_b500K	4	node0	full/1way	none	0	0	55/7	0.403/0.805	1.998
+mos182	cat_gate_chain8_b500K	4	node2	full/1way	none	0	0	34/10	1.501/1.885	1.256
+mos182	cat_gate_chain8_b1M	4	node0	full/1way	none	0	0	56/11	0.854/1.738	2.035
+mos182	cat_gate_chain8_b1M	4	node2	full/1way	none	0	0	34/9	3.862/4.363	1.130
+# --- D. Real co-run, victim tables on CXL node 2, full LLC mask, n=10 or n=6 (first dropped)
+mos181	corun_chain8_b4M	40	node2	quiescent	none	0	0	225	1.771	1.000
+mos181	corun_chain8_b4M	40	node2	quiescent_repeat	none	0	0	235	1.780	1.005
+mos181	corun_chain8_b4M	40	node2	WB_localDRAM	wb_local	8	108.3	33	3.428	1.935
+mos181	corun_chain8_b4M	40	node2	NTA_localDRAM	wb_prefetchnta	8	17.4	214	1.923	1.086
+mos181	corun_chain8_b1M	40	node2	quiescent/WB	wb_local	8	108	158/36	1.203/1.404	1.167
+mos181	corun_chain8_b2M	40	node2	quiescent/WB	wb_local	8	108	232/59	1.338/1.840	1.375
+mos181	corun_chain8_b6M	40	node2	quiescent	none	0	0	305	2.030	1.000
+mos181	corun_chain8_b6M	40	node2	WB_localDRAM	wb_local	8	108	16	4.100	2.020
+mos181	corun_chain8_b6M	40	node2	WB_CXL	wb_load	8	23.9	94	7.810	3.847
+mos181	corun_chain8_b6M	40	node2	NTA_CXL	wb_prefetchnta	8	17.4	267	2.930	1.443
+mos181	corun_chain8_b10M	40	node2	quiescent	none	0	0	306	2.720	1.000
+mos181	corun_chain8_b10M	40	node2	WB_localDRAM	wb_local	8	108	19	3.960	1.456
+mos181	corun_chain8_b10M	40	node2	WB_CXL	wb_load	8	24	111	7.030	2.585
+moscxl	corun_chain8_b256K	8	node2	quiescent	none	0	0	12	0.721	1.000
+moscxl	corun_chain8_b256K	8	node2	quiescent_repeat	none	0	0	14	0.733	1.017
+moscxl	corun_chain8_b256K	8	node2	WB_CXL	wb_load	7	24.25	0	11.070	15.35
+moscxl	corun_chain8_b256K	8	node2	WB_localDRAM	wb_local	7	47.5	0	8.614	11.95
+moscxl	corun_chain8_b256K	8	node2	NTA_CXL	wb_prefetchnta	7	14.2	0	9.160	12.70
+moscxl	corun_chain8_b256K	8	node2	flushbehind_256KiB	amd_flushbehind	7	17.1	12	2.535	3.51
