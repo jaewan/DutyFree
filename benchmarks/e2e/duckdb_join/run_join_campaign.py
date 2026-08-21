@@ -83,7 +83,16 @@ def l3_domains():
     raise SystemExit("no L3 line in schemata")
 
 
-QUERIES = 13   # 1 discarded + 12 measured; even, per the GAPBS parity defect
+# 1 discarded + N-1 measured; N-1 must stay EVEN, per the GAPBS parity defect.
+# Overridable because the joinuniq control emits an eighth of the output rows
+# of chain8 at the same build size and its query is 2.3x shorter (0.276 s vs
+# 0.64 s at N=2M on mos181). Left at 13 the control's measured window would be
+# 3.6 s against chain8's 8.3 s, giving the occupancy sampler a third of the
+# samples and a shorter exposure to the settled streamer. The tax is a
+# within-configuration ratio of medians, so query count cannot bias it; only
+# the measurement quality changes. QUERIES=31 matches the two wall times.
+QUERIES = int(os.environ.get("QUERIES", "13"))
+assert (QUERIES - 1) % 2 == 0, "measured query count must be even"
 
 
 def build_db(dbfile, n, chain, probe):
@@ -255,7 +264,17 @@ def main():
     min_mask = format((1 << min_bits) - 1, "x")
     way_bytes = l3_bytes // ways
     OUT.mkdir(parents=True, exist_ok=True)
-    out = OUT / f"join_{mode}_{host}.jsonl"
+    # chain8 keeps the bare name the published artifacts already use; any other
+    # chain gets its own file. The joinuniq control has the same mode, host and
+    # build size as chain8, so a shared file would silently mix two populations
+    # that differ only in a field an analysis is free to ignore. It nearly did:
+    # two joinuniq records landed in the committed chain8 file before this.
+    out = OUT / (f"join_{mode}_{host}.jsonl" if chain == 8
+                 else f"join_{mode}_{host}_chain{chain}.jsonl")
+    if out.exists():
+        for ln in out.read_text().splitlines():
+            if ln.strip() and json.loads(ln).get("chain") not in (None, chain):
+                raise SystemExit(f"{out} already holds a different chain; refusing to append")
     tag = f"joinchain{chain}"
     print(f"{host}: victim cpu{cfg['vcpu']} L3 domain {domain}, {l3_bytes>>20} MiB / "
           f"{ways} ways = {way_bytes>>20} MiB/way; full={full_mask} min={min_mask}; "
