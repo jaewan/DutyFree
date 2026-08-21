@@ -24,7 +24,23 @@ AGG = Path(os.environ.get("AGG_BIN", str(Path.home() / "tmp_dutyfree_exp/bin/agg
 FB = Path(str(Path.home() / "tmp_dutyfree_exp/bin/amd_flushbehind_aggressor"))
 OUT = HERE / "artifacts"
 RUNTIME = re.compile(r"Run Time \(s\): real ([0-9.]+)")
-AGGBW = re.compile(r"RESULT mode=(\S+) threads=(\d+) bw_gbps=([0-9.]+)")
+# Parse the whole RESULT line into key=value pairs rather than matching a fixed
+# field order. The two aggressor binaries do not agree on one:
+#   RESULT mode=wb_load     threads=1 bw_gbps=5.305 throttle=0
+#   RESULT mode=flushbehind threads=1 flush_kb=256 bw_gbps=2.735
+# A pattern anchored on "threads=N bw_gbps=" matches the first and not the
+# second, so every flush-behind arm would have recorded a null bandwidth --
+# and bandwidth is the variable the matched pair is defined by.
+AGGRES = re.compile(r"^RESULT (.*)$", re.M)
+
+
+def parse_agg(txt):
+    last = None
+    for last in AGGRES.finditer(txt):
+        pass
+    if not last:
+        return {}
+    return dict(p.split("=", 1) for p in last.group(1).split() if "=" in p)
 
 # victim cpu, aggressor cores, victim memory node, LLC bytes, ways, per-host builds
 # builds admitted by R(N)=40N against max(4*L2, min_mask) < R < 0.5*LLC;
@@ -42,7 +58,19 @@ HOSTS = {
                    probe=250_000),
 }
 # arm -> (aggressor mode, threads, memory node) ; None = quiescent
-ARMS = {
+#
+# Host-keyed, because the AMD arms are not the Intel arms (Amendment 4). Three
+# measured facts force the split, all from victimless characterisation:
+#   - PREFETCHNTA holds the entire 16 MiB CCX L3 on Zen4c, so it is a declared
+#     negative control there and not a recovery arm;
+#   - the L3 domain IS the CCX and the victim owns one of its eight cores, so
+#     nothing above -t 7 is expressible;
+#   - flush-behind saturates at ~16.1 GB/s while wb_load jumps 12.8 -> 21.7
+#     between one and two threads, so no thread count makes wb_load meet
+#     flush-behind at its own rate. The matched pair is built the other way
+#     round instead: the non-allocating arm is given MORE bandwidth than its
+#     allocating partner, which handicaps it.
+INTEL_ARMS = {
     "quiescent":    None,
     "WB_sat":       ("wb_load", 8, "2"),
     "WB_match_hi":  ("wb_load", 2, "2"),
@@ -50,8 +78,22 @@ ARMS = {
     "WB_match_lo":  ("wb_load", 1, "2"),
     "NTA_lo":       ("wb_prefetchnta", 2, "2"),
     "WB_local":     ("wb_load", 8, "0"),
-    "flushbehind":  ("flushbehind", 7, "2"),
 }
+# Bandwidths quoted are the victimless characterisation of 2026-08-21 on the
+# frozen host (~/amd_char.jsonl), 40 s runs, 22 s settle, 12 s window.
+AMD_ARMS = {
+    "quiescent":    None,
+    "WB_sat":       ("wb_load", 7, "2"),          # 24.72 GB/s, occ 16.00 MiB
+    "WB_local":     ("wb_load", 7, "0"),          # local-DRAM placement control
+    "NTA_sat":      ("wb_prefetchnta", 7, "2"),   # 24.68, occ 16.00 -- allocates
+    "FB0_sat":      ("flushbehind_f0", 7, "2"),   # 24.69, occ 16.00
+    "FB256_sat":    ("flushbehind_f256", 7, "2"), # ~15.8, occ ~0.8
+    "FB0_match":    ("flushbehind_f0", 1, "2"),   # 12.88, occ 16.00
+    "FB256_match":  ("flushbehind_f256", 3, "2"), # 15.39, occ 0.87 -- +20% BW
+    "WB_fbmatch":   ("wb_load", 1, "2"),          # 12.82 -- cross-binary check
+}
+ARMS_BY_HOST = {"mos181": INTEL_ARMS, "mos182": INTEL_ARMS, "moscxl": AMD_ARMS}
+ARMS = INTEL_ARMS
 
 
 def sh(cmd, check=True):
@@ -187,6 +229,13 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
     try:
         if spec:
             mode, nt, node = spec
+            # cfg["agg"][:nt] truncates silently: moscxl lists seven aggressor
+            # cores, so an Intel-shaped -t 8 arm would pin seven cores while
+            # telling the binary to start eight threads, and two threads would
+            # share a core. Refuse instead.
+            if len(cfg["agg"]) < nt:
+                raise SystemExit(f"arm {arm} wants {nt} cores; host lists "
+                                 f"{len(cfg['agg'])} ({cfg['agg']})")
             cores = ",".join(str(c) for c in cfg["agg"][:nt])
             if mode.startswith("flushbehind"):
                 # flushbehind_f<KiB>; f0 disables flushing and is the
@@ -225,7 +274,7 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
             except subprocess.TimeoutExpired:
                 agg_proc.kill()
                 agg_out = ""
-    m = AGGBW.search(agg_out)
+    kv = parse_agg(agg_out)
     got = installed[str(domain)] if installed else None
     return {
         "arm": arm, "mask_requested": mask, "mask_installed": got,
@@ -241,9 +290,11 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
         "mbm_total_last": smp.rows[-1][3] if smp.rows else None,
         "streamer_settle_seconds": settle,
         "occupancy_series": [(round(r[0] - t0, 2), r[1]) for r in smp.rows],
-        "agg_bw_gbps": float(m.group(3)) if m else None,
-        "agg_threads": int(m.group(2)) if m else None,
-        "agg_mode": m.group(1) if m else None,
+        "agg_bw_gbps": float(kv["bw_gbps"]) if "bw_gbps" in kv else None,
+        "agg_threads": int(kv["threads"]) if "threads" in kv else None,
+        "agg_mode": kv.get("mode"),
+        "agg_flush_kb": int(kv["flush_kb"]) if "flush_kb" in kv else None,
+        "agg_result_fields": kv,
         "stderr_tail": v.stderr[-400:],
     }
 
@@ -253,6 +304,8 @@ def main():
     if host not in HOSTS:
         raise SystemExit(f"unsupported host {host}")
     cfg = HOSTS[host]
+    global ARMS
+    ARMS = ARMS_BY_HOST[host]
     mode = os.environ.get("MODE", "gate")
     chain = int(os.environ.get("CHAIN", "8"))
     reps = int(os.environ.get("REPS", "10"))

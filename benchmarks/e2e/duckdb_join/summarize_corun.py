@@ -83,10 +83,17 @@ def main(path):
               f"{tax:>7.3f}  [{lo:.3f}, {hi:.3f}]      {cov:>7.2%}")
     # paired differences between declared matched pairs, if both present
     print()
-    for wb, na, label in (("WB_match_hi", "NTA_sat", "~18 GB/s"),
-                          ("WB_match_lo", "NTA_lo", "~10.8 GB/s"),
-                          ("FB0_sat", "FB256_sat", "flush-behind, within-binary"),
-                          ("WB_fbmatch", "FB256_match", "flush-behind, matched BW")):
+    # Left member allocates, right member is the candidate non-allocating arm.
+    # The last entry is an instrument check, not a de-confound: two ALLOCATING
+    # arms at the same bandwidth from different binaries should be equal, and
+    # if they are not, the cross-binary pair above it is contaminated.
+    for wb, na, label in (("WB_match_hi", "NTA_sat", "Intel, ~18 GB/s"),
+                          ("WB_match_lo", "NTA_lo", "Intel, ~10.8 GB/s"),
+                          ("FB0_match", "FB256_match", "AMD within-binary, matched BW"),
+                          ("FB0_sat", "FB256_sat", "AMD within-binary, saturated"),
+                          ("WB_fbmatch", "FB256_match", "AMD cross-binary, matched BW"),
+                          ("WB_sat", "NTA_sat", "AMD declared negative control"),
+                          ("WB_fbmatch", "FB0_match", "AMD instrument check (expect 0)")):
         if wb in taxes and na in taxes:
             pr = [(by[i]["quiescent"], by[i][wb], by[i][na]) for i in invs
                   if all(k in by[i] for k in ("quiescent", wb, na))]

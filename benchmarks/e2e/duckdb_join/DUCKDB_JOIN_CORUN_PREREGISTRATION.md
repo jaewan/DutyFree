@@ -408,3 +408,239 @@ co-run asks whether a **real streamer** realises any of it, and specifically
 whether the matched-bandwidth pairs of §4 separate allocation from bandwidth.
 `flushbehind` is dropped on Intel: `amd_flushbehind_aggressor` is AMD-only.
 Seven arms x 10 repetitions, fixed seeded interleave.
+
+---
+
+# Amendment 4, 2026-08-21 — the AMD arms, rewritten around a measured fact about PREFETCHNTA
+
+Made **before any AMD arm of this campaign.** `moscxl` was frozen first
+(`bergamo_freeze.sh`, commit `d8eda44`): all 512 CPUs on the `performance`
+governor, `cpufreq/boost=0`, `numa_balancing=0`, THP `madvise`. The host was
+clocking 3.0999 GHz as found and holds 2.2486 GHz frozen.
+
+Everything below comes from aggressor characterisation with **no victim
+present**, which §3 already establishes as instrument characterisation rather
+than an arm.
+
+## A4.1 `PREFETCHNTA` does not avoid L3 allocation on Zen4c, and this is measured, not assumed
+
+§4's whole de-confound rests on `wb_prefetchnta` being a non-allocating arm.
+That is true on the Intel hosts and **false here.** Four threads on cores
+9--12, streaming from CXL node 2, with the streamer's own CCX-L3 occupancy read
+from CMT after a 20 s settle:
+
+| aggressor | streamer L3 occupancy | fraction of the 16 MiB CCX | self-reported BW |
+|---|---:|---:|---:|
+| `wb_load -t 4` | 15.98 MiB | 99.9% | 23.31 GB/s |
+| `wb_prefetchnta -t 4` | **16.00 MiB** | **100%** | 23.98 GB/s |
+| `amd_flushbehind_aggressor -t 4 -f 0` | 16.00 MiB | 100% | 22.92 GB/s |
+| `amd_flushbehind_aggressor -t 4 -f 256` | **0.88 MiB** | **5.5%** | 16.14 GB/s |
+
+All four rows are from the one sweep in `~/amd_char.jsonl` so that nothing in
+this amendment mixes artifacts. An earlier exploratory run of the same
+configuration read 1.47 MiB for the `-f 256` row rather than 0.88 MiB; the
+flushing arm's occupancy is small and correspondingly noisy (0.24--0.88 MiB
+across t = 1..7, with no monotone trend), which is expected of a quantity near
+zero and is not a discrepancy that matters at this resolution. The allocating
+rows do not move at all.
+
+The full thread sweep sharpens this rather than simply confirming it, and one
+detail must be stated because the four-thread row above hides it. **NTA is not
+completely inert on Zen4c at one thread**: it holds 9.94 MiB, 62% of the CCX,
+against `wb_load`'s 16.00 MiB. From two threads up the reduction is gone —
+15.80, 15.86, 16.00, 15.80, 15.96, 15.99 MiB at t = 2..7. So the hint does
+something at the lowest possible pressure and nothing at the pressure every arm
+in this campaign actually runs at, and even at its most effective it leaves the
+streamer holding **62%** of the shared cache against flush-behind's 1.5--5.5%.
+It is not a non-allocating arm at any thread count, and certainly not at the
+saturated one.
+
+The bandwidth curves say the same thing independently. On `mos181`,
+`wb_prefetchnta` moves 41% less than `wb_load` at one thread (6.06 vs
+10.31 GB/s) and 28% less at saturation — the cost of honouring the hint. On
+`moscxl` NTA is *faster* than `wb_load` at every thread count (13.63 vs 12.85
+at t = 1; 24.68 vs 24.72 at t = 7, within noise) — the signature of a hint
+being dropped rather than paid for.
+
+**Consequence, declared now.** `NTA_sat` and `NTA_lo` are not non-allocating
+arms on this host. They **yield no verdict** on AMD and may not be reported as
+a recovery result, and outcome 2 of §6 **cannot fire from them here**: two arms
+that both allocate being indistinguishable is not evidence that the tax is
+bandwidth-mediated. They are retained, at 10 repetitions each, as a *declared
+negative control* — an arm the mechanism predicts will not recover on this
+microarchitecture. If they nevertheless recover, the mechanism is wrong, and
+that is worth the cost of running them.
+
+## A4.2 Flush-behind is the only non-allocating arm on AMD, and it comes with a better control than any Intel arm had
+
+`amd_flushbehind_aggressor -f 256` cuts the streamer's footprint from 16.00 to
+1.47 MiB while running the same code over the same buffers. Setting `-f 0`
+disables the flushing and restores full occupancy. That gives a **within-binary
+pair** — same binary, same access pattern, same allocation of threads to cores,
+one bit of behaviour changed — which is a tighter control than the cross-mode
+`wb_load` / `wb_prefetchnta` pairing the Intel campaign had to use. `f0` and
+`f256` are therefore both first-class arms here, not just `f256`.
+
+## A4.3 The CCX has eight cores, so `-t 8` is not expressible
+
+`mos181`'s aggressor set is eight cores in one L3 domain and the victim sits in
+another. On `moscxl` the L3 domain **is** the CCX: cpus 8--15 (plus SMT
+siblings 264--271) share L3 id 1, and cpu8 is the victim. Seven cores remain.
+Every arm specified at `-t 8` becomes `-t 7` here. SMT siblings are not
+recruited to reach eight: they share the victim's 1 MiB private L2, which would
+convert a shared-cache experiment into an L2 experiment.
+
+## A4.4 Outcomes for the AMD arms, declared now
+
+§6's outcomes are written around the `wb_load` / `wb_prefetchnta` pair and do
+not transfer unchanged. For AMD:
+
+1. **`FB256` tax materially below its bandwidth-matched `wb_load` partner, with
+   a paired interval excluding zero.** Allocation is implicated on AMD as it is
+   on Intel, and on a microarchitecture whose L3 is a victim cache with no
+   reuse-aware insertion.
+2. **`FB256` and its bandwidth-matched partner within measurement error.** On
+   this host the tax is bandwidth-mediated, not allocation-mediated. Reported as
+   such, and the Intel result would then be vendor-specific rather than general.
+3. **`NTA_sat` recovers anything at all.** The mechanism is wrong, because A4.1
+   measured that arm holding the entire CCX L3.
+4. **`FB0` and `FB256` indistinguishable.** The within-binary control fails,
+   and no AMD verdict may be drawn from either.
+5. **No build size satisfies §2 on this host**, or CoV > 5%, or bimodal loaded
+   distributions. No AMD verdict; not a vendor null.
+
+One asymmetry with the Intel campaign must be stated wherever an AMD number is
+quoted. On Intel the matched pairs held bandwidth fixed and let core count
+differ, with the write-back arm using *fewer* cores, so its excess tax was
+understated. Here the same conservatism runs the other way: the recovery arm
+will need *more* cores than its write-back partner to reach the same bandwidth,
+which if anything overstates the recovery arm's tax and so **understates its
+recovery.** Both campaigns are conservative; they are conservative by different
+mechanisms, and neither may be quoted as a point estimate of allocation's
+contribution.
+
+## A4.5 The bandwidth-matched pair, and why it is built backwards on this host
+
+Full victimless sweep, cores 9--15 of the victim's CCX, streaming from CXL
+node 2, 40 s runs with a 22 s settle and a 12 s window (`~/amd_char.jsonl`).
+Self-reported bandwidth (GB/s) above, streamer CCX-L3 occupancy (MiB) below:
+
+| threads | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `wb_load` | 12.85 | 21.80 | 23.99 | 23.31 | 24.12 | 24.39 | 24.72 |
+| | 16.00 | 15.98 | 16.00 | 15.98 | 15.92 | 15.99 | 16.00 |
+| `wb_prefetchnta` | 13.63 | 22.45 | 24.57 | 23.98 | 24.11 | 24.35 | 24.68 |
+| | 9.94 | 15.80 | 15.86 | 16.00 | 15.80 | 15.96 | 15.99 |
+| `flushbehind -f 0` | 12.88 | 21.52 | 23.66 | 22.92 | 23.98 | 24.32 | 24.69 |
+| | 16.00 | 16.00 | 16.00 | 16.00 | 15.99 | 15.99 | 16.00 |
+| `flushbehind -f 256` | 5.64 | 11.13 | 15.39 | 16.14 | 15.77 | 16.71 | 17.01 |
+| | 0.35 | 0.69 | 0.87 | 0.88 | 0.73 | 0.45 | 0.24 |
+
+Two facts in this table decide the pair, and neither was known when §5 was
+written.
+
+**Flush-behind cannot be brought up to write-back's rate.** It saturates near
+16--17 GB/s, because the flush costs it roughly half its throughput per core,
+while `wb_load` reaches 21.8 GB/s on *two* cores and 24.7 GB/s at seven. There
+is no thread count at which the allocating arm can be held down to meet the
+non-allocating one at its own saturated rate. The Intel campaign had the
+opposite problem and solved it by giving the write-back arm fewer cores.
+
+**`wb_load` has no expressible operating point between 12.85 and 21.80 GB/s.**
+The CXL link saturates by three threads, so the whole usable range of the
+allocating arm is two points: 12.85 (t = 1) and everything at or above 21.8.
+
+So the pair is built backwards from the Intel construction. Rather than holding
+bandwidth equal, the **non-allocating arm is deliberately given more of every
+quantity that could plausibly mediate a tax**, and the question becomes whether
+it still taxes the victim less:
+
+| | `FB0_match` | `FB256_match` | ratio |
+|---|---:|---:|---:|
+| binary, access pattern | identical | identical | — |
+| flag | `-f 0` | `-f 256` | one bit |
+| threads / filling cores | 1 | 3 | **3.0x** |
+| self bandwidth | 12.88 GB/s | 15.39 GB/s | **1.20x** |
+| MBM total attributed | 12.92 GB/s | 30.84 GB/s | **2.39x** |
+| streamer L3 occupancy | 16.00 MiB | 0.87 MiB | **0.054x** |
+
+`FB256_match` carries more bandwidth, more attributed controller traffic, and
+three times the filling cores. The only quantity on which it is *smaller* is
+the one the paper is about. If it taxes the victim less under those handicaps,
+no bandwidth or core-count account is available, and the measured recovery is a
+**lower bound** on allocation's contribution.
+
+`WB_fbmatch` (`wb_load -t 1`, 12.85 GB/s) is added as a cross-binary check: it
+sits within 0.3% of `FB0_match`'s 12.88 GB/s and allocates identically, so the
+two should be indistinguishable. If they are not, the two binaries differ in
+something other than flushing and the cross-binary pair must be discarded. This
+is an instrument check and is declared as one; it is not a de-confound and no
+result may be drawn from it.
+
+`FB0_sat` / `FB256_sat` (both `-t 7`) are retained as the saturated
+within-binary pair, but their bandwidths are **not** matched (24.69 vs
+17.01 GB/s, in the non-allocating arm's favour). That pair is therefore
+anti-conservative and may not be quoted on its own; it is reported only
+alongside `FB0_match` / `FB256_match`, which is the primary AMD de-confound.
+
+## A4.6 An unresolved ambiguity in what MBM counts under `clflushopt`
+
+`flushbehind -f 256` reports memory-controller traffic **exactly 2.00x** its
+own read rate at every thread count (2.002, 2.003, 2.003, 2.001, 2.062, 2.003,
+2.004 at t = 1..7; the same ratio for `-f 0` is 1.003--1.004 throughout). Six
+of the seven sit within 0.2% of exactly 2, which is too tight to be
+statistical, and it is not
+write traffic: the kernel is a pure `_mm256_load_si256` sweep, so `clflushopt`
+retires against clean lines and produces no writeback. `-f 0` shows no such
+factor (12.92 against 12.88 at t = 1).
+
+Two readings are available and this campaign cannot separate them.
+
+- **It is real.** Every line crosses the fabric twice, and flush-behind
+  genuinely costs twice the DRAM traffic per useful byte. This is consistent
+  with its halved per-core throughput.
+- **It is attribution.** MBM charges the RMID one 64-byte unit per
+  `clflushopt`-generated fabric transaction — an invalidate probe carrying no
+  data. There is exactly one `clflushopt` per line, which is exactly the one
+  extra unit per line observed, and this coincidence is what makes the reading
+  hard to dismiss.
+
+`moscxl` exposes no Data Fabric or UMC PMU (`/sys/bus/event_source/devices`
+has no `amd_df*` or `amd_umc*`), so there is no independent counter on this
+host to adjudicate against. **The question is left open and no claim is built
+on the 2.00x figure.** In particular, the Intel finding that flush-behind moves
+*more* total controller traffic than write-back while taxing the victim far
+less may not be restated on AMD from this number.
+
+It does not affect A4.5. Under the "real" reading `FB256_match` has 2.39x its
+partner's controller traffic; under the "attribution" reading it has 1.20x, the
+self-bandwidth ratio. The pair is conservative under both, which is why the
+arm selection stands while the mechanism question does not.
+
+## A4.7 `mos182`'s node-2 failure is a socket-affinity error, not a device defect
+
+A5 gated every `mos182` node-2 arm behind a latency ladder that host fails,
+its node-2 times running 2--4x node-0. The cause is now identified and it is
+in the campaign's own configuration, not in the hardware.
+
+| host | CXL node 2 distance from node 0 | from node 1 | victim cpu | victim package |
+|---|---:|---:|---|---|
+| `mos181` | **14** | 24 | 40 | 0 |
+| `mos182` | 24 | **14** | 16 | 0 |
+
+The two hosts hang their CXL memory off *opposite* sockets. On `mos181` the
+victim and all eight aggressor cores sit in package 0, which is the near
+socket, and the ladder reads 54.41 ns against 54.32 ns. On `mos182` the victim
+(cpu16) and the aggressors (cpus 4--11) are also all in package 0 — which
+there is the **far** socket. Every `mos182` node-2 access in the orphaned data
+crossed the inter-socket link before reaching the CXL device.
+
+The near socket on `mos182` is package 1, L3 domain 1 (cpus 32--63, 96--127).
+Moving the victim and aggressors there is the fix. **No arm is unblocked by
+this finding.** A5 stands as written: the ladder must actually be re-run and
+must actually pass from package 1 before any `mos182` node-2 arm is taken. Two
+things are needed first and neither is done — the host config in
+`run_join_campaign.py` must move to package 1, and `latency_chase` on `mos182`
+is built against a newer libc than that host provides (`GLIBC_2.38 not found`)
+and must be rebuilt there. Recorded now so the gate is understood rather than
+attributed to the device.
