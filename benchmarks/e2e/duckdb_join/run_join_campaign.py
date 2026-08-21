@@ -188,9 +188,14 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
         if spec:
             mode, nt, node = spec
             cores = ",".join(str(c) for c in cfg["agg"][:nt])
-            if mode == "flushbehind":
-                cmd = [str(FB), "-f", "256", "-t", str(nt), "-c", cores, "-N", node,
-                       "-d", "600"]
+            if mode.startswith("flushbehind"):
+                # flushbehind_f<KiB>; f0 disables flushing and is the
+                # within-binary allocating control for f256. -s 512 matches the
+                # write-back path: an unmatched per-thread buffer would change
+                # whether the stream exceeds the cache, which is the variable.
+                dist = mode.split("_f")[1] if "_f" in mode else "256"
+                cmd = [str(FB), "-f", dist, "-t", str(nt), "-c", cores, "-N", node,
+                       "-s", "512", "-d", "600"]
             else:
                 cmd = [str(AGG), "-m", mode, "-t", str(nt), "-c", cores, "-N", node,
                        "-s", "512", "-d", "600"]
