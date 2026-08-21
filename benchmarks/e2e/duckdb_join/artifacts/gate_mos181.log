@@ -1,0 +1,33 @@
+mos181: victim cpu40 L3 domain 0, 320 MiB / 20 ways = 16 MiB/way; full=fffff min=1; mode=gate chain=8 builds=[500000, 1000000, 2000000, 3000000, 4000000] probe=4000000 (scan 30 MiB = 10% of LLC)
+[hostguard] mos181 reserved by duckdb_join_gate (pid 1650804)
+  n=   500000 R= 19MiB full quiescent    inv0 eff= 320MiB occ=  57MiB bw=  0.00 settle=   0s med=  0.4710s  14.72ns/out valid=True
+  n=   500000 R= 19MiB full quiescent    inv1 eff= 320MiB occ=  60MiB bw=  0.00 settle=   0s med=  0.4710s  14.72ns/out valid=True
+  n=   500000 R= 19MiB full quiescent    inv2 eff= 320MiB occ=  59MiB bw=  0.00 settle=   0s med=  0.4710s  14.72ns/out valid=True
+  n=   500000 R= 19MiB min  quiescent    inv0 eff=  16MiB occ=  14MiB bw=  0.00 settle=   0s med=  1.0370s  32.41ns/out valid=True
+  n=   500000 R= 19MiB min  quiescent    inv1 eff=  16MiB occ=  14MiB bw=  0.00 settle=   0s med=  1.0380s  32.44ns/out valid=True
+  n=   500000 R= 19MiB min  quiescent    inv2 eff=  16MiB occ=  14MiB bw=  0.00 settle=   0s med=  1.0240s  32.00ns/out valid=True
+  n=  1000000 R= 38MiB full quiescent    inv0 eff= 320MiB occ=  95MiB bw=  0.00 settle=   0s med=  0.5210s  16.28ns/out valid=True
+  n=  1000000 R= 38MiB full quiescent    inv1 eff= 320MiB occ=  93MiB bw=  0.00 settle=   0s med=  0.5210s  16.28ns/out valid=True
+  n=  1000000 R= 38MiB full quiescent    inv2 eff= 320MiB occ=  97MiB bw=  0.00 settle=   0s med=  0.5220s  16.31ns/out valid=True
+  n=  1000000 R= 38MiB min  quiescent    inv0 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.2140s  37.94ns/out valid=True
+  n=  1000000 R= 38MiB min  quiescent    inv1 eff=  16MiB occ=  14MiB bw=  0.00 settle=   0s med=  1.2130s  37.91ns/out valid=True
+  n=  1000000 R= 38MiB min  quiescent    inv2 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.2250s  38.28ns/out valid=True
+  n=  2000000 R= 76MiB full quiescent    inv0 eff= 320MiB occ= 138MiB bw=  0.00 settle=   0s med=  0.6070s  18.97ns/out valid=True
+  n=  2000000 R= 76MiB full quiescent    inv1 eff= 320MiB occ= 136MiB bw=  0.00 settle=   0s med=  0.6030s  18.84ns/out valid=True
+  n=  2000000 R= 76MiB full quiescent    inv2 eff= 320MiB occ= 139MiB bw=  0.00 settle=   0s med=  0.6050s  18.91ns/out valid=True
+  n=  2000000 R= 76MiB min  quiescent    inv0 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.4350s  44.84ns/out valid=True
+  n=  2000000 R= 76MiB min  quiescent    inv1 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.4210s  44.41ns/out valid=True
+  n=  2000000 R= 76MiB min  quiescent    inv2 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.4260s  44.56ns/out valid=True
+  n=  3000000 R=114MiB full quiescent    inv0 eff= 320MiB occ= 205MiB bw=  0.00 settle=   0s med=  0.6940s  21.69ns/out valid=True
+  n=  3000000 R=114MiB full quiescent    inv1 eff= 320MiB occ= 205MiB bw=  0.00 settle=   0s med=  0.6880s  21.50ns/out valid=True
+  n=  3000000 R=114MiB full quiescent    inv2 eff= 320MiB occ= 206MiB bw=  0.00 settle=   0s med=  0.6930s  21.66ns/out valid=True
+  n=  3000000 R=114MiB min  quiescent    inv0 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.5930s  49.78ns/out valid=True
+  n=  3000000 R=114MiB min  quiescent    inv1 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.5920s  49.75ns/out valid=True
+  n=  3000000 R=114MiB min  quiescent    inv2 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.5910s  49.72ns/out valid=True
+  n=  4000000 R=152MiB full quiescent    inv0 eff= 320MiB occ= 193MiB bw=  0.00 settle=   0s med=  0.8240s  25.75ns/out valid=True
+  n=  4000000 R=152MiB full quiescent    inv1 eff= 320MiB occ= 190MiB bw=  0.00 settle=   0s med=  0.8230s  25.72ns/out valid=True
+  n=  4000000 R=152MiB full quiescent    inv2 eff= 320MiB occ= 200MiB bw=  0.00 settle=   0s med=  0.8220s  25.69ns/out valid=True
+  n=  4000000 R=152MiB min  quiescent    inv0 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.4530s  45.41ns/out valid=True
+  n=  4000000 R=152MiB min  quiescent    inv1 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.4590s  45.59ns/out valid=True
+  n=  4000000 R=152MiB min  quiescent    inv2 eff=  16MiB occ=  15MiB bw=  0.00 settle=   0s med=  1.4560s  45.50ns/out valid=True
+[hostguard] lock released

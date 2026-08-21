@@ -345,3 +345,66 @@ b6M and b10M points that scored *higher* are the ones the same ceiling rejects.
 3. **b4M sits at 59.7% of the 60% ceiling.** Reported as borderline. If the
    co-run at b4M shows any instability, b2M (141 MiB, 44%) is the pre-declared
    fallback, and switching to it must be disclosed as a deviation.
+
+---
+
+# Amendment 3, 2026-08-21 — gate result, and the co-run operating point
+
+Recorded after the quiescent gate sweep and **before any loaded arm**. The gate
+is a quiescent capacity manipulation; it reads no aggressor and no tax.
+
+## Gate curve, `mos181`, chain8, probe 4M, n=3 per cell, CoV ~0.3%
+
+| N | R = 40N | occupancy full | % LLC | occupancy min | full s | min s | **ratio** |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 500K | 19 MiB | 59 MiB | 19% | 14 MiB | 0.4710 | 1.0360 | **2.200** |
+| 1M | 38 MiB | 95 MiB | 30% | 15 MiB | 0.5210 | 1.2175 | **2.337** |
+| 2M | 76 MiB | 138 MiB | 43% | 15 MiB | 0.6050 | 1.4240 | **2.354** |
+| 3M | 114 MiB | 205 MiB | 64% | 15 MiB | 0.6920 | 1.5900 | 2.298 |
+| 4M | 152 MiB | 193 MiB | 61% | 15 MiB | 0.8230 | 1.4555 | 1.769 |
+
+Four of five admitted sizes clear 2x, so this is a **window, not a point** --
+which is what makes it hard to dismiss as a tuned configuration. It is also
+consistent in shape with an independent panel measurement: a bare dependent
+chase on this host peaks at 32-128 MiB and collapses above ~256 MiB.
+
+The manipulation is verified rather than assumed. At full mask the victim is
+effectively LLC-resident, moving **0.03-0.22 GB** of DRAM traffic across 13
+queries; confined to one way it moves **12-41 GB**. Occupancy tracks the
+granted mask exactly (14-15 MiB of a 16 MiB mask). Validity condition 3
+(traffic ratio >= 1.5) is met by a wide margin at every size; the ratio's
+absolute value is uninformative because the denominator is near zero.
+
+Note `mbm_total` and `mbm_local` are nearly identical here even though the
+victim's tables are on CXL node 2, so MBM on this part is not separating
+expander traffic. Recorded as an instrument limitation, not used for any claim.
+
+## Operating point: N = 2M, not 4M
+
+Amendment 2 named b4M as the largest size under the 60%-of-LLC occupancy
+ceiling declared in §2, computed from the **predicted** occupancy of 182 MiB
+(57%). The **measured** occupancy is 193 MiB (61%), which the same ceiling
+excludes. Applying the unchanged rule to the measured value gives:
+
+- admissible under the ceiling: b500K (19%), b1M (30%), b2M (43%);
+- all three clear the gate;
+- **largest admissible: N = 2M**, R = 76 MiB, occupancy 138 MiB, gate 2.354x.
+
+This is the pre-declared rule applied to a measured input, not a new rule. It
+is worth recording that b4M -- the point Amendment 2 would have used -- is also
+the **only admitted size that fails the gate** (1.769x), so had the predicted
+occupancy been used the co-run would have been sited at the one operating point
+where a capacity-mediated tax was near-impossible. Predicting occupancy instead
+of measuring it would have wasted the campaign.
+
+b3M and b4M are excluded by the ceiling and are reported in the curve but not
+carried forward. Their exclusion is not outcome-driven: b3M *passes* the gate at
+2.298x and is still excluded.
+
+## What the co-run now tests
+
+At N = 2M the capacity-mediated ceiling is 2.354x, measured quiescently. The
+co-run asks whether a **real streamer** realises any of it, and specifically
+whether the matched-bandwidth pairs of §4 separate allocation from bandwidth.
+`flushbehind` is dropped on Intel: `amd_flushbehind_aggressor` is AMD-only.
+Seven arms x 10 repetitions, fixed seeded interleave.
