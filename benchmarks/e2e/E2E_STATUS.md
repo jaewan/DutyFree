@@ -83,9 +83,9 @@ defends itself against a streamer in a way it cannot against a mask.
 
 | bar | status |
 |---|---|
-| magnitude | **DuckDB join clears the quiescent 2x gate on Intel at every valid size (2.200--2.354x); the realised co-run tax at the same operating point is 1.467x**. GAPBS PageRank and HNSW do not clear it on Intel; PageRank clears it on AMD at g21 (2.580x) |
+| magnitude | **DuckDB join clears the quiescent 2x gate on Intel at every valid size (2.200--2.354x) and on AMD at the one valid size (3.607x)**; the realised Intel co-run tax at the same operating point is 1.467x. GAPBS PageRank and HNSW do not clear it on Intel; PageRank clears it on AMD at g21 (2.580x) |
 | reproducibility | DuckDB corun CoV 1.09--2.66% over 10 reps, quiescent arm reproducing the independent gate sweep to 0.3%; gate CoV 0.02--0.25% on GAPBS/HNSW Intel arms |
-| recovery | **partially measured on Intel.** 56% and 84% at matched bandwidth, 89.5% unmatched -- every recovery figure must say which it is. Non-allocating arm on AMD is flush-behind, not `PREFETCHNTA` (see below); campaign in flight |
+| recovery | **partially measured on Intel.** 56% and 84% at matched bandwidth, 89.5% unmatched -- every recovery figure must say which it is. Non-allocating arm on AMD is flush-behind, not `PREFETCHNTA` (see below); AMD campaign running at N = 100K, 9 arms x 10 reps |
 | frontier | preregistered; unmeasured |
 
 A quantitative by-product worth carrying into the paper: on `mos181` a 320 MiB
@@ -95,6 +95,48 @@ falls monotonically with LLC size -- 1.05 at 16 MiB, 0.72 at 60 MiB, 0.18 at
 320 MiB. A shared-cache tax requires a victim whose misses serialise; bandwidth
 saved is not time saved. This is the gem5 task #22 MLP explanation reproduced
 on silicon with traffic measured.
+
+## The duplicate chain is a contributor, not the mechanism
+
+The within-engine control declared in §1 and §6 outcome 3 has run: `joinuniq`,
+`K = N`, identical `R(N)`, same seven arms, 70 arms all valid. `chain8` exceeds
+`joinuniq` at every arm, so **outcome 3 did not fire** and the chain claim is
+not withdrawn. But at saturation the chain contributes only **0.089 of a 0.467
+tax, 19%** — the other 81% is hash-table reuse with no duplicate chain
+involved. More usefully, the *de-confound* is chain-independent: +0.058 against
++0.068 at 18 GB/s and +0.093 against +0.079 at 10.8 GB/s, disagreeing in
+opposite directions by about the interval width. The allocation result is not
+an artifact of an unusual many-to-many join; it survives a plain one-to-one
+hash join. See `duckdb_join/DUCKDB_JOIN_CHAIN_CONTROL_OUTCOME.md`, which also
+records a counterexample forbidding any reading in which victim DRAM traffic or
+occupancy *predicts* the tax.
+
+## AMD: the gate clears, at exactly one build size
+
+`moscxl`, victim cpu8 in L3 domain 1, 16 MiB/CCX, tables on CXL node 2:
+
+| N | R = 40N | full-mask | min-mask | **gate ratio** | full occ | occ / LLC | valid? |
+|---:|---:|---:|---:|---:|---:|---:|---|
+| 100K | 3.8 MiB | 0.0280 s | 0.1010 s | **3.607** | 8.70 MiB | 54.4% | yes |
+| 125K | 4.8 MiB | 0.0300 s | 0.1070 s | 3.567 | 9.66 MiB | 60.4% | **no** (occ > 60%) |
+
+N = 100K satisfies all three §2 conditions (full/min occupancy 10.7x; 54.4% of
+the LLC; traffic ratio 40.6 on `mbm_total`, 14.3 on `mbm_local`) and is the
+**smallest** admitted size that clears, per the §2 selection rule. Amendment 1
+excluded 64K and 80K: at 2.4x the 1 MiB private L2 they sit under the 4x-L2
+floor, which is the trap that produced three earlier nulls in this project, and
+that floor was not relaxed to gain a data point. So the AMD host yields a
+verdict at one size only.
+
+Two instrument notes. The AMD query is ~23x shorter than the Intel one, which
+gave the 0.25 s occupancy sampler about two usable samples per arm and read
+occupancy ~2 MiB high; `QUERIES` was raised to 301 and is now recorded per
+record. And unlike `mos181` — where §3 records that `mbm_total` and
+`mbm_local` are nearly identical despite CXL-resident tables, so MBM does not
+separate expander traffic on that part — on `moscxl` they diverge about 10x
+(0.115 against 1.188 GB at full mask), consistent with MBM there attributing
+expander traffic to total but not local. Condition 3 passes on either counter
+and its absolute value remains uninformative, the denominator being near zero.
 
 ## Host state
 
@@ -109,7 +151,18 @@ the clock largely cancels.
 
 `mos182` node-2 arms remain gated behind a `cxl_join_bench --mode latency`
 ladder that `mos181` passes (54.41 ns node 0 against 54.32 ns node 2) and
-`mos182` currently fails (node-2 times 2--4x node-0).
+`mos182` currently fails (node-2 times 2--4x node-0). **The cause is now
+identified and it is ours, not the device's:** the two hosts hang CXL off
+opposite sockets. `mos181`'s node 2 is distance 14 from node 0 and its victim
+and aggressors are all in package 0, the near socket. `mos182`'s node 2 is
+distance 24 from node 0 and 14 from node 1, while its configured victim
+(cpu16) and aggressors (cpus 4--11) are also all in package 0 — there the
+*far* socket, so every node-2 access crossed the inter-socket link first.
+**This unblocks nothing.** A5 stands: the ladder must be re-run and must pass
+from package 1 before any `mos182` node-2 arm is taken, and two prerequisites
+are outstanding — `HOSTS["mos182"]` in `run_join_campaign.py` still names
+package 0, and `latency_chase` there fails `GLIBC_2.38 not found` and must be
+rebuilt on the host. Detail in the preregistration's A4.7.
 
 ## Still open before any further co-run arm
 
@@ -120,7 +173,14 @@ ladder that `mos181` passes (54.41 ns node 0 against 54.32 ns node 2) and
 2. **Verify the MBM counter is live before invalidating an arm for zero
    streamer traffic.** On AMD under resctrl group churn the counter returns
    stale values -- PageRank's traffic samples in the GAPBS gate are unusable
-   for exactly this reason, while HNSW's are sound.
+   for exactly this reason, while HNSW's are sound. *Partly closed:* the
+   DuckDB runner no longer trusts field position. Every `mbm_local_first` in
+   the moscxl gate was the string `Unavailable` (the RMID is not programmed at
+   group-creation time) while every `_last` was numeric, which a naive
+   `int()` turned into a crash and a naive first/last difference would have
+   turned into a wrong ratio. `mbm_span()` now takes the first and last
+   *numeric* samples and records how many were not, per record. The general
+   liveness check for GAPBS/HNSW is still owed.
 3. **Delete the unreproducible RocksDB 2.33x sentence** and add a provenance
    appendix. The panel referee's judgement is that this, and not the nulls, is
    the decisive reject reason.
@@ -131,6 +191,8 @@ ladder that `mos181` passes (54.41 ns node 0 against 54.32 ns node 2) and
   four amendments; Amendment 4 rewrites the AMD arms around a measured fact
   about `PREFETCHNTA` on Zen4c
 - `duckdb_join/DUCKDB_JOIN_CORUN_OUTCOME.md` -- the Intel result
+- `duckdb_join/DUCKDB_JOIN_CHAIN_CONTROL_OUTCOME.md` -- the `joinuniq`
+  within-engine control, and what the counters may and may not be cited for
 - `gapbs/GAPBS_CAT_SENSITIVITY_OUTCOME.md` -- result, both falsified
   predictions, the three eliminated variance causes, and the consequences
 - `gapbs/GAPBS_CAT_SENSITIVITY_RUN_DECISIONS.md` -- every departure, written
