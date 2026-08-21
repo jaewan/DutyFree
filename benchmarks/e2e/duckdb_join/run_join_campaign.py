@@ -398,6 +398,12 @@ def main():
                            l3_bytes=l3_bytes, l3_ways=ways, way_bytes=way_bytes,
                            l3_domain=domain, effective_bytes=eff,
                            victim_cpu=cfg["vcpu"], victim_node=cfg["node"],
+                           # QUERIES is host-tuned (the AMD query is ~23x
+                           # shorter than the Intel one) and is not recoverable
+                           # from the record otherwise: trial_seconds_all has
+                           # the count, but a reader comparing two files needs
+                           # to know the measured window was set deliberately.
+                           queries=QUERIES,
                            duckdb=str(DUCKDB), timestamp_unix=time.time())
                 rec["valid"] = (rec["returncode"] == 0
                                 and len(rec["trial_seconds_all"]) == QUERIES)

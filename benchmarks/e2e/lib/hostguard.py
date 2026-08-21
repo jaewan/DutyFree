@@ -52,6 +52,9 @@ HOSTILE_SUBSTR = (
     "latency_chase", "duckdb", "intra_app_corun", "flushbehind",
 )
 HOSTILE_EXACT = ("pr", "bfs", "cc", "bc", "sssp", "tc", "victim", "validate")
+# A process must be at least this old before its lifetime-average pcpu is
+# treated as evidence of sustained load. Does not apply to HOSTILE matches.
+MIN_AGE_SECONDS = 10
 
 
 class Contention(RuntimeError):
@@ -98,15 +101,22 @@ class HostGuard:
         """Everything on the box that could perturb a measurement."""
         # pid and pcpu first so both parse numerically; comm last because it can
         # contain spaces, which broke a naive pid,comm,pcpu,args split.
-        out = subprocess.run(["ps", "-eo", "pid=,pcpu=,comm="], text=True,
+        # etimes as well as pcpu, because ps reports pcpu as an average over the
+        # process's whole lifetime. For a process a fraction of a second old
+        # that is cputime/~0, so anything that burns CPU while starting up
+        # reads as permanently busy: an ssh login's own user-session-helper
+        # aborted a selection sweep at "49.1%" while the host's 1-minute load
+        # was 0.19, and `ps` itself reports 2100% at etimes=0. Young processes
+        # are therefore exempt from the BUSY rule only.
+        out = subprocess.run(["ps", "-eo", "pid=,pcpu=,etimes=,comm="], text=True,
                              capture_output=True).stdout.splitlines()
         busy, hostile = [], []
         me = {str(os.getpid()), str(os.getppid())}
         for line in out:
-            f = line.split(None, 2)
-            if len(f) < 3:
+            f = line.split(None, 3)
+            if len(f) < 4:
                 continue
-            pid, pcpu, comm = f[0], float(f[1]), f[2].strip()
+            pid, pcpu, etimes, comm = f[0], float(f[1]), int(f[2]), f[3].strip()
             if pid in me:
                 continue
             # Match on comm, never on argv: an argv that merely mentions a
@@ -116,8 +126,12 @@ class HostGuard:
             if (any(h in comm for h in HOSTILE_SUBSTR)
                     or comm in HOSTILE_EXACT):
                 hostile.append((pid, comm, pcpu))
-            elif pcpu >= 20.0 and comm not in BENIGN:
-                busy.append((pid, comm, pcpu))
+            # The hostile test above is deliberately age-independent: a
+            # just-started aggressor must be caught, and that is exactly the
+            # case the >=20% rule cannot see. The busy test is the heuristic
+            # one, so it is the one that gets the age floor.
+            elif pcpu >= 20.0 and etimes >= MIN_AGE_SECONDS and comm not in BENIGN:
+                busy.append((pid, comm, pcpu, etimes))
         groups = [p.name for p in Path("/sys/fs/resctrl").iterdir()
                   if p.is_dir() and p.name not in
                   ("info", "mon_data", "mon_groups")] if Path("/sys/fs/resctrl").is_dir() else []
