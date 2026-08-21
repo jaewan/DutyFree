@@ -1,0 +1,32 @@
+/home/domin/rocksdb-9.11.2/db_bench: db_bench version 9.11.2 assertions=False
+mos181: cpu96 L3 domain 1, 320 MiB / 20 ways = 16 MiB per way; full=fffff min=1
+T_mmap_tmpfs_200M: prebuilt in 6s
+  T_mmap_tmpfs_200M full inv0 eff= 320MiB 1.95 us/op occ=41MiB
+  T_mmap_tmpfs_200M full inv1 eff= 320MiB 1.938 us/op occ=8MiB
+  T_mmap_tmpfs_200M full inv2 eff= 320MiB 1.951 us/op occ=8MiB
+  T_mmap_tmpfs_200M full inv3 eff= 320MiB 1.933 us/op occ=8MiB
+  T_mmap_tmpfs_200M full inv4 eff= 320MiB 1.933 us/op occ=6MiB
+  -> T_mmap_tmpfs_200M full: median 1.9380 us/op CoV 0.46% occ_med=8MiB
+  T_mmap_tmpfs_200M min  inv0 eff=  16MiB 2.151 us/op occ=15MiB
+  T_mmap_tmpfs_200M min  inv1 eff=  16MiB 2.17 us/op occ=16MiB
+  T_mmap_tmpfs_200M min  inv2 eff=  16MiB 2.172 us/op occ=16MiB
+  T_mmap_tmpfs_200M min  inv3 eff=  16MiB 2.161 us/op occ=15MiB
+  T_mmap_tmpfs_200M min  inv4 eff=  16MiB 2.157 us/op occ=15MiB
+  -> T_mmap_tmpfs_200M min: median 2.1610 us/op CoV 0.41% occ_med=15MiB
+== T_mmap_tmpfs_200M: RATIO 1.115  fail  [mmap'd SSTable bytes, ~180 MiB]
+S_seek_mmap_tmpfs_200M: prebuilt in 6s
+  S_seek_mmap_tmpfs_200M full inv0 eff= 320MiB 3.848 us/op occ=89MiB
+  S_seek_mmap_tmpfs_200M full inv1 eff= 320MiB 3.843 us/op occ=13MiB
+  S_seek_mmap_tmpfs_200M full inv2 eff= 320MiB 3.767 us/op occ=8MiB
+  S_seek_mmap_tmpfs_200M full inv3 eff= 320MiB 3.773 us/op occ=6MiB
+  S_seek_mmap_tmpfs_200M full inv4 eff= 320MiB 3.766 us/op occ=7MiB
+  -> S_seek_mmap_tmpfs_200M full: median 3.7730 us/op CoV 1.11% occ_med=8MiB
+  S_seek_mmap_tmpfs_200M min  inv0 eff=  16MiB 4.023 us/op occ=15MiB
+  S_seek_mmap_tmpfs_200M min  inv1 eff=  16MiB 4.015 us/op occ=15MiB
+  S_seek_mmap_tmpfs_200M min  inv2 eff=  16MiB 4.006 us/op occ=15MiB
+  S_seek_mmap_tmpfs_200M min  inv3 eff=  16MiB 4.066 us/op occ=15MiB
+  S_seek_mmap_tmpfs_200M min  inv4 eff=  16MiB 4.01 us/op occ=15MiB
+  -> S_seek_mmap_tmpfs_200M min: median 4.0150 us/op CoV 0.60% occ_med=15MiB
+== S_seek_mmap_tmpfs_200M: RATIO 1.064  fail  [mmap'd index + data blocks, ~180 MiB]
+B_readmissing_31M: prebuilt in 110s
+  B_readmissing_31M full inv0 eff= 320MiB 237.479 us/op occ=43MiB

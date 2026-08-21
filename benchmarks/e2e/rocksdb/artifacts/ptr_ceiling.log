@@ -1,0 +1,36 @@
+mos181: cpu96 L3 dom 1 320MiB/20ways=16MiB per way; full=fffff min=1
+  ws=8MiB full inv0 eff= 320MiB ipc=0.0321 occ=8MiB
+  ws=8MiB full inv1 eff= 320MiB ipc=0.0315 occ=9MiB
+  ws=8MiB full inv2 eff= 320MiB ipc=0.0314 occ=7MiB
+  ws=8MiB min  inv0 eff=  16MiB ipc=0.0168 occ=6MiB
+  ws=8MiB min  inv1 eff=  16MiB ipc=0.0169 occ=6MiB
+  ws=8MiB min  inv2 eff=  16MiB ipc=0.0168 occ=7MiB
+== ptr ws=8MiB: full ipc 0.0315 min ipc 0.0168 -> SENSITIVITY 1.875x
+  ws=32MiB full inv0 eff= 320MiB ipc=0.027 occ=35MiB
+  ws=32MiB full inv1 eff= 320MiB ipc=0.027 occ=33MiB
+  ws=32MiB full inv2 eff= 320MiB ipc=0.0269 occ=37MiB
+  ws=32MiB min  inv0 eff=  16MiB ipc=0.0069 occ=5MiB
+  ws=32MiB min  inv1 eff=  16MiB ipc=0.0073 occ=7MiB
+  ws=32MiB min  inv2 eff=  16MiB ipc=0.0069 occ=7MiB
+== ptr ws=32MiB: full ipc 0.0270 min ipc 0.0069 -> SENSITIVITY 3.913x
+  ws=128MiB full inv0 eff= 320MiB ipc=0.0243 occ=136MiB
+  ws=128MiB full inv1 eff= 320MiB ipc=0.0244 occ=140MiB
+  ws=128MiB full inv2 eff= 320MiB ipc=0.0244 occ=133MiB
+  ws=128MiB min  inv0 eff=  16MiB ipc=0.006 occ=7MiB
+  ws=128MiB min  inv1 eff=  16MiB ipc=0.006 occ=7MiB
+  ws=128MiB min  inv2 eff=  16MiB ipc=0.006 occ=8MiB
+== ptr ws=128MiB: full ipc 0.0244 min ipc 0.0060 -> SENSITIVITY 4.067x
+  ws=256MiB full inv0 eff= 320MiB ipc=0.0087 occ=134MiB
+  ws=256MiB full inv1 eff= 320MiB ipc=0.009 occ=152MiB
+  ws=256MiB full inv2 eff= 320MiB ipc=0.0094 occ=150MiB
+  ws=256MiB min  inv0 eff=  16MiB ipc=0.006 occ=12MiB
+  ws=256MiB min  inv1 eff=  16MiB ipc=0.0059 occ=13MiB
+  ws=256MiB min  inv2 eff=  16MiB ipc=0.006 occ=11MiB
+== ptr ws=256MiB: full ipc 0.0090 min ipc 0.0060 -> SENSITIVITY 1.500x
+  ws=512MiB full inv0 eff= 320MiB ipc=0.0059 occ=67MiB
+  ws=512MiB full inv1 eff= 320MiB ipc=0.0059 occ=67MiB
+  ws=512MiB full inv2 eff= 320MiB ipc=0.0059 occ=67MiB
+  ws=512MiB min  inv0 eff=  16MiB ipc=0.0058 occ=14MiB
+  ws=512MiB min  inv1 eff=  16MiB ipc=0.0058 occ=15MiB
+  ws=512MiB min  inv2 eff=  16MiB ipc=0.0057 occ=14MiB
+== ptr ws=512MiB: full ipc 0.0059 min ipc 0.0058 -> SENSITIVITY 1.017x

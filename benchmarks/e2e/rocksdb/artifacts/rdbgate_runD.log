@@ -1,0 +1,15 @@
+/home/domin/rocksdb-9.11.2/db_bench: db_bench version 9.11.2 assertions=False
+mos181: cpu96 L3 domain 1, 320 MiB / 20 ways = 16 MiB per way; full=fffff min=1
+  B_lean_hyperclock_31M full inv0 eff= 320MiB 6.643 us/op occ=129MiB
+  B_lean_hyperclock_31M full inv1 eff= 320MiB 6.463 us/op occ=165MiB
+  B_lean_hyperclock_31M full inv2 eff= 320MiB 6.451 us/op occ=157MiB
+  B_lean_hyperclock_31M full inv3 eff= 320MiB 6.545 us/op occ=156MiB
+  B_lean_hyperclock_31M full inv4 eff= 320MiB 6.407 us/op occ=150MiB
+  -> B_lean_hyperclock_31M full: median 6.4630 us/op CoV 1.44% occ_med=156MiB
+  B_lean_hyperclock_31M min  inv0 eff=  16MiB 7.037 us/op occ=14MiB
+  B_lean_hyperclock_31M min  inv1 eff=  16MiB 7.041 us/op occ=14MiB
+  B_lean_hyperclock_31M min  inv2 eff=  16MiB 7.084 us/op occ=15MiB
+  B_lean_hyperclock_31M min  inv3 eff=  16MiB 7.141 us/op occ=15MiB
+  B_lean_hyperclock_31M min  inv4 eff=  16MiB 7.118 us/op occ=15MiB
+  -> B_lean_hyperclock_31M min: median 7.0840 us/op CoV 0.65% occ_med=15MiB
+== B_lean_hyperclock_31M: RATIO 1.096  fail  [bloom filter pool, ~31 MiB, unpartitioned + HyperClockCache]

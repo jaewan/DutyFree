@@ -1,0 +1,42 @@
+/home/domin/rocksdb-9.11.2/db_bench: db_bench version 9.11.2 assertions=False
+mos181: cpu96 L3 domain 1, 320 MiB / 20 ways = 16 MiB per way; full=fffff min=1
+  M_memtable_64M full inv0 eff= 320MiB 1.661 us/op occ=133MiB
+  M_memtable_64M full inv1 eff= 320MiB 1.662 us/op occ=134MiB
+  M_memtable_64M full inv2 eff= 320MiB 1.671 us/op occ=137MiB
+  M_memtable_64M full inv3 eff= 320MiB 1.663 us/op occ=140MiB
+  M_memtable_64M full inv4 eff= 320MiB 1.659 us/op occ=131MiB
+  -> M_memtable_64M full: median 1.6620 us/op CoV 0.28% occ_med=134MiB
+  M_memtable_64M min  inv0 eff=  16MiB 2.206 us/op occ=14MiB
+  M_memtable_64M min  inv1 eff=  16MiB 2.234 us/op occ=13MiB
+  M_memtable_64M min  inv2 eff=  16MiB 2.255 us/op occ=13MiB
+  M_memtable_64M min  inv3 eff=  16MiB 2.214 us/op occ=13MiB
+  M_memtable_64M min  inv4 eff=  16MiB 2.201 us/op occ=13MiB
+  -> M_memtable_64M min: median 2.2140 us/op CoV 1.00% occ_med=13MiB
+== M_memtable_64M: RATIO 1.332  fail  [memtable skiplist arena, ~64 MiB]
+  M_memtable_200M full inv0 eff= 320MiB 2.216 us/op occ=175MiB
+  M_memtable_200M full inv1 eff= 320MiB 2.146 us/op occ=182MiB
+  M_memtable_200M full inv2 eff= 320MiB 2.158 us/op occ=175MiB
+  M_memtable_200M full inv3 eff= 320MiB 2.162 us/op occ=172MiB
+  M_memtable_200M full inv4 eff= 320MiB 2.163 us/op occ=177MiB
+  -> M_memtable_200M full: median 2.1620 us/op CoV 1.25% occ_med=175MiB
+  M_memtable_200M min  inv0 eff=  16MiB 3.095 us/op occ=15MiB
+  M_memtable_200M min  inv1 eff=  16MiB 3.056 us/op occ=14MiB
+  M_memtable_200M min  inv2 eff=  16MiB 3.04 us/op occ=14MiB
+  M_memtable_200M min  inv3 eff=  16MiB 3.056 us/op occ=14MiB
+  M_memtable_200M min  inv4 eff=  16MiB 3.058 us/op occ=14MiB
+  -> M_memtable_200M min: median 3.0560 us/op CoV 0.66% occ_med=14MiB
+== M_memtable_200M: RATIO 1.414  fail  [memtable skiplist arena, ~200 MiB]
+B_readmissing_31M: prebuilt in 115s
+  B_readmissing_31M full inv0 eff= 320MiB 6.012 us/op occ=165MiB
+  B_readmissing_31M full inv1 eff= 320MiB 5.953 us/op occ=150MiB
+  B_readmissing_31M full inv2 eff= 320MiB 6.004 us/op occ=160MiB
+  B_readmissing_31M full inv3 eff= 320MiB 5.999 us/op occ=145MiB
+  B_readmissing_31M full inv4 eff= 320MiB 5.947 us/op occ=139MiB
+  -> B_readmissing_31M full: median 5.9990 us/op CoV 0.51% occ_med=150MiB
+  B_readmissing_31M min  inv0 eff=  16MiB 6.54 us/op occ=14MiB
+  B_readmissing_31M min  inv1 eff=  16MiB 6.602 us/op occ=14MiB
+  B_readmissing_31M min  inv2 eff=  16MiB 6.543 us/op occ=15MiB
+  B_readmissing_31M min  inv3 eff=  16MiB 6.58 us/op occ=15MiB
+  B_readmissing_31M min  inv4 eff=  16MiB 6.556 us/op occ=15MiB
+  -> B_readmissing_31M min: median 6.5560 us/op CoV 0.40% occ_med=15MiB
+== B_readmissing_31M: RATIO 1.093  fail  [bloom filter pool, ~31 MiB (25M keys x 10 bits)]

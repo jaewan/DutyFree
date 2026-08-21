@@ -1,0 +1,16 @@
+/home/domin/rocksdb-9.11.2/db_bench: db_bench version 9.11.2 assertions=False
+mos181: cpu96 L3 domain 1, 320 MiB / 20 ways = 16 MiB per way; full=fffff min=1
+B_readmissing_31M: prebuilt in 111s
+  B_readmissing_31M full inv0 eff= 320MiB 11.699 us/op occ=233MiB
+  B_readmissing_31M full inv1 eff= 320MiB 11.65 us/op occ=221MiB
+  B_readmissing_31M full inv2 eff= 320MiB 11.572 us/op occ=228MiB
+  B_readmissing_31M full inv3 eff= 320MiB 11.567 us/op occ=230MiB
+  B_readmissing_31M full inv4 eff= 320MiB 11.742 us/op occ=157MiB
+  -> B_readmissing_31M full: median 11.6500 us/op CoV 0.66% occ_med=228MiB
+  B_readmissing_31M min  inv0 eff=  16MiB 13.047 us/op occ=14MiB
+  B_readmissing_31M min  inv1 eff=  16MiB 5.939 us/op occ=15MiB
+  B_readmissing_31M min  inv2 eff=  16MiB 5.942 us/op occ=16MiB
+  B_readmissing_31M min  inv3 eff=  16MiB 5.934 us/op occ=15MiB
+  B_readmissing_31M min  inv4 eff=  16MiB 5.92 us/op occ=15MiB
+  -> B_readmissing_31M min: median 5.9390 us/op CoV 43.24% occ_med=15MiB
+== B_readmissing_31M: RATIO 0.510  fail  [bloom filter pool, ~31 MiB (25M keys x 10 bits)]

@@ -1,0 +1,55 @@
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 2K of event 'cpu/cycles/P'
+# Event count (approx.): 4756435191
+#
+# Overhead  Command   Shared Object         Symbol                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+# ........  ........  ....................  ..........................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................................
+#
+    16.37%  db_bench  db_bench              [.] rocksdb::IndexBlockIter::SeekImpl(rocksdb::Slice const&)
+     6.94%  db_bench  db_bench              [.] rocksdb::lru_cache::LRUHandleTable::FindPointer(rocksdb::Slice const&, unsigned int)
+     6.59%  db_bench  libc.so.6             [.] __memcmp_evex_movbe
+     5.03%  db_bench  db_bench              [.] rocksdb::BlockIter<rocksdb::IndexValue>::CompareCurrentKey(rocksdb::Slice const&)
+     4.28%  db_bench  libc.so.6             [.] pthread_mutex_unlock@@GLIBC_2.2.5
+     3.45%  db_bench  libc.so.6             [.] pthread_mutex_lock@@GLIBC_2.2.5
+     3.25%  db_bench  db_bench              [.] non-virtual thunk to rocksdb::(anonymous namespace)::BytewiseComparatorImpl::Compare(rocksdb::Slice const&, rocksdb::Slice const&) const
+     2.46%  db_bench  db_bench              [.] rocksdb::(anonymous namespace)::FastLocalBloomBitsReader::MayMatch(rocksdb::Slice const&)
+     2.06%  db_bench  db_bench              [.] bool rocksdb::BlockIter<rocksdb::IndexValue>::ParseNextKey<rocksdb::DecodeEntryV4>(bool*)
+     2.02%  db_bench  [kernel.kallsyms]     [k] perf_iterate_ctx
+     1.98%  db_bench  db_bench              [.] rocksdb::PartitionedFilterBlockReader::GetFilterPartitionHandle(rocksdb::CachableEntry<rocksdb::Block_kFilterPartitionIndex> const&, rocksdb::Slice const&) const
+     1.94%  db_bench  db_bench              [.] std::enable_if<(rocksdb::ParsedFullFilterBlock::kCacheEntryRole==((rocksdb::CacheEntryRole)13))||(true), rocksdb::Status>::type rocksdb::BlockBasedTable::GetDataBlockFromCache<rocksdb::ParsedFullFilterBlock>(rocksdb::Slice const&, rocksdb::FullTypedCacheInterface<rocksdb::ParsedFullFilterBlock, rocksdb::BlockCreateContext, rocksdb::ParsedFullFilterBlock::kCacheEntryRole, rocksdb::Cache*>, rocksdb::CachableEntry<rocksdb::ParsedFullFilterBlock>*, rocksdb::GetContext*, rocksdb::UncompressionDict const*) const
+     1.94%  db_bench  db_bench              [.] rocksdb::Version::Get(rocksdb::ReadOptions const&, rocksdb::LookupKey const&, rocksdb::PinnableSlice*, rocksdb::PinnableWideColumns*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, rocksdb::Status*, rocksdb::MergeContext*, unsigned long*, rocksdb::PinnedIteratorsManager*, bool*, bool*, unsigned long*, rocksdb::ReadCallback*, bool*, bool)
+     1.82%  db_bench  db_bench              [.] rocksdb::GetVarint64Ptr(char const*, char const*, unsigned long*)
+     1.82%  db_bench  db_bench              [.] std::enable_if<(rocksdb::ParsedFullFilterBlock::kCacheEntryRole==((rocksdb::CacheEntryRole)13))||(true), rocksdb::Status>::type rocksdb::BlockBasedTable::MaybeReadBlockAndLoadToCache<rocksdb::ParsedFullFilterBlock>(rocksdb::FilePrefetchBuffer*, rocksdb::ReadOptions const&, rocksdb::BlockHandle const&, rocksdb::UncompressionDict const&, bool, rocksdb::CachableEntry<rocksdb::ParsedFullFilterBlock>*, rocksdb::GetContext*, rocksdb::BlockCacheLookupContext*, rocksdb::BlockContents*, bool, bool) const
+     1.70%  db_bench  db_bench              [.] std::enable_if<(rocksdb::ParsedFullFilterBlock::kCacheEntryRole==((rocksdb::CacheEntryRole)13))||(true), rocksdb::Status>::type rocksdb::BlockBasedTable::RetrieveBlock<rocksdb::ParsedFullFilterBlock>(rocksdb::FilePrefetchBuffer*, rocksdb::ReadOptions const&, rocksdb::BlockHandle const&, rocksdb::UncompressionDict const&, rocksdb::CachableEntry<rocksdb::ParsedFullFilterBlock>*, rocksdb::GetContext*, rocksdb::BlockCacheLookupContext*, bool, bool, bool, bool) const
+     1.70%  db_bench  db_bench              [.] rocksdb::TableCache::Get(rocksdb::ReadOptions const&, rocksdb::InternalKeyComparator const&, rocksdb::FileMetaData const&, rocksdb::Slice const&, rocksdb::GetContext*, rocksdb::MutableCFOptions const&, rocksdb::HistogramImpl*, bool, int, unsigned long)
+     1.35%  db_bench  db_bench              [.] rocksdb::(anonymous namespace)::FilePicker::GetNextFile()
+     1.23%  db_bench  db_bench              [.] rocksdb::PartitionedFilterBlockReader::MayMatch(rocksdb::Slice const&, rocksdb::Slice const*, rocksdb::GetContext*, rocksdb::BlockCacheLookupContext*, rocksdb::ReadOptions const&, bool (rocksdb::FullFilterBlockReader::*)(rocksdb::Slice const&, rocksdb::Slice const*, rocksdb::GetContext*, rocksdb::BlockCacheLookupContext*, rocksdb::ReadOptions const&)) const
+     1.07%  db_bench  db_bench              [.] rocksdb::Block::NewIndexIterator(rocksdb::Comparator const*, unsigned long, rocksdb::IndexBlockIter*, rocksdb::Statistics*, bool, bool, bool, bool, bool, bool, rocksdb::BlockPrefixIndex*)
+     1.03%  db_bench  db_bench              [.] rocksdb::BlockHandle::DecodeFrom(rocksdb::Slice*)
+     0.95%  db_bench  db_bench              [.] rocksdb::GetContext::GetContext(rocksdb::Comparator const*, rocksdb::MergeOperator const*, rocksdb::Logger*, rocksdb::Statistics*, rocksdb::GetContext::GetState, rocksdb::Slice const&, rocksdb::PinnableSlice*, rocksdb::PinnableWideColumns*, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >*, bool*, rocksdb::MergeContext*, bool, unsigned long*, rocksdb::SystemClock*, unsigned long*, rocksdb::PinnedIteratorsManager*, rocksdb::ReadCallback*, bool*, unsigned long, rocksdb::BlobFetcher*)
+     0.95%  db_bench  db_bench              [.] rocksdb::BlockBasedTable::Get(rocksdb::ReadOptions const&, rocksdb::Slice const&, rocksdb::GetContext*, rocksdb::SliceTransform const*, bool)
+     0.95%  db_bench  db_bench              [.] rocksdb::IndexBlockIter::DecodeCurrentValue(bool)
+     0.87%  db_bench  db_bench              [.] rocksdb::DBImpl::GetImpl(rocksdb::ReadOptions const&, rocksdb::Slice const&, rocksdb::DBImpl::GetImplOptions&)
+     0.75%  db_bench  db_bench              [.] rocksdb::PartitionedFilterBlockReader::GetFilterPartitionBlock(rocksdb::FilePrefetchBuffer*, rocksdb::BlockHandle const&, rocksdb::GetContext*, rocksdb::BlockCacheLookupContext*, rocksdb::ReadOptions const&, rocksdb::CachableEntry<rocksdb::ParsedFullFilterBlock>*) const
+     0.75%  db_bench  db_bench              [.] rocksdb::lru_cache::LRUCacheShard::LRU_Insert(rocksdb::lru_cache::LRUHandle*)
+     0.75%  db_bench  db_bench              [.] rocksdb::lru_cache::LRUCacheShard::LRU_Remove(rocksdb::lru_cache::LRUHandle*)
+     0.75%  db_bench  [kernel.kallsyms]     [k] _copy_to_iter
+     0.71%  db_bench  db_bench              [.] rocksdb::Benchmark::ReadRandom(rocksdb::ThreadState*)
+     0.71%  db_bench  db_bench              [.] memcmp@plt
+     0.71%  db_bench  db_bench              [.] rocksdb::FullFilterBlockReader::MayMatch(rocksdb::Slice const&, rocksdb::GetContext*, rocksdb::BlockCacheLookupContext*, rocksdb::ReadOptions const&) const
+     0.67%  db_bench  db_bench              [.] rocksdb::IndexValue::DecodeFrom(rocksdb::Slice*, bool, rocksdb::BlockHandle const*)
+     0.67%  db_bench  db_bench              [.] rocksdb::ShardedCache<rocksdb::lru_cache::LRUCacheShard>::Lookup(rocksdb::Slice const&, rocksdb::Cache::CacheItemHelper const*, rocksdb::Cache::CreateContext*, rocksdb::Cache::Priority, rocksdb::Statistics*)
+     0.63%  db_bench  db_bench              [.] rocksdb::BlockBasedTable::FullFilterKeyMayMatch(rocksdb::FilterBlockReader*, rocksdb::Slice const&, rocksdb::SliceTransform const*, rocksdb::GetContext*, rocksdb::BlockCacheLookupContext*, rocksdb::ReadOptions const&) const
+     0.60%  db_bench  db_bench              [.] rocksdb::FullFilterBlockReader::FullFilterBlockReader(rocksdb::BlockBasedTable const*, rocksdb::CachableEntry<rocksdb::ParsedFullFilterBlock>&&)
+     0.59%  db_bench  db_bench              [.] rocksdb::lru_cache::LRUCacheShard::Release(rocksdb::lru_cache::LRUHandle*, bool, bool) [clone .part.0]
+     0.52%  db_bench  db_bench              [.] rocksdb::BlockBasedTable::UpdateCacheHitMetrics(rocksdb::BlockType, rocksdb::GetContext*, unsigned long) const
+     0.51%  db_bench  libc.so.6             [.] _int_malloc
+
+
+#
+# (Cannot load tips.txt file, please install perf!)
+#
