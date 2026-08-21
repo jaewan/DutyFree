@@ -95,6 +95,54 @@ def main(path):
     return 0
 
 
+def posthoc(path):
+    """Not declared in A5.3. Reported because it is in the same artifact and it
+    bears on WHY the negative control fired -- it does not alter the verdict
+    above, which is fixed by the declared threshold.
+
+    Each invocation carries its own victimless reading: the sampler's first
+    sample is taken while the victim is still starting (numactl + duckdb open)
+    and its last after the queries have finished, with the streamer running
+    throughout both. So `idle` reproduces A4.1's measurement inside every
+    repetition, and `competed` is the same streamer with the victim live. The
+    difference is what the streamer gives up under pressure, which is the
+    quantity a victimless sweep structurally cannot see.
+
+    The victim fill rate is the reverse-causation check. If the occupancy split
+    were caused by the faster victim demanding harder rather than by the
+    streamer yielding, the arm with the higher victim fill rate would hold the
+    most cache. Print it so the sign can be read off directly.
+    """
+    by = load(path)
+    invs = sorted(by)
+    print("\n-- post-hoc, not declared in A5.3 --\n")
+    print(f"{'arm':<10}{'idle':>8}{'competed':>10}{'yield':>8}{'victim occ':>12}"
+          f"{'victim GB/s':>13}")
+    for a in ("WB_sat", "NTA_sat"):
+        rs = [by[i][a] for i in invs if a in by[i]]
+        idle, comp, vocc, rate = [], [], [], []
+        for r in rs:
+            ser = [int(x[1]) / MIB for x in (r.get("agg_occupancy_series") or [])]
+            if len(ser) < 3:
+                continue
+            idle.append(st.median([ser[0], ser[-1]]))
+            comp.append(st.median(ser[1:-1]))
+            vocc.append(r["occupancy_bytes_steady"] / MIB)
+            t = r["trial_seconds_measured"]
+            gb = (int(r["mbm_total_last"]) - int(r["mbm_total_first"])) / 1e9
+            # Over the measured queries only, not the whole invocation: the
+            # invocation also contains the build, which is not the steady state
+            # the occupancy figures describe.
+            rate.append(gb / (st.median(t) * len(t)))
+        if not idle:
+            continue
+        print(f"{a:<10}{st.median(idle):>8.2f}{st.median(comp):>10.2f}"
+              f"{st.median(idle) - st.median(comp):>8.2f}"
+              f"{st.median(vocc):>12.2f}{st.median(rate):>13.2f}")
+    print("\n  idle/competed/yield are MiB of the CCX L3 held by the STREAMER.")
+
+
 if __name__ == "__main__":
     for p in sys.argv[1:]:
         main(p)
+        posthoc(p)

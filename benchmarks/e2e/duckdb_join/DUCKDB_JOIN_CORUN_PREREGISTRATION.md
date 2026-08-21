@@ -750,3 +750,63 @@ Declared in advance, with the threshold fixed now:
 - Either way this **does not convert into a positive result.** The best
   available outcome is that a declared negative does not fire. The AMD
   de-confound remains governed by outcome 5 and by A5.1.
+
+## A5.4 The same blind spot exists on Intel, and the headline de-confound rests on it
+
+A5.3 exists because A4.1 measured `wb_prefetchnta`'s occupancy with no victim
+present, and an idle cache fills to capacity under any insertion policy. That
+criticism is not specific to AMD. **No streamer-side occupancy was ever
+measured under co-run on `mos181` either.** The Intel de-confound reported in
+`DUCKDB_JOIN_CORUN_OUTCOME.md` -- +0.058 [+0.047, +0.071] at ~18 GB/s and
++0.093 [+0.089, +0.097] at ~10.8 GB/s -- is the project's headline causal
+result, and its non-allocating arm has never been shown to be non-allocating
+while something was competing with it.
+
+The Intel evidence for the hint being honoured is real but indirect: on
+`mos181` `wb_prefetchnta` moves 41% less than `wb_load` at one thread and 28%
+less at saturation, which is the signature of a hint being paid for rather than
+dropped, and victim occupancy is far higher under the NTA arms (126 MiB against
+67 MiB). Neither is a measurement of what the streamer holds. Both are
+consistent with a streamer that allocates and yields, which is exactly what
+Zen4c turned out to do.
+
+Measurement: identical instrument to A5.3, on `mos181`, arms `WB_match_hi`,
+`NTA_sat`, `WB_match_lo`, `NTA_lo`, plus `quiescent` so the artifact reproduces
+the taxes it is being read against. 10 repetitions, `MODE=ntaintel` so nothing
+appends to `join_corun_mos181.jsonl`.
+
+**The ratio is taken within a declared pair, and this is the trap.** On AMD,
+`WB_sat` and `NTA_sat` are a matched pair at 24.3 against 24.5 GB/s, so the
+A5.3 ratio was `NTA_sat / WB_sat`. On Intel those same two arm names are 17.8
+against 24.9 GB/s across 8 and 8 cores and are **not** a matched pair. The
+Intel ratios are `NTA_sat / WB_match_hi` and `NTA_lo / WB_match_lo`. Computing
+`NTA_sat / WB_sat` here would be the section 5.1 arm-identity error committed
+in the reducer rather than in prose.
+
+Declared in advance, with the threshold fixed now, applied to **both** pairs:
+
+- **NTA streamer occupancy under co-run is < 25% of its matched `wb_load`
+  partner's, in both pairs** -> the Intel non-allocating arm is non-allocating
+  under competition. The Intel de-confound stands exactly as reported, and
+  A5.3's result is a Zen4c insertion-policy divergence rather than a defect in
+  the de-confound design. This is the only outcome under which the paper may
+  keep describing `wb_prefetchnta` as a non-allocating arm, and then only on
+  Intel.
+- **>= 25% in either pair** -> the Intel arms differ from the AMD ones in
+  degree and not in kind. The de-confound then contrasts *less* allocation
+  against *more*, not allocation against none. Every recovery and de-confound
+  figure in `DUCKDB_JOIN_CORUN_OUTCOME.md` must be relabelled on that basis,
+  and no host in this project retains a demonstrated non-allocating arm except
+  AMD flush-behind.
+
+The threshold is 25% because the project already has both reference points.
+Flush-behind on AMD reads 5.5% of its CCX and is what this project means by
+non-allocating; A4.1 rejected 62% as "not a non-allocating arm at any thread
+count." 25% is four times the flush-behind reference and well under the level
+already rejected, so it does not sit near either anchor.
+
+**This cannot convert into a positive result.** A pass leaves the Intel
+de-confound where it already was; a failure removes it. As in A5.3, the best
+available outcome is that a declared negative does not fire. `mos181` is frozen
+and this measurement does not change it: it adds a monitoring group read, and
+runs the same arms at the same operating point that campaign already used.
