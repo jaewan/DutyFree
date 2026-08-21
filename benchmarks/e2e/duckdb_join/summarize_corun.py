@@ -79,6 +79,16 @@ def main(path):
     for a in sorted(arms, key=lambda x: -med(meta[x]["t"])):
         pr = [(by[i]["quiescent"], by[i][a]) for i in invs
               if "quiescent" in by[i] and a in by[i]]
+        # An arm can be left with too few PAIRED repetitions to summarise even
+        # though it has records: its quiescent partner may have been
+        # invalidated, or the file may be a run still in progress. stdev raises
+        # on a single point, which turned inspecting a partial artifact into a
+        # traceback. Report the shortfall instead -- silently dropping the arm
+        # would read as "this arm was not run".
+        if len(pr) < 2:
+            print(f"{a:<14}{'--':>7}{'--':>8}{'--':>9}{'--':>10}{'--':>7}"
+                  f"  {'(only ' + str(len(pr)) + ' paired rep)':<18}{'--':>8}")
+            continue
         tax = med([y / x for x, y in pr])
         lo, hi = boot(pr, lambda s: med([y / x for x, y in s]))
         cov = st.stdev([y for _, y in pr]) / st.mean([y for _, y in pr])
@@ -114,6 +124,9 @@ def main(path):
         if wb in taxes and na in taxes:
             pr = [(by[i]["quiescent"], by[i][wb], by[i][na]) for i in invs
                   if all(k in by[i] for k in ("quiescent", wb, na))]
+            if not pr:
+                print(f"{label:<30} {wb} - {na} = no repetition has both arms")
+                continue
             d = med([(w - x) / q0 for q0, w, x in
                      [(a, b, c) for a, b, c in pr]])
             lo, hi = boot(pr, lambda s: med([(w - x) / q0 for q0, w, x in s]))
