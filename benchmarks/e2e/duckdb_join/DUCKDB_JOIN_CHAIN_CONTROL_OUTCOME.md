@@ -61,14 +61,47 @@ plain one-to-one hash join, which is the shape of join most real queries have.
 It also narrows what the paper may say about the chain, which had been carrying
 more weight in the argument than it earns.
 
-## A supporting observation, unchanged across both configurations
+## The counters corroborate the pairwise contrast, and nothing wider
 
-Victim DRAM traffic tracks allocation, not the streamer's byte rate.
-Under `NTA_sat` the victim moves 0.28 GB, the same as quiescent, while holding
-90 MiB. Under `WB_match_hi` at *less* streamer bandwidth it moves 2.52 GB — 9x
-more — while holding 66 MiB. A streamer that does not allocate does not evict
-the victim, and a victim that is not evicted does not go to memory. This is the
-mechanism stated in counters rather than in runtimes.
+Victim DRAM traffic over the measured window, and victim LLC occupancy, per arm
+and configuration. Traffic is `mbm_total_bytes` differenced across the arm:
+
+| arm | GB/s | `chain8` traffic / occ | `joinuniq` traffic / occ | `chain8` tax | `joinuniq` tax |
+|---|---:|---:|---:|---:|---:|
+| `quiescent` | 0 | 0.31 GB / 142 MiB | 0.28 GB / 95 MiB | 1.000 | 1.000 |
+| `WB_match_hi` | 18.0 | 2.93 GB / 67 MiB | 2.52 GB / 66 MiB | 1.112 | 1.102 |
+| `NTA_sat` | 17.8 | 0.80 GB / 126 MiB | 0.28 GB / 90 MiB | 1.049 | 1.036 |
+| `WB_match_lo` | 10.7 | 3.02 GB / 66 MiB | 2.50 GB / 65 MiB | 1.113 | 1.093 |
+| `NTA_lo` | 10.8 | 1.55 GB / 93 MiB | 0.65 GB / 78 MiB | 1.018 | 1.011 |
+
+**Within a matched pair the counters say what the mechanism predicts.** At the
+same streamer bandwidth the allocating arm drives more victim DRAM traffic and
+leaves the victim less cache, in all four pairs across both configurations. The
+traffic ratio is 3.7x at 18 GB/s and 2.0x at 10.7 GB/s in `chain8`, and 9.0x
+and 3.8x in `joinuniq`.
+
+**Between arms that are not a matched pair, they do not.** Compare the two
+non-allocating arms with each other: `NTA_lo` moves *more* victim traffic than
+`NTA_sat` (1.55 against 0.80 GB in `chain8`, 0.65 against 0.28 in `joinuniq`)
+and leaves the victim *less* occupancy (93 against 126 MiB), yet taxes it
+**less** (1.018 against 1.049). Both counters rank these two arms in the
+opposite order from the runtime. Whatever `PREFETCHNTA` at two filling cores
+does to this victim, it is not captured by either counter, and it is
+non-monotonic in the streamer's own bandwidth.
+
+So these counters may be cited as corroboration of the matched-pair contrast,
+which is what the de-confound rests on and which is pairwise by construction.
+They may **not** be cited as a general model in which victim traffic or
+occupancy predicts the tax: this artifact contains a clean counterexample to
+that reading, in both configurations. It is the same lesson as the HNSW
+capacity result — an 8.44x traffic reduction bought 1.54x in runtime — arriving
+from the other direction. Bandwidth saved is not time saved, and bandwidth
+spent is not time lost.
+
+The `NTA_lo` inversion is unexplained and is left open. It does not touch the
+result above: every de-confound quoted in this document and in
+`DUCKDB_JOIN_CORUN_OUTCOME.md` is a difference taken **within** one bandwidth
+between two arms, never across bandwidths.
 
 ## Provenance
 
