@@ -644,3 +644,109 @@ things are needed first and neither is done — the host config in
 is built against a newer libc than that host provides (`GLIBC_2.38 not found`)
 and must be rebuilt there. Recorded now so the gate is understood rather than
 attributed to the device.
+
+# Amendment 5, 2026-08-22 — what the AMD campaign is allowed to do next
+
+The AMD co-run is complete and reduced in
+`DUCKDB_JOIN_AMD_CORUN_OUTCOME.md`. Outcome 5 fired on CoV, so there is no AMD
+verdict; outcome 3 fired against the mechanism. Both of the follow-ups this
+implies are experiments whose result I can partly anticipate, and the
+within-binary difference (+0.263) is already known. Everything below is
+therefore declared before the measurements, per §6.6.
+
+*(Numbering note: Amendment 1 contains a bare `A5` about `mos182`. It is
+unrelated to the `A5.x` items here, and still stands as written.)*
+
+## A5.1 The re-run may not lengthen the query, and a first-draft remedy is withdrawn
+
+The first draft of the outcome document proposed recovering timing resolution
+by raising `probe_rows`, reasoning that `R(N) = 40N` is build-side only so no
+validity condition would move. **Withdrawn, on two independent grounds.**
+
+**A2 forbids it in terms** — "timing resolution lost to the shorter probe is
+recovered by raising the in-invocation query count, not by lengthening the
+probe" — because P was sized to about 12% of LLC precisely so the victim would
+stop competing with its own scan for the cache it is being measured on. On
+`moscxl`, P = 250K is 2 MB against a 16 MiB CCX. Raising it tenfold reinstates
+the exact defect A2 was written to remove.
+
+**And it targets the wrong variance component.** The dispersion is
+between-invocation. In every arm the observed CoV across repetition medians is
+4.5x to 12x the standard error of a median of 300 draws — `FB256_match` 13.10%
+against 1.41% predicted, `FB0_match` 7.83% against 0.86%, `WB_fbmatch` 5.68%
+against 0.58%. Averaged over 300 queries the 1 ms timer leaves a half-quantum
+floor of 1.2--1.4% in those arms, about a ninth of what is observed. Lengthening
+the query — by probe *or* by query count — shrinks a term that is already
+negligible.
+
+**Binding for any re-run at this operating point:**
+
+1. `probe_rows` stays at the A2 value. `QUERIES` may not be raised as a
+   dispersion remedy either.
+2. No re-run until A5.2's diagnostic has a declared answer.
+3. The re-run keeps N = 100K, the nine arms, and the interleave. If a verdict
+   is drawn it must name which change produced the lower CoV.
+4. **If the between-invocation spread proves uncontrollable, that is the
+   result.** "A 16 MiB CCX cannot host this victim at a stable operating point"
+   is reported as a finding, not treated as a failed run to be retuned. This is
+   declared now so that the option of continuing to tune is closed.
+
+## A5.2 Diagnostic for the between-invocation spread, with its decision rule
+
+Each repetition is a fresh DuckDB process building a fresh hash table, and the
+L3 is physically indexed, so one candidate is that the physical pages an
+invocation receives fix how well its reused set coexists with the streamer for
+that invocation's lifetime. Consistent with this, occupancy reaches its level
+by the first 0.25 s sample and holds — `FB256_match` inv5 sits at 6.0 MiB mean
+for the whole invocation against 7.0--7.4 for the other nine — so there is no
+warm-up transient to gate on. **This is a hypothesis and nothing measured so far
+tests it.**
+
+Measurement: repeat one arm (`FB256_match`, the worst) with the victim's build
+arena pre-faulted from hugepages, 10 repetitions, everything else identical.
+
+Declared in advance:
+
+- **Between-invocation occupancy spread falls below 3%** (against 6.2% measured
+  here) **and CoV_rep falls below 5%** → page placement is the driver and is
+  controllable. The re-run of A5.1 proceeds with hugepages declared as part of
+  the operating point, and the change is named in the result.
+- **Spread and CoV both essentially unchanged** → page placement is not the
+  driver. No further tuning; A5.1 clause 4 applies and the instability is
+  reported as physical.
+- **Anything between** → no conclusion, and no re-run. An ambiguous diagnostic
+  does not license proceeding.
+
+Hugepages change the victim's TLB behaviour as well as its page colouring, so a
+pass here identifies a *controllable* cause, not specifically colouring. That
+distinction must survive into whatever is written.
+
+## A5.3 The NTA discrimination, and what each result obliges
+
+Outcome 3 fired: `NTA_sat` recovered +2.897 [+2.845, +2.992] against `WB_sat`
+at equal cores and 1.2% more bandwidth, where A4.1 declared it a negative
+control that must not recover. Per A4.1 the consequence is that the mechanism is
+wrong. Before accepting that, one premise is testable: A4.1 measured streamer
+occupancy **with no victim present**, and occupancy in an uncontended cache
+cannot distinguish MRU from LRU insertion — both fill an idle L3 to 16.00 MiB.
+
+Measurement: CMT on the *streamer's* monitoring group during co-run, `NTA_sat`
+and `WB_sat`, same cores, same bandwidths, 10 repetitions. Cheap, does not touch
+the victim campaign, does not disturb the frozen host state, and should be done
+before A5.2.
+
+Declared in advance, with the threshold fixed now:
+
+- **NTA streamer occupancy under co-run is ≥ 50% of `wb_load`'s** → A4.1's
+  premise holds under competition. NTA allocates and recovered anyway. **The
+  mechanism as stated is wrong**, this is a serious negative for the paper, and
+  it is reported in those words.
+- **NTA streamer occupancy is < 50% of `wb_load`'s** → A4.1's victimless sweep
+  did not measure what it was taken to measure. Outcome 3's inference does not
+  go through. Two things follow, and the second is not optional: NTA is
+  partially non-allocating *under competition* on this host, **and every other
+  conclusion in this project drawn from a victimless occupancy sweep must be
+  re-examined**, A4.1 included.
+- Either way this **does not convert into a positive result.** The best
+  available outcome is that a declared negative does not fire. The AMD
+  de-confound remains governed by outcome 5 and by A5.1.
