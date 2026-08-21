@@ -33,10 +33,25 @@ BENIGN = {
     "irqbalance", "polkitd", "NetworkManager", "packagekitd", "snapd", "code",
 }
 # Processes that are definitely a competing experiment on these hosts.
+#
+# Two lists, because the kernel truncates comm to 15 characters and the
+# original single prefix-matched list could not see past that. The AMD
+# recovery arm is amd_flushbehind_aggressor, whose comm is "amd_flushbehind":
+# it does not start with "aggressor", so a prefix match missed it entirely and
+# it was only ever caught incidentally by the >=20% CPU rule -- which would not
+# fire for a low-rate or just-started streamer. That is precisely the process
+# this guard exists to see.
+#
+# Substring matching is safe on comm and would not be on argv: comm is the
+# executable's own name, so it cannot be contaminated by an editor, a grep, or
+# this survey's own command line. The short GAPBS binary names stay on an
+# exact-match list, because "pr" and "cc" as substrings would match ordinary
+# desktop processes on the AMD host.
 HOSTILE_SUBSTR = (
-    "aggressor", "victim", "gem5", "db_bench", "hnsw_bench", "cxl_join_bench",
-    "latency_chase", "pr", "bfs", "cc", "duckdb", "intra_app_corun",
+    "aggressor", "gem5", "db_bench", "hnsw_bench", "cxl_join_bench",
+    "latency_chase", "duckdb", "intra_app_corun", "flushbehind",
 )
+HOSTILE_EXACT = ("pr", "bfs", "cc", "bc", "sssp", "tc", "victim", "validate")
 
 
 class Contention(RuntimeError):
@@ -98,7 +113,8 @@ class HostGuard:
             # binary name (this survey, an editor, a git command) is not a run.
             # That mistake has already cost this project a killed shell and
             # three false "still running" reports.
-            if any(comm == h or comm.startswith(h) for h in HOSTILE_SUBSTR):
+            if (any(h in comm for h in HOSTILE_SUBSTR)
+                    or comm in HOSTILE_EXACT):
                 hostile.append((pid, comm, pcpu))
             elif pcpu >= 20.0 and comm not in BENIGN:
                 busy.append((pid, comm, pcpu))
