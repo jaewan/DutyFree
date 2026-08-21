@@ -107,73 +107,115 @@ reading stands**, and this is the most important open item on the AMD host.
 
 ## Why the dispersion, declared as §6 outcome 5 requires
 
-Two causes, one instrumental and one physical.
+**The variance is between invocations, not within them.** This is the first
+thing to establish, because it decides which remedies are even relevant. If
+every invocation sampled the same underlying distribution, the CoV across
+repetition medians would be the standard error of a median of 300 draws,
+`1.253 sigma / sqrt(300)`. It is not, in any arm:
 
-**The query is too short for the timer.** Times come from DuckDB's CLI `.timer`,
-which prints `Run Time (s): real 0.028` — **1 ms resolution**. All 27000
-measured queries in this artifact are exact integer milliseconds, confirming the
-quantum is the instrument and not a coincidence of the workload. On Intel's
-607 ms query 1 ms is 0.16%; on this 28 ms query it is 3.6%. The quiescent arm
-puts **2326 of its 3000 queries into two adjacent bins** (0.028 and 0.029), and
-its ten repetition medians take only the values 0.028, 0.0285 and 0.029 — one
-quantum wide end to end. Its 3.4% pooled CoV is therefore the *floor* here
-before any real variation.
+| arm | CoV_rep observed | predicted from within-invocation sampling | ratio | half-quantum floor |
+|---|---:|---:|---:|---:|
+| `FB256_match` | 13.10% | 1.41% | 9.3x | 1.44% |
+| `FB0_match` | 7.83% | 0.86% | 9.1x | 1.19% |
+| `WB_fbmatch` | 5.68% | 0.58% | 9.9x | 1.18% |
+| `NTA_sat` | 4.69% | 0.38% | 12.4x | 0.33% |
+| `quiescent` | 1.74% | 0.25% | 7.1x | 1.75% |
+| `WB_sat` | 0.37% | 0.08% | 4.5x | 0.21% |
 
-The short query is not a free choice. `R(N) = 40N` and §2 caps full-mask
-occupancy at 60% of a 16 MiB CCX, which caps N at 100K, which caps the query at
-28 ms. The Intel host has 320 MiB and no such squeeze.
+Every arm carries real invocation-to-invocation structure, 4.5x to 12x more
+than sampling explains.
 
-**The victim is bistable in exactly the arms that matter.** Dispersion is not
-uniform: `WB_sat` reads 0.37% and `quiescent` 1.74%, while the three
-low-filling-core arms read 5.68--13.10%. At 7 filling cores the victim is
-deterministically crushed to 0 MiB; quiescent it deterministically keeps its
-table. The matched pair operates in between, at 2--7 MiB of 16, where the victim
-either retains its hash table or loses it, and small perturbations flip the
-outcome.
+**The timer is a floor, not the driver.** DuckDB's CLI `.timer` has 1 ms
+resolution — all 27000 measured queries in this artifact are exact integer
+milliseconds, so the quantum is the instrument and not a coincidence of the
+workload — and against a 28 ms query that is 3.6% per query. But each
+repetition reports a median of 300 queries, which averages the quantum down to
+the half-quantum column above: **1.2--1.4% for the matched arms against
+5.7--13.1% observed.** The timer explains roughly a ninth of the dispersion in
+the arms that matter. It does bound the quiescent arm, whose 1.74% is
+indistinguishable from its 1.75% floor, and it does set the pooled CoV.
 
-`FB256_match` inv5 shows the flipping directly, without needing a statistic:
-its median is **0.047 s against 0.031--0.035 for the other nine repetitions**,
-and within that single invocation the queries span 0.029 to 0.072 s in three
-visibly separated groups (~0.029--0.043, ~0.044--0.055, ~0.061--0.072). A whole
-repetition displaced by 40%, and a 2.5x spread inside it, is what a bistable
-residency looks like.
+**What does move with runtime is the victim's residency.** Within an arm,
+across its ten repetitions, the invocation's mean victim occupancy predicts its
+median runtime:
 
-**Sarle's bimodality coefficient corroborates this but cannot carry it.** Pooled
-over the arm, `FB256_match` reads 0.754 against the 0.556 uniform threshold,
-the highest in the campaign. But computed per invocation the statistic is noisy
-at n = 300 against a 1 ms quantum: only 1 of `FB256_match`'s 10 invocations
-exceeds the threshold, while 3 of `FB0_match`'s do despite a pooled 0.330, and
-one *quiescent* invocation reaches 0.677 with no streamer running at all. BC is
-reported here for completeness and as corroboration; the evidence that the
-loaded distributions are multimodal is the inv5 structure above and the CoV
-table, not the coefficient.
+| arm | correlation of rep median with rep mean occupancy |
+|---|---:|
+| `NTA_sat` | **-0.818** |
+| `FB256_match` | **-0.815** |
+| `FB0_match` | -0.605 |
+| `WB_fbmatch` | +0.299 |
+| `FB256_sat` | -0.034 |
 
-Consistent with all of this, the matched pair's **intervals** are what the
+Less cache retained, slower — in the three arms with the largest CoV, and not
+in the two where the correlation is absent. `FB256_match` inv5 is the clean
+case: its occupancy runs low for the *entire* invocation, mean 6.0 MiB against
+7.0--7.4 for the other nine, and its median is 47 ms against 31--35. There is
+no warm-up transient to blame — occupancy reaches its level by the first 0.25 s
+sample and stays there. A 15% shortfall in retained cache costs 38% in runtime,
+which is what operating near a cliff looks like: at 7 filling cores the victim
+is deterministically crushed to 0 MiB (`WB_sat` CoV 0.37%), quiescent it
+deterministically keeps its table (1.74%, at the timer floor), and the matched
+pair sits in between at 2--7 MiB of 16, where the outcome is not determined.
+
+Sarle's bimodality coefficient is reported for completeness and carries nothing.
+Pooled over the arm, `FB256_match` reads 0.754 against the 0.556 uniform
+threshold, the highest in the campaign. But per invocation the statistic is too
+noisy at n = 300 against a 1 ms quantum to separate anything: only 1 of
+`FB256_match`'s 10 invocations exceeds the threshold, 3 of `FB0_match`'s do
+despite a pooled 0.330, and one *quiescent* invocation reaches 0.677 with no
+streamer running at all. The evidence that this operating point is unstable is
+the variance decomposition and the occupancy correlation above, not the
+coefficient.
+
+Consistent with all of it, the matched pair's **intervals** are what the
 dispersion destroys, not its point estimate: leave-one-out moves the difference
 only between +0.250 and +0.276, while the 95% interval swings across
 [+0.107, +0.483] depending on which repetition is dropped. The effect is
-probably real and the campaign cannot say so.
+probably real and this campaign cannot say so.
 
 ## What must happen before this host can be quoted
 
-1. **Lengthen the measurement window without touching §2.** `R(N) = 8N + 32N` is
-   build-side only, so raising `probe_rows` (currently 250K against a 100K
-   build) lengthens the query without changing the reused set or any validity
-   condition *by construction*. Condition 2 must still be re-verified
-   empirically — full-mask occupancy is 54.4% with only 5.6 points of headroom,
-   and the probe's own streaming footprint is not nothing.
-2. **Re-run and re-check dispersion.** If CoV falls under 5% and the
-   multimodality goes with it, the operating point is repaired and a verdict may
-   be drawn. If the multimodality survives a 10x longer query, it is physical,
-   and the finding is that a 16 MiB CCX cannot host this victim at a stable
-   operating point — which is a legitimate result and must be reported as one
-   rather than re-tuned around.
-3. **Measure streamer-side occupancy during co-run** for `NTA_sat` and `WB_sat`,
-   to settle outcome 3.
+**A remedy proposed in the first draft of this document is withdrawn here, and
+the reason matters.** That draft proposed lengthening the query by raising
+`probe_rows`, on the grounds that `R(N) = 40N` is build-side only so the
+validity conditions would be untouched. It is wrong twice. **A2 forbids it
+explicitly** — "timing resolution lost to the shorter probe is recovered by
+raising the in-invocation query count, not by lengthening the probe" — because
+P was sized to ~12% of LLC precisely so the victim would stop competing with
+its own scan for the cache it is being measured on; on this host P = 250K is
+2 MB against a 16 MiB CCX, and 10x-ing it would reinstate the exact defect A2
+was written to remove. And independently of A2 it would not work: it attacks
+the within-invocation term, which the table above shows is already 9x too small
+to account for the dispersion. Recorded rather than quietly dropped, because
+the reasoning error — fixing the cause that was easiest to measure rather than
+the one that dominates — is the kind that survives into a paper.
 
-These are declared here, before the re-run, so that a subsequent number cannot
-be selected against the one above. §6.6 governs: fishing for a configuration
-that produces a preferred result is not repair.
+What follows is therefore declared *before* any re-run, with the +0.263 already
+known, so that no subsequent number can be selected against it (§6.6).
+
+1. **Establish what differs between invocations.** Each repetition is a fresh
+   DuckDB process building a fresh hash table, and the L3 is physically
+   indexed, so one candidate is that the physical pages a given invocation
+   receives determine how well its reused set coexists with the streamer, fixed
+   for that invocation's lifetime. That is a hypothesis and nothing here tests
+   it. The measurement that would: repeat one arm with the victim's build
+   arena pre-faulted from hugepages, and compare between-invocation occupancy
+   spread against the 6.2% measured for `FB256_match` here. If the spread
+   collapses, page placement is the driver and is controllable; if it does not,
+   it is not.
+2. **Do not lengthen the query, by either route.** Not the probe (A2), and not
+   the query count, which also attacks only the within-invocation term.
+3. **Re-run only after 1 has a declared answer**, at the same N = 100K, same
+   arms, and report whatever comes out. If the between-invocation spread is
+   controllable and CoV falls under 5%, a verdict may be drawn. **If it is not
+   controllable, the finding is that a 16 MiB CCX cannot host this victim at a
+   stable operating point, and that is a publishable result** — it is reported
+   as such and not re-tuned around. A re-run that lowers CoV must say which
+   change did it.
+4. **Measure streamer-side occupancy during co-run** for `NTA_sat` and
+   `WB_sat`, to settle outcome 3. Independent of the above and worth doing
+   first, being cheaper and more consequential.
 
 ## The asymmetry that must accompany any AMD number
 

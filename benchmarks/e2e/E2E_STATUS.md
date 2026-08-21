@@ -151,13 +151,22 @@ the 5% CoV bar across repetition medians -- `FB256_match` 13.10%, `FB0_match`
 pair. The within-binary matched difference is +0.263 [+0.179, +0.420] and the
 cross-binary +0.298 [+0.174, +0.369], and **neither may be reported as a
 result**. Leave-one-out shows why: the point estimate barely moves (+0.250 to
-+0.276) while the interval swings across [+0.107, +0.483]. Two declared causes
--- DuckDB's CLI `.timer` has 1 ms resolution against a 28 ms query (all 27000
-measured queries are exact integer milliseconds; the quiescent arm puts 2326 of
-3000 into two adjacent bins), and the victim is bistable at the 2--7 MiB
-occupancy where the matched arms operate, deterministic only at 0 and 8 MiB.
-Remedy declared before re-running: raise `probe_rows`, which lengthens the query
-without touching `R(N) = 40N`, then re-verify condition 2 from its 54.4% start.
++0.276) while the interval swings across [+0.107, +0.483].
+
+The cause is **between-invocation**, not within: in every arm the observed
+CoV_rep is 4.5--12x what the standard error of a median of 300 queries predicts.
+DuckDB's 1 ms CLI timer is a real floor -- all 27000 measured queries are exact
+integer milliseconds, and the quiescent arm's 1.74% is indistinguishable from
+its 1.75% half-quantum floor -- but at 1.2--1.4% it explains about a ninth of
+the 5.7--13.1% in the matched arms. What tracks runtime is residency: within an
+arm, the invocation's mean victim occupancy predicts its median runtime at
+r = -0.82 (`NTA_sat`, `FB256_match`) and -0.61 (`FB0_match`). `FB256_match` inv5
+holds 6.0 MiB for its whole duration against 7.0--7.4 elsewhere and runs 47 ms
+against 31--35 -- a 15% shortfall in cache costing 38% in time, the signature of
+an operating point on a cliff. A first-draft remedy (lengthen the query via
+`probe_rows`) is **withdrawn**: A2 forbids it, P being sized to 12% of LLC
+precisely to stop probe-scan pollution, and it targets the within-invocation
+term that is already 9x too small to matter.
 
 **Outcome 3 also fired, and it is a negative for the paper.** `NTA_sat` recovers
 +2.897 [+2.845, +2.992] against `WB_sat` -- about 40% of the tax -- at the same
