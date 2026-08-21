@@ -1,0 +1,12 @@
+mos181: victim cpu40 L3 domain 0, 320 MiB / 20 ways = 16 MiB/way; full=fffff min=1; mode=gate chain=8 builds=[1000000, 2000000, 4000000, 6000000, 8000000]
+[hostguard] mos181 reserved by duckdb_join_gate (pid 1640474)
+  n=  1000000 full quiescent    inv0 eff= 320MiB occ= 167MiB bw=  0.00 median=  1.2050s valid=True
+  n=  1000000 full quiescent    inv1 eff= 320MiB occ= 197MiB bw=  0.00 median=  1.2070s valid=True
+  n=  1000000 full quiescent    inv2 eff= 320MiB occ= 185MiB bw=  0.00 median=  1.2050s valid=True
+  n=  1000000 min  quiescent    inv0 eff=  16MiB occ=  15MiB bw=  0.00 median=  2.9210s valid=True
+  n=  1000000 min  quiescent    inv1 eff=  16MiB occ=  15MiB bw=  0.00 median=  2.9910s valid=True
+  n=  1000000 min  quiescent    inv2 eff=  16MiB occ=  15MiB bw=  0.00 median=  2.9100s valid=True
+  n=  2000000 full quiescent    inv0 eff= 320MiB occ= 223MiB bw=  0.00 median=  1.3380s valid=True
+  n=  2000000 full quiescent    inv1 eff= 320MiB occ= 237MiB bw=  0.00 median=  1.3330s valid=True
+  n=  2000000 full quiescent    inv2 eff= 320MiB occ= 241MiB bw=  0.00 median=  1.3350s valid=True
+  n=  2000000 min  quiescent    inv0 eff=  16MiB occ=  15MiB bw=  0.00 median=  3.3220s valid=True

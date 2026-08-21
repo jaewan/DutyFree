@@ -35,9 +35,16 @@ has no reuse, a chained join probe has both reuse and a dependent chain.
 | `mos181` | star 3-join 1.5M dim | node 2 | 261 / 17 MiB | 1.652 |
 | `mos181` | joinuniq b2M | node 2 | 181 / 20 MiB | 1.641 |
 
-**All three hosts clear 2x on at least one configuration**, and every row
-satisfies the validity condition the panel's referee demanded (reused set well
-above the minimum expressible mask; occupancy tracks the granted mask). Note
+**Corrected 2026-08-21 (see Amendment 1 of the pre-registration).** The
+original text here claimed all three hosts clear 2x. Applying the analytic
+sizing rule `R(N) = 40N` bytes, several rows above are outside the validity
+window and cannot be counted: `mos181` b6M (72% of LLC) and b10M (119%),
+`mos182` b1M (64%), and all `moscxl` b256K rows (62% of the CCX, plus an 80 MB
+probe scan against a 16 MiB cache). What survives is **`mos181` at b4M, 2.432x
+in-window**, and `moscxl` needs re-taking at N=150K. **`mos182` has no
+admissible row above the bar** -- its 2.035x is the invalid b1M, and its best
+admissible point is 1.998x at b500K node 0, at the bar rather than over it.
+Every `mos182` node-2 row is separately suspect (A5). Note
 `joinuniq` -- unique build keys, no duplicate chain -- lands at 1.64 where
 `chain8` lands at 2.43 on the same host and build size. **The chain is the
 variable**, which is the mechanism claim stated as a within-engine control.
