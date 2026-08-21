@@ -276,6 +276,15 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
         mon = group / "mon_data" / f"mon_L3_{domain:02d}"
         smp = Sampler(mon)
         smp.start()
+        # A5.3: the streamer's OWN occupancy, during the victim query rather
+        # than only during settle. A4.1 measured PREFETCHNTA holding the whole
+        # CCX with no victim present, which cannot distinguish MRU from LRU
+        # insertion -- an idle cache fills either way. Only occupancy under
+        # competition can, and nothing sampled it until now.
+        asmp = None
+        if spec:
+            asmp = Sampler(agg_group / "mon_data" / f"mon_L3_{domain:02d}")
+            asmp.start()
         t0 = time.time()
         v = subprocess.run(["numactl", f"--membind={cfg['node']}",
                             f"--physcpubind={cfg['vcpu']}", str(DUCKDB),
@@ -284,6 +293,9 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
         wall = time.time() - t0
         smp.stop = True
         smp.join(timeout=2)
+        if asmp:
+            asmp.stop = True
+            asmp.join(timeout=2)
         times = [float(x) for x in RUNTIME.findall(v.stdout)]
     finally:
         if agg_proc:
@@ -315,6 +327,10 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
                           and loc_l >= loc_f and tot_l >= tot_f),
         "streamer_settle_seconds": settle,
         "occupancy_series": [(round(r[0] - t0, 2), r[1]) for r in smp.rows],
+        # Streamer-side, same sampler and same steady() window as the victim's.
+        "agg_occupancy_bytes_steady": steady(asmp.rows, 1) if asmp else None,
+        "agg_occupancy_series": ([(round(r[0] - t0, 2), r[1]) for r in asmp.rows]
+                                 if asmp else None),
         "agg_bw_gbps": float(kv["bw_gbps"]) if "bw_gbps" in kv else None,
         "agg_threads": int(kv["threads"]) if "threads" in kv else None,
         "agg_mode": kv.get("mode"),
