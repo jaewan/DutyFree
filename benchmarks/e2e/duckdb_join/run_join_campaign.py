@@ -182,6 +182,25 @@ class Sampler(threading.Thread):
             time.sleep(0.25)
 
 
+def mbm_span(rows, idx):
+    """First and last NUMERIC samples of an MBM series, and how many were not.
+
+    resctrl returns the literal string "Unavailable" for a monitoring file
+    whose RMID has not yet been programmed, and on AMD that is reliably true
+    of the first sample after a group is created: every mbm_local_first in the
+    moscxl gate run was "Unavailable" while every mbm_local_last was numeric.
+    Taking rows[0] as the baseline therefore threw away the local-traffic delta
+    outright, and would have done the same to mbm_total on a slower start --
+    silently, because "Unavailable" is a string and nothing downstream was
+    checking. Validity condition 3 is a traffic ratio, so this is not a
+    cosmetic field.
+    """
+    nums = [int(r[idx]) for r in rows if r[idx] is not None and r[idx].isdigit()]
+    if not nums:
+        return None, None, len(rows)
+    return nums[0], nums[-1], len(rows) - len(nums)
+
+
 def steady(rows, idx):
     """Median over the last 60% of samples: skips the table-build phase."""
     vals = [int(r[idx]) for r in rows if r[idx] is not None]
@@ -275,19 +294,25 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
                 agg_proc.kill()
                 agg_out = ""
     kv = parse_agg(agg_out)
+    loc_f, loc_l, loc_u = mbm_span(smp.rows, 2)
+    tot_f, tot_l, tot_u = mbm_span(smp.rows, 3)
     got = installed[str(domain)] if installed else None
     return {
         "arm": arm, "mask_requested": mask, "mask_installed": got,
         "trial_seconds_all": times, "trial_seconds_measured": times[1:],
         "returncode": v.returncode, "wall_seconds": wall,
         "occupancy_bytes_steady": steady(smp.rows, 1),
-        "mbm_local_first": smp.rows[0][2] if smp.rows else None,
-        "mbm_local_last": smp.rows[-1][2] if smp.rows else None,
+        "mbm_local_first": loc_f, "mbm_local_last": loc_l,
+        "mbm_local_unavailable": loc_u,
         # total, not only local: the hand-rolled campaign found flush-behind
         # moving MORE total controller traffic than write-back while taxing the
         # victim far less, which no bandwidth artifact can produce.
-        "mbm_total_first": smp.rows[0][3] if smp.rows else None,
-        "mbm_total_last": smp.rows[-1][3] if smp.rows else None,
+        "mbm_total_first": tot_f, "mbm_total_last": tot_l,
+        "mbm_total_unavailable": tot_u,
+        # A counter that went backwards means the RMID was reassigned mid-arm;
+        # the delta is then meaningless rather than merely noisy.
+        "mbm_monotonic": (loc_f is not None and tot_f is not None
+                          and loc_l >= loc_f and tot_l >= tot_f),
         "streamer_settle_seconds": settle,
         "occupancy_series": [(round(r[0] - t0, 2), r[1]) for r in smp.rows],
         "agg_bw_gbps": float(kv["bw_gbps"]) if "bw_gbps" in kv else None,
