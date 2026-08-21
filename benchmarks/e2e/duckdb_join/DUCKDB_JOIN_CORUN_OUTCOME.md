@@ -101,6 +101,47 @@ partially defends itself**, so a CAT gate is an upper bound on the
 capacity-mediated tax and not an estimate of it. That is a useful correction to
 how the gate has been used in this project, including by me.
 
+## Section 5's bandwidth assertion, discharged late and not cleanly
+
+Section 5 requires that "aggressor achieved bandwidth [be] recorded per
+repetition and asserted within 10% of section 3." The runner records it but
+never asserted it, so the assertion went undischarged until now
+(`check_bandwidth_assertion.py`). Checked per repetition rather than per
+median — a median can sit inside the band while individual repetitions do not,
+and it is the repetitions that enter the paired bootstrap:
+
+| arm | section 3 | campaign min / median / max | worst deviation | verdict |
+|---|---:|---|---:|---|
+| `WB_sat` | 25.019 | 24.58 / 24.95 / 24.99 | -1.7% | pass |
+| `WB_match_hi` | 18.484 | 17.02 / 18.02 / 19.02 | -7.9% | pass |
+| `WB_match_lo` | 10.308 | 10.11 / 10.71 / 11.39 | **+10.5%** | **fail, 1 rep** |
+| `NTA_sat` | 17.969 | 17.55 / 17.81 / 17.88 | -2.3% | pass |
+| `NTA_lo` | 10.751 | 10.76 / 10.78 / 10.78 | +0.3% | pass |
+
+`WB_local` is excluded by construction: it streams from local DRAM while every
+section 3 arm streamed from node 2, so no declared value predicts it, and
+asserting it against a node-2 reference would be the arm-identity error section
+5.1 exists to prevent.
+
+**One repetition of one arm is out of band**, `WB_match_lo` inv2 at 11.39 GB/s,
++10.5% against a 10% tolerance. Two things must be said about it rather than
+one. First, it is not an isolated excursion: *every* `WB_match_lo` repetition
+runs hot, min 10.11 and median 10.71 against a declared 10.308, and the control
+run does the same (min 10.52, worst +9.6%, passing only just). The single-core
+`wb_load` point is reproducibly ~4% faster in the campaign than in
+characterisation. Section 3 measured 6 s runs; the campaign uses a 25 s settle
+and a longer window, so the likeliest explanation is that the two measure
+different steady states — but that is a hypothesis, not a measurement, and it
+is not tested here.
+
+Second, the failing repetition does not carry the result. Dropping inv2, the
+10.8 GB/s de-confound moves from **+0.0930 [+0.0887, +0.0967]** to **+0.0905
+[+0.0883, +0.0968]** — a shift of 0.0025 against an interval roughly 0.008
+wide — and `WB_match_lo`'s tax *rises* slightly, 1.1133 to 1.1152, so the extra
+bandwidth in that repetition did not buy extra tax. The finding stands with the
+deviation disclosed; it is not repaired by widening the tolerance to fit, and
+the tolerance has not been widened.
+
 ## Honest position
 
 1. **The causal claim is supported on a real application, cross-checked two
