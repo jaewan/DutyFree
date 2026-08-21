@@ -50,7 +50,15 @@ HOSTS = {
     "mos181": dict(vcpu="40", agg=[8, 9, 10, 11, 12, 13, 14, 15], node="2",
                    builds=[500_000, 1_000_000, 2_000_000, 3_000_000, 4_000_000],
                    probe=4_000_000),
-    "mos182": dict(vcpu="16", agg=[4, 5, 6, 7, 8, 9, 10, 11], node="2",
+    # Package 1, per A4.7: cpu16 and cpus 4-11 are all in package 0, which on
+    # THIS host is the socket the CXL device does not hang off. Every node-2
+    # access in the orphaned mos182 data therefore crossed the inter-socket
+    # link first. Package 1 is L3 domain 1, NUMA node 1, cpus 32-63 (SMT
+    # siblings 96-127, none recruited: cpu32's sibling is cpu96, and 33-40 are
+    # eight distinct physical cores). This does NOT unblock any mos182 node-2
+    # arm -- A5 still requires the latency ladder to be rebuilt there
+    # (GLIBC_2.38) and to actually pass from package 1 first.
+    "mos182": dict(vcpu="32", agg=[33, 34, 35, 36, 37, 38, 39, 40], node="2",
                    builds=[250_000, 400_000, 500_000, 625_000, 750_000],
                    probe=1_000_000),
     "moscxl": dict(vcpu="8", agg=[9, 10, 11, 12, 13, 14, 15], node="2",
