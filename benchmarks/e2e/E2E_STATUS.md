@@ -85,7 +85,7 @@ defends itself against a streamer in a way it cannot against a mask.
 |---|---|
 | magnitude | **DuckDB join clears the quiescent 2x gate on Intel at every valid size (2.200--2.354x) and on AMD at the one valid size (3.607x)**; the realised Intel co-run tax at the same operating point is 1.467x. GAPBS PageRank and HNSW do not clear it on Intel; PageRank clears it on AMD at g21 (2.580x) |
 | reproducibility | DuckDB corun CoV 1.09--2.66% over 10 reps, quiescent arm reproducing the independent gate sweep to 0.3%; gate CoV 0.02--0.25% on GAPBS/HNSW Intel arms |
-| recovery | **partially measured on Intel.** 56% and 84% at matched bandwidth, 89.5% unmatched -- every recovery figure must say which it is. Non-allocating arm on AMD is flush-behind, not `PREFETCHNTA` (see below); AMD campaign running at N = 100K, 9 arms x 10 reps |
+| recovery | **partially measured on Intel.** 56% and 84% at matched bandwidth, 89.5% unmatched -- every recovery figure must say which it is. **AMD is complete and yields no verdict**: A4.4 outcome 5 fired on CoV, and outcome 3 fired against the mechanism (see below) |
 | frontier | preregistered; unmeasured |
 
 A quantitative by-product worth carrying into the paper: on `mos181` a 320 MiB
@@ -125,8 +125,9 @@ the LLC; traffic ratio 40.6 on `mbm_total`, 14.3 on `mbm_local`) and is the
 **smallest** admitted size that clears, per the §2 selection rule. Amendment 1
 excluded 64K and 80K: at 2.4x the 1 MiB private L2 they sit under the 4x-L2
 floor, which is the trap that produced three earlier nulls in this project, and
-that floor was not relaxed to gain a data point. So the AMD host yields a
-verdict at one size only.
+that floor was not relaxed to gain a data point. So the AMD host admits one
+build size only. (The *gate* clears there; the *co-run* at that size does not
+yield a verdict -- next section.)
 
 Two instrument notes. The AMD query is ~23x shorter than the Intel one, which
 gave the 0.25 s occupancy sampler about two usable samples per arm and read
@@ -137,6 +138,43 @@ separate expander traffic on that part — on `moscxl` they diverge about 10x
 (0.115 against 1.188 GB at full mask), consistent with MBM there attributing
 expander traffic to total but not local. Condition 3 passes on either counter
 and its absolute value remains uninformative, the denominator being near zero.
+
+## AMD co-run: no verdict, and one result that cuts against the mechanism
+
+Complete, 90 arms, all valid. Full reduction in
+`duckdb_join/DUCKDB_JOIN_AMD_CORUN_OUTCOME.md`. Two pre-registered outcomes
+fired.
+
+**Outcome 5 governs: no AMD verdict, and not a vendor null.** Three arms exceed
+the 5% CoV bar across repetition medians -- `FB256_match` 13.10%, `FB0_match`
+7.83%, `WB_fbmatch` 5.68% -- including both members of the primary de-confound
+pair. The within-binary matched difference is +0.263 [+0.179, +0.420] and the
+cross-binary +0.298 [+0.174, +0.369], and **neither may be reported as a
+result**. Leave-one-out shows why: the point estimate barely moves (+0.250 to
++0.276) while the interval swings across [+0.107, +0.483]. Two declared causes
+-- DuckDB's CLI `.timer` has 1 ms resolution against a 28 ms query (all 27000
+measured queries are exact integer milliseconds; the quiescent arm puts 2326 of
+3000 into two adjacent bins), and the victim is bistable at the 2--7 MiB
+occupancy where the matched arms operate, deterministic only at 0 and 8 MiB.
+Remedy declared before re-running: raise `probe_rows`, which lengthens the query
+without touching `R(N) = 40N`, then re-verify condition 2 from its 54.4% start.
+
+**Outcome 3 also fired, and it is a negative for the paper.** `NTA_sat` recovers
++2.897 [+2.845, +2.992] against `WB_sat` -- about 40% of the tax -- at the same
+core count and 1.2% more bandwidth. A4.1 had declared NTA a negative control the
+mechanism predicts will *not* recover, because a victimless sweep measured it
+holding the whole 16 MiB CCX. The contrast is robust where the matched pair is
+not: both arms are inside the CoV bar and all ten leave-one-out estimates are
++2.897 to three decimals. The one untested premise is that victimless occupancy
+cannot distinguish MRU from LRU insertion -- both fill an idle cache. The
+discriminating measurement, **streamer-side L3 occupancy during co-run**, has
+not been made; the runner monitors the victim only. Until it is, the declared
+reading stands.
+
+What did pass: §5's per-repetition bandwidth assertion, cleanly, for the first
+time on either host (every referenced arm within 2.1% of A4.5); the A4.5
+cross-binary instrument check (+0.034, interval includes zero); and the
+quiescent arm against the independent gate (0.0288 vs 0.0280 s, 8 vs 8.70 MiB).
 
 ## Host state
 
