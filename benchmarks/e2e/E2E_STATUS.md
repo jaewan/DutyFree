@@ -174,11 +174,32 @@ core count and 1.2% more bandwidth. A4.1 had declared NTA a negative control the
 mechanism predicts will *not* recover, because a victimless sweep measured it
 holding the whole 16 MiB CCX. The contrast is robust where the matched pair is
 not: both arms are inside the CoV bar and all ten leave-one-out estimates are
-+2.897 to three decimals. The one untested premise is that victimless occupancy
-cannot distinguish MRU from LRU insertion -- both fill an idle cache. The
-discriminating measurement, **streamer-side L3 occupancy during co-run**, has
-not been made; the runner monitors the victim only. Until it is, the declared
-reading stands.
++2.897 to three decimals. The one untested premise was that victimless occupancy
+cannot distinguish MRU from LRU insertion -- both fill an idle cache.
+
+**A5.3 tested it, and the premise holds: the reading is final.** Streamer-side
+L3 occupancy during co-run, 10 repetitions, `duckdb_join/DUCKDB_JOIN_AMD_NTA_DISCRIMINATION.md`.
+NTA holds **86.7% of the CCX**, a rep-paired **0.884 [0.880, 0.889]** of
+`wb_load`'s, against a 0.50 threshold fixed in advance. It allocates and
+recovered anyway, so **the mechanism as stated is wrong**, in the words A5.3
+declared. The same artifact shows why a victimless sweep could never have seen
+it: with no victim the two streamers are identical (15.84 vs 15.89 MiB), and
+under competition `wb_load` yields 0.21 MiB while NTA yields 2.02. The operative
+variable is insertion priority in a cache both streamers fill, not allocation
+versus bypass, and the reverse-causation reading fails on the sign -- the
+`WB_sat` victim drives 2.5x more DRAM traffic and retains 6.8x less cache.
+
+Two consequences beyond the wording. The five-link chain's L2/L3 route harm
+through a binary allocation predicate that does not predict it here. And L5 is
+threatened on AMD: `PREFETCHNTA` is a deployed, unprivileged, single-instruction
+hint that recovered 40% of the excess tax with no OS involvement. It does not
+occupy the paper's corner -- per-instruction, unenforced, not object-scoped,
+vendor-divergent -- but it erodes the magnitude argument for occupying it.
+**Restating L5 is a §9 lead-only decision and has not been taken.**
+
+The same blind spot is **unmeasured on Intel**, where the headline de-confound
+(+0.058, +0.093) also rests on an arm never shown to be non-allocating under
+competition. Pre-registered as A5.4, threshold 25%, and running.
 
 What did pass: §5's per-repetition bandwidth assertion, cleanly, for the first
 time on either host (every referenced arm within 2.1% of A4.5); the A4.5

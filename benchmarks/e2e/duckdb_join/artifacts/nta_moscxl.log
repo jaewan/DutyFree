@@ -1,0 +1,23 @@
+moscxl: victim cpu8 L3 domain 1, 16 MiB / 16 ways = 1 MiB/way; full=ffff min=1; mode=nta chain=8 builds=[100000] probe=250000 (scan 1 MiB = 12% of LLC)
+[hostguard] moscxl reserved by duckdb_join_nta (pid 194807)
+  n=   100000 R=  3MiB full NTA_sat      inv0 eff=  16MiB occ=   2MiB bw= 24.51 settle=  25s med=  0.1540s  77.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv0 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv1 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2600s 130.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv1 eff=  16MiB occ=   2MiB bw= 24.51 settle=  25s med=  0.1650s  82.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv2 eff=  16MiB occ=   0MiB bw= 24.28 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv2 eff=  16MiB occ=   1MiB bw= 24.55 settle=  25s med=  0.1600s  80.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv3 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2600s 130.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv3 eff=  16MiB occ=   2MiB bw= 24.53 settle=  25s med=  0.1610s  80.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv4 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv4 eff=  16MiB occ=   2MiB bw= 24.52 settle=  25s med=  0.1620s  81.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv5 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv5 eff=  16MiB occ=   1MiB bw= 24.52 settle=  25s med=  0.1680s  84.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv6 eff=  16MiB occ=   1MiB bw= 24.53 settle=  25s med=  0.1610s  80.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv6 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv7 eff=  16MiB occ=   0MiB bw= 24.28 settle=  25s med=  0.2600s 130.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv7 eff=  16MiB occ=   2MiB bw= 24.54 settle=  25s med=  0.1630s  81.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv8 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2620s 131.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv8 eff=  16MiB occ=   2MiB bw= 24.46 settle=  25s med=  0.1610s  80.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv9 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv9 eff=  16MiB occ=   2MiB bw= 24.52 settle=  25s med=  0.1620s  81.00ns/out valid=True
+[hostguard] lock released

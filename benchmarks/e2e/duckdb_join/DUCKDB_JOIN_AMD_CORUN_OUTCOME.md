@@ -85,9 +85,22 @@ The discriminating measurement is **streamer-side L3 occupancy during the
 co-run**, `NTA_sat` against `WB_sat`. If NTA's streamer occupancy collapses
 under competition while `wb_load`'s holds near 16 MiB, A4.1's premise fails and
 outcome 3's inference does not go through; if both hold, the mechanism is wrong
-as declared. No artifact in this repository contains that measurement — the
-runner monitors the victim's group only. Until it is made, **the declared
-reading stands**, and this is the most important open item on the AMD host.
+as declared.
+
+**It has since been made, and both hold.** A5.3, 2026-08-22, 10 repetitions:
+NTA's streamer occupancy under co-run is **86.7% of the CCX** and **0.884
+[0.880, 0.889]** of `wb_load`'s, against a threshold of 0.50 fixed before the
+measurement. NTA allocates under competition, and the declared reading above
+therefore stands as the final one rather than the provisional one: **the
+mechanism as stated is wrong.**
+
+The same artifact also shows what A4.1 could not have seen and what the
+victim-side counters above were groping towards. With no victim competing the
+two streamers are identical (15.84 and 15.89 MiB); under competition `wb_load`
+yields 0.21 MiB and NTA yields 2.02. The operative variable is insertion
+priority in a cache both streamers fill, not allocation versus bypass. Full
+result, including why the reverse-causation reading fails on the sign, in
+`DUCKDB_JOIN_AMD_NTA_DISCRIMINATION.md`.
 
 ## What did work
 

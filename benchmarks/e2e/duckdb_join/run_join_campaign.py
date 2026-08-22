@@ -93,7 +93,12 @@ AMD_ARMS = {
     "quiescent":    None,
     "WB_sat":       ("wb_load", 7, "2"),          # 24.72 GB/s, occ 16.00 MiB
     "WB_local":     ("wb_load", 7, "0"),          # local-DRAM placement control
-    "NTA_sat":      ("wb_prefetchnta", 7, "2"),   # 24.68, occ 16.00 -- allocates
+    # A5.3: the 16.00 MiB here is VICTIMLESS and does not mean what this
+    # comment used to say it meant. Under co-run this arm holds 13.88 MiB
+    # (86.7% of the CCX) against wb_load's 15.69, and yields 2.02 MiB to a
+    # competing victim where wb_load yields 0.21. It allocates, but it is
+    # not a negative control: it recovers 40% of the excess tax.
+    "NTA_sat":      ("wb_prefetchnta", 7, "2"),   # 24.68; occ 16.00 idle, 13.88 competed
     "FB0_sat":      ("flushbehind_f0", 7, "2"),   # 24.69, occ 16.00
     "FB256_sat":    ("flushbehind_f256", 7, "2"), # ~15.8, occ ~0.8
     "FB0_match":    ("flushbehind_f0", 1, "2"),   # 12.88, occ 16.00
