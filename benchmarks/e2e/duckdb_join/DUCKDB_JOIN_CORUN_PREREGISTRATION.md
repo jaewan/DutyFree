@@ -1436,3 +1436,78 @@ Items 1 and 2 change a pre-registered command and its decision rule, so per the
 same treatment as the `-n 4` parity defect they are **left for the lead** and
 are not taken by the runner. Recorded now rather than at run time so that the
 sizes are fixed before any `mos182` number exists.
+
+## A6.12: `wait_for_streamer` times out silently on the f256 arms, and it is not the missing marker
+
+Dated 2026-08-23 00:05, block running. Diagnostic on committed artifacts only.
+**No exclusion, no apparatus change, and Rule O is untouched.** Nothing here is
+applied to the block in flight; the gate is left exactly as it is, per the rule
+that apparatus does not change mid-campaign.
+
+### The defect
+
+`wait_for_streamer` (`run_join_campaign.py:226`) waits for the streamer's own
+L3 occupancy to hold within 5% across three 1 s samples, with a 25 s floor and
+a 60 s cap. The cap is `if el >= cap: return el` -- it returns **with no
+stability guarantee and no flag**. The only trace that the gate gave up rather
+than passed is `streamer_settle_seconds` reading ~60.03.
+
+It gives up often, and only in one place. Across every committed co-run
+artifact:
+
+| arm | n | ran to the 60 s cap |
+|---|---:|---:|
+| `FB256_sat` | 10 | **10** |
+| `FB256_match` | 10 | **6** |
+| all six other AMD arms | 60 | **0** |
+| every `mos181` arm (both campaigns) | 120 | 0 (117 returned at the 25 s floor) |
+
+The split is total: the two `flushbehind -f 256` arms account for every timeout
+in the project, and no other arm has ever hit the cap. That is a property of
+the streamer rather than the host -- flush-behind continuously invalidates what
+it just wrote, so its occupancy does not hold a 5% window, and a stability test
+written for a filling streamer cannot be satisfied by one whose steady state is
+churn. **The f256 arms are the paper's recovery arms**, so the precondition the
+gate exists to establish is unverified for exactly the two arms the recovery
+claim rests on.
+
+On `mos181` the opposite holds and is worth stating: the gate returned at its
+25 s floor in 117 of 120 arms, so there it never bound and is a fixed sleep
+wearing a stability check.
+
+A second, independent weakness, unexercised as far as this data shows: three
+samples span two seconds, so any ramp slower than ~2.5%/s satisfies the window
+while still climbing. The gate cannot distinguish a plateau from a slow ramp.
+
+### It did not bias this campaign, and it is not the anomaly's marker
+
+That was the reason to look, and the answer is no on both counts. Stated
+plainly because a defect that sounds like it should explain the dispersion is
+worth killing explicitly:
+
+- **`FB256_sat` is capped 10/10 and is among the tightest arms in the
+  campaign** -- CoV_rep 1.56%, medians 72.0--76.0 ms. Running to the cap every
+  single time is compatible with near-perfect reproducibility, so timing out
+  does not by itself produce instability.
+- **Within `FB256_match`, capped and non-capped repetitions are the same.**
+  Median of the six capped is 33.5 ms; of the four non-capped, 34.5 ms.
+- **The campaign's signature anomaly is on the wrong side of the split.**
+  `FB256_match` inv5 -- 47 ms against 31--35, the invocation whose removal takes
+  the arm from 13.10% to 4.50% -- settled in 33 s and was **not** capped.
+
+So A6.1's finding stands: no independent marker of the anomalous invocations
+exists in the recorded fields, and `streamer_settle_seconds` is not one either.
+A6.9's AV-burst hypothesis remains the live candidate and remains a hypothesis.
+
+### What follows
+
+1. The gate should record its own outcome -- a `streamer_settle_timeout` boolean
+   -- so a timeout is visible without inferring it from a float. **Not now.**
+   The block in flight is already producing capped f256 arms (`FB256_sat` inv0
+   logged `settle= 60s` at 23:26), and changing the runner mid-campaign is
+   exactly what A6.10's correction forbids.
+2. Whether the f256 arms need a *different* settle criterion -- one written for
+   a streamer whose steady state is churn rather than occupancy -- is a real
+   question and a change to a pre-registered procedure. Left for the lead.
+3. Neither item affects the A6 verdict, which is a paired difference between
+   arms measured under the same gate.
