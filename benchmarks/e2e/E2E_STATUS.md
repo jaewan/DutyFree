@@ -309,7 +309,7 @@ the AMD de-confound exists and is put to the lead.**
 Unexcluded: time of day. The campaign ran late at night, this run in the
 afternoon, on a host with other logged-in users. Nothing here tests it.
 
-## A6: the re-run is pre-registered, not yet run
+## A6: the re-run is pre-registered, and launched
 
 The lead directed the re-run, so it is taken on that instruction rather than
 because a diagnostic cleared it -- A5.2 clears nothing. **Amendment 6 of
@@ -325,6 +325,19 @@ and occupancy. Occupancy is the mediator, so there is nothing to exclude on that
 is not the outcome variable. Hence the fixed rule: **no repetition is excluded
 for any reason relating to its runtime, its occupancy, or its effect on any
 estimate.** n rises 10 -> 30, all nine arms, nothing else changes, 4.9 h.
+
+**Launched 2026-08-22 14:50, armed for the declared 22:00 block** (`run_a6_block.sh`,
+detached on `moscxl`, ~4.9 h, artifacts `join_corun30_moscxl.jsonl` /
+`corun30_moscxl.log`). The freeze was verified against `d8eda44` before launch
+and is re-verified into the log before the first arm: performance governor on
+all 512 CPUs, boost 0, `numa_balancing` 0, `perf_event_paranoid` -1, THP
+madvise, cpu8 at 2.25 GHz, no reboot since 2026-08-19. `MODE=corun30` gives the
+re-run its own artifact rather than appending to the campaign's; the interleave
+RNG is unchanged at seed 20260821, so repetitions 0-9 reproduce the campaign's
+exact arm ordering and 10-29 continue the stream. The runner has moved since the
+campaign only by the A5.2 THP patch, which is inert with `VICTIM_PRELOAD` unset
+(a `None` field and `env=dict(os.environ)`); a two-arm smoke test on the same
+path reproduced the campaign to 0.0330 s at 15.39 GB/s against 0.0340 at 15.42.
 
 Raising n is not a dispersion remedy and A6 forbids reporting it as one. The
 original 5% CoV bar is retained unweakened; two stability checks are *added* and
