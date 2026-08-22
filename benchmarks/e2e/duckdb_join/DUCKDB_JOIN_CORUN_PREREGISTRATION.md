@@ -1187,3 +1187,60 @@ The restart is the last one A6.2 allows and the host now has a known aborting
 process on an unknown schedule, so when to spend it is put to the lead rather
 than taken. Nothing about n, the arms, the seed, the operating point, Rule O or
 S1/S2/S3 changes.
+
+## A6.10 The restart is spent tonight, and the deployed guard is repaired first
+
+Written and committed 2026-08-22 23:25, **before the first record of the
+restart exists**. Both changes below were put to the lead as decisions in
+A6.9's terms and both are the lead's answer: **spend the restart as soon as
+possible**, and **deploy the age-exemption fix**.
+
+This is A6.2's one permitted restart. There is no further attempt.
+
+### The guard fix, and what was deliberately not deployed
+
+The deployed guard's BUSY rule was `pcpu >= 20.0 and comm not in BENIGN`. It is
+now `pcpu >= 20.0 and etimes >= MIN_AGE_SECONDS and comm not in BENIGN` with
+`MIN_AGE_SECONDS = 10`, which is the repo's reviewed text. HOSTILE matching is
+untouched and still aborts at any age.
+
+**Only the age exemption was taken.** The repo copy also rewrites the HOSTILE
+lists, and that rewrite adds `"flushbehind"` as a substring — this campaign's
+own recovery arm is `amd_flushbehind_aggressor`. Deploying the repo file
+wholesale would have armed the guard against the experiment it guards. The
+approved change was the age exemption and only the age exemption was made.
+
+- before: `hostguard.py` md5 `78e9efcd92da92c1084984722afdb47f`, retained at
+  `lib/hostguard.py.pre_A6.10`
+- after: md5 `8aefe9deec4286c642579930535434b9`, verified by import:
+  `MIN_AGE_SECONDS = 10`, `HOSTILE_SUBSTR` unchanged, survey clean
+
+**It cannot move a measured value.** The guard runs between arms and decides
+only whether a block aborts, never what a query costs. But the restart is now
+run under an apparatus that differs from the one the campaign, A5.2 and the
+aborted block ran under, and that is recorded rather than left implicit.
+
+### What the ASAP instruction costs, stated before the run
+
+Start ~23:26, projected finish **~04:26** at the aborted block's observed
+66.7 s/arm.
+
+1. **`e2scrub_all` at 03:10:33 falls inside the block**, roughly 78% of the way
+   through, near arm 210 of 270. A6.7 identified this job as a genuine abort
+   risk and the whole reason the original 22:00 start was analysed for it. The
+   age exemption does not help: an fsck-class job is neither young nor benign.
+   **If it fires, the campaign ends with no verdict and no attempt remaining.**
+   This exposure is accepted on the lead's instruction, not overlooked.
+2. **Time-of-day is now further from the campaign than at any earlier point.**
+   The campaign ran 22:11--23:49; this block starts after 23:26 and spends four
+   of its five hours in early-morning hours no prior AMD block has occupied.
+   A6.8's caveat applies with more force, and A6.3 clause 3's anomaly-incidence
+   comparison is now against blocks sharing almost none of their hours.
+3. The midnight jobs A6.7 tabulated now fall ~11% into the block rather than
+   40%, so an abort there would cost little; that is the one improvement.
+
+### Unchanged
+
+n = 30, the nine arms, the 20260821 interleave seed, N = 100K, the operating
+point, Rule O, S1/S2/S3, and every branch's fixed wording. The 96-record
+aborted partial stays unmerged. The contention watcher stays diagnostic only.
