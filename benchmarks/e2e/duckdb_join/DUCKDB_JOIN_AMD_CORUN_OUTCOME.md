@@ -163,7 +163,18 @@ median runtime:
 Less cache retained, slower — in the three arms with the largest CoV, and not
 in the two where the correlation is absent. `FB256_match` inv5 is the clean
 case: its occupancy runs low for the *entire* invocation, mean 6.0 MiB against
-7.0--7.4 for the other nine, and its median is 47 ms against 31--35. There is
+7.0--7.4 for the other nine, and its median is 47 ms against 31--35.
+
+**A5.2 has since qualified this paragraph, 2026-08-22.** The correlation is real
+and reproduces (r = -0.856 here, -0.605 and -0.830 in two fresh blocks). The
+*attribution to the operating point* does not. Removing inv5 alone takes this
+arm from 13.10% to 4.50%, under the bar; `WB_fbmatch` likewise falls to 3.56% on
+one removal, though `FB0_match` stays at 6.98% and is genuinely broadly
+dispersed. And a fresh **quiescent** arm -- no streamer, no contention, idle
+frozen host -- produced CoV_rep 13.40% with a best leave-one-out of 1.59%, one
+invocation at 0.0400 s against 0.0280. The 1.4x excursion is an invocation-level
+anomaly that occurs with the aggressor absent, so it cannot be the signature of
+a co-run operating point on a cliff. See `DUCKDB_JOIN_A52_OUTCOME.md`. There is
 no warm-up transient to blame — occupancy reaches its level by the first 0.25 s
 sample and stays there. A 15% shortfall in retained cache costs 38% in runtime,
 which is what operating near a cliff looks like: at 7 filling cores the victim
@@ -206,6 +217,15 @@ the one that dominates — is the kind that survives into a paper.
 
 What follows is therefore declared *before* any re-run, with the +0.263 already
 known, so that no subsequent number can be selected against it (§6.6).
+
+**Status 2026-08-22: item 1 has run and item 4 is complete; see A5.2 and A5.3.**
+Item 1's declared measurement was made and **hugepages do not control the
+spread** (5.69% against a contemporaneous 5.90%, needing < 3%), so item 3's
+re-run is *not* licensed by it. A5.2 could not reach its second branch either,
+because the 13.10% comparator failed to reproduce on the same frozen host.
+Whether a plain re-run may be taken on that basis is put to the lead in
+`DUCKDB_JOIN_A52_OUTCOME.md`; it is not taken here, because the target number is
+already known and A5.2 says "no conclusion, and no re-run."
 
 1. **Establish what differs between invocations.** Each repetition is a fresh
    DuckDB process building a fresh hash table, and the L3 is physically

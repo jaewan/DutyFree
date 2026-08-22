@@ -261,6 +261,54 @@ failed. Whether the L5 restatement now owed on AMD extends to Intel, and what
 either does to the paper's page-1 posture, are **§9 lead-only decisions and are
 not taken here.**
 
+## A5.2: hugepages do not control the spread, and the comparator did not reproduce
+
+`moscxl`, two blocks of 10 x 2 arms, 40 records, all valid,
+`duckdb_join/DUCKDB_JOIN_A52_OUTCOME.md`. Run under a shim
+(`tools/thp_arena.c`) that marks the victim's arena `MADV_HUGEPAGE` and
+pre-faults it, scoped to the victim process so the **frozen host state is not
+touched**; every repetition obtained 24--28 MiB of `AnonHugePages` against 0
+host-wide, which is the check that stops a silently no-op shim from producing a
+null indistinguishable from a real one.
+
+**The pass branch is ruled out on absolute thresholds**: spread **5.69%** and
+CoV_rep **5.29%**, needing < 3% and < 5%. Against a contemporaneous control the
+spread is unchanged (5.90%) and CoV_rep slightly worse (4.28%). So page
+placement is not a controllable driver and **no hugepage re-run is licensed** --
+that was the only thing a pass would have bought. The occupancy spread is in
+fact the stable quantity: 5.95% historically, 5.90% today, 5.69% with
+hugepages, three readings within 0.26 points across a day and across the
+manipulation.
+
+**The other branch is void, and that is the finding.** The declared validity
+condition fired: the contemporaneous no-shim control -- same host, same frozen
+state, same arm, no manipulation -- ran at **CoV_rep 4.28%** against the
+campaign's **13.10%**. Not a state change (the campaign ran 22:11 on 08-21,
+*after* the 21:23 freeze, and absolute medians agree to 3%). The 13.10% is
+**one invocation**: dropping `FB256_match` inv5 gives 4.50%, and `WB_fbmatch`
+falls to 3.56% on one removal too, though `FB0_match` stays at 6.98% and is
+genuinely dispersed -- so **outcome 5 does not collapse and is not retracted.**
+
+The decisive observation is in this run's own **quiescent** arm: CoV_rep
+**13.40%**, best leave-one-out **1.59%**, one invocation at 0.0400 s against
+0.0280 -- **with no streamer running at all.** A 1.4x excursion that happens on
+an idle host with no aggressor cannot be the signature of a co-run operating
+point on a cliff, which is how the AMD outcome document read it. The
+occupancy-runtime correlation it rested on is real and reproduces (-0.856,
+-0.605, -0.830); the attribution does not.
+
+**A plain re-run of the AMD campaign is deliberately not taken.** If today's
+control sits at 4.28%, a repetition might clear the bar and hand back the
++0.263 that outcome 5 voided -- which is exactly why A5.2 says "no conclusion,
+and no re-run," and exactly the move §6.6 names: the target number is already
+known, so a re-run chosen because a pilot suggested the bar would clear is
+selected on its outcome. Legitimising it needs a pre-registration with the
+repetition count and the outlier rule fixed in advance. **That decides whether
+the AMD de-confound exists and is put to the lead.**
+
+Unexcluded: time of day. The campaign ran late at night, this run in the
+afternoon, on a host with other logged-in users. Nothing here tests it.
+
 ## Host state
 
 `moscxl` is **frozen** as of commit `d8eda44`: all 512 CPUs on the
@@ -319,6 +367,9 @@ rebuilt on the host. Detail in the preregistration's A4.7.
   allocates under competition on Zen4c and recovered anyway
 - `duckdb_join/DUCKDB_JOIN_INTEL_NTA_DISCRIMINATION.md` -- A5.4: it allocates
   on Intel too, and occupancy does not order the harm within a single host
+- `duckdb_join/DUCKDB_JOIN_A52_OUTCOME.md` and `..._A52_RUN_DECISIONS.md` --
+  A5.2: hugepages do not control the spread, and the 13.10% that voided the AMD
+  campaign did not reproduce
 - `duckdb_join/DUCKDB_JOIN_CHAIN_CONTROL_OUTCOME.md` -- the `joinuniq`
   within-engine control, and what the counters may and may not be cited for
 - `gapbs/GAPBS_CAT_SENSITIVITY_OUTCOME.md` -- result, both falsified

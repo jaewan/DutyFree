@@ -1,0 +1,23 @@
+moscxl: victim cpu8 L3 domain 1, 16 MiB / 16 ways = 1 MiB/way; full=ffff min=1; mode=thpctl chain=8 builds=[100000] probe=250000 (scan 1 MiB = 12% of LLC)
+[hostguard] moscxl reserved by duckdb_join_thpctl (pid 295493)
+  n=   100000 R=  3MiB full FB256_match  inv0 eff=  16MiB occ=   7MiB bw= 15.40 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv0 eff=  16MiB occ=   9MiB bw=  0.00 settle=   0s med=  0.0270s  13.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv1 eff=  16MiB occ=   9MiB bw=  0.00 settle=   0s med=  0.0270s  13.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv1 eff=  16MiB occ=   7MiB bw= 15.38 settle=  33s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv2 eff=  16MiB occ=   9MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv2 eff=  16MiB occ=   6MiB bw= 15.39 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv3 eff=  16MiB occ=   9MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv3 eff=  16MiB occ=   7MiB bw= 15.41 settle=  56s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv4 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv4 eff=  16MiB occ=   7MiB bw= 15.44 settle=  60s med=  0.0310s  15.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv5 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv5 eff=  16MiB occ=   7MiB bw= 15.42 settle=  60s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv6 eff=  16MiB occ=   6MiB bw= 15.39 settle=  60s med=  0.0360s  18.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv6 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv7 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv7 eff=  16MiB occ=   6MiB bw= 15.39 settle=  60s med=  0.0350s  17.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv8 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv8 eff=  16MiB occ=   7MiB bw= 15.40 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv9 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv9 eff=  16MiB occ=   6MiB bw= 15.42 settle=  44s med=  0.0340s  17.00ns/out valid=True
+[hostguard] lock released
