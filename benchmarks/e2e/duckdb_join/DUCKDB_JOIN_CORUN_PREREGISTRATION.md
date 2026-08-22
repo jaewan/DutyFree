@@ -1300,3 +1300,57 @@ so any tooling that periodically shells out is a self-inflicted abort risk.**
 That includes future monitoring. The A5 practice of polling by repeated `ssh`
 was doubly exposed -- the login and whatever the login ran -- and A6.9's rule
 against interactive polling during a block should be read as covering both.
+
+### Correction to A6.10's stated reason for withholding the repo HOSTILE list
+
+Dated 2026-08-22 23:40, block at ~9/270. **The decision recorded in A6.10 stands
+and nothing deployed changes. Its stated justification was wrong, and the wrong
+version is in a committed amendment and in a comment in the deployed source, so
+it is corrected here rather than quietly.**
+
+A6.10 said the repo's `HOSTILE_SUBSTR` could not be deployed because it adds
+`flushbehind` as a substring, and this campaign's recovery arm is
+`amd_flushbehind_aggressor`, so deploying it "would arm the guard against the
+experiment it is guarding."
+
+That does not follow. `assert_quiescent` is called at
+`run_join_campaign.py:462`, strictly before `run_arm` starts any streamer, with
+`cleanup()` in a `finally`. At the instant of the check no campaign streamer
+exists, so a hostile *name* match on our own binary cannot fire during normal
+operation.
+
+The decisive evidence was available the whole time and I did not look at it:
+**`duckdb` is already on the deployed hostile list, and the victim is `duckdb`.**
+The AMD campaign ran 90/90 arms with no aborts, and the Intel campaigns likewise.
+Had the check's timing been unsafe, the guard would have aborted on its own
+victim on the first arm of every campaign ever run. It never has.
+
+What confused me is a real observation misread. The contention watcher does log
+`amd_flushbehind` at 679% (A6.11), but the watcher samples every 5 s including
+mid-arm, whereas the guard samples only between arms. I took the watcher's view
+of the host for the guard's view of it.
+
+**The repo copy is therefore correct, and is better than what is deployed**, for
+the reason its own comment gives: `comm` is truncated to 15 characters, so
+`amd_flushbehind` does not start with `aggressor`, and the deployed prefix rule
+misses a *foreign* operator's flush-behind streamer entirely -- catching it only
+incidentally via the >= 20% rule, which will not fire on a low-rate or
+just-started one. That is exactly the process this guard exists to see, and on
+the deployed copy it is invisible. The residual case where the repo list fires
+on our own binary is a leaked streamer from a prior arm, which **should** abort.
+
+The decision not to deploy it at 23:24 remains right for the sufficient reason
+that stands on its own: **apparatus is not changed mid-campaign beyond the
+minimum required to run at all.** The age exemption was required -- an ssh login
+had been shown to abort a block. The hostile-list change was not required by
+anything, and taking it would have moved the apparatus further from the campaign
+this block must be comparable against. That is the reason A6.10 should have
+given.
+
+**Consequence, and it is not taken now.** Reconciling the deployed copy to the
+repo is a real gap: until it is done, `moscxl` cannot see a foreign flush-behind
+streamer. It is not touched while a block is running, and it is not folded into
+this campaign afterwards either, because the 270 arms must all be measured under
+one apparatus. It is queued for after the block, and any campaign that follows
+should be run against a reconciled guard with the md5 recorded at launch, as
+this one records its own.
