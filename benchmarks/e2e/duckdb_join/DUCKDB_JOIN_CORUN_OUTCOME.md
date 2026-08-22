@@ -6,6 +6,33 @@ measured queries per invocation, host exclusivity enforced per arm, streamer
 settle gated on its own occupancy. All 70 arms valid. **Supersedes**
 `DUCKDB_JOIN_FINDING_2026-08-21.md`, whose numbers are withdrawn.
 
+## Amendment, 2026-08-22: "non-allocating" is withdrawn as a label for these arms
+
+A5.4 measured streamer-side L3 occupancy for the two `wb_prefetchnta` arms
+below, under competition, on this host. They hold **43.6% and 68.2% of the
+320 MiB LLC** while the victim runs, against `wb_load`'s 77.5% and 78.1%, and
+against 5.5% for the only arm this project has ever shown to be non-allocating
+(AMD flush-behind). Rep-paired ratios 0.637 [0.557, 0.754] and 0.875 [0.852,
+0.893], against a 0.25 threshold fixed in advance: **both fail.**
+
+Per A5.4's declared consequence, every de-confound and recovery figure in this
+document is relabelled. `NTA_sat` and `NTA_lo` are **less-allocating** arms, not
+non-allocating ones. The contrast is a **dose-response between two allocating
+streamers**, and the causal result -- that at matched bandwidth the streamer's
+allocation behaviour changes the victim's slowdown, with intervals excluding
+zero -- is unaffected. The relabelling is applied in place below; the numbers
+are unchanged, and A5.4 independently reproduced them (+0.069 and +0.102
+against the +0.058 and +0.093 here). See
+`DUCKDB_JOIN_INTEL_NTA_DISCRIMINATION.md`.
+
+**One reading is now barred.** That NTA still allocates 44--68% does not license
+"a truly non-allocating streamer would recover more, so these figures are
+conservative." That requires tax to be monotone in streamer occupancy, which
+A5.3 disproved on AMD and which A5.4 disproves again here: across the two levels
+below, the pair giving up 33.9 points of streamer occupancy recovers *less*
+excess tax (57.8%) than the pair giving up 9.9 points (85.6%). The core-count
+conservatism argued further down is a separate argument and still stands.
+
 ## Result
 
 Victim: DuckDB v1.1.3, chain8 many-to-many join, N = 2M build rows over 250K
@@ -29,18 +56,22 @@ occupancy 142 vs 138 MiB).
 ## The de-confound: allocation is implicated, and the effect is small
 
 The control this campaign existed to run. At each of two bandwidth levels, a
-write-back streamer is compared against a non-allocating one at the same
-achieved bandwidth:
+write-back streamer is compared against a *less-allocating* one at the same
+achieved bandwidth (streamer-occupancy percentages from A5.4, measured on the
+same arms at the same operating point):
 
-| level | write-back | non-allocating | paired difference | 95% CI |
+| level | write-back | less-allocating | paired difference | 95% CI |
 |---|---|---|---:|---|
-| ~18 GB/s | 1.112x (18.02, occ 67 MiB) | 1.049x (17.81, occ 126 MiB) | **+0.058** | [+0.047, +0.071] |
-| ~10.8 GB/s | 1.113x (10.71, occ 66 MiB) | 1.018x (10.78, occ 93 MiB) | **+0.093** | [+0.089, +0.097] |
+| ~18 GB/s | 1.112x (18.02, occ 67 MiB, streamer 77.5%) | 1.049x (17.81, occ 126 MiB, streamer 43.6%) | **+0.058** | [+0.047, +0.071] |
+| ~10.8 GB/s | 1.113x (10.71, occ 66 MiB, streamer 78.1%) | 1.018x (10.78, occ 93 MiB, streamer 68.2%) | **+0.093** | [+0.089, +0.097] |
 
-Both intervals exclude zero, and the occupancy column moves with the tax rather
-than with the bandwidth. **Holding the byte rate fixed and changing only
-whether the streamer allocates changes the victim's slowdown.** That is the
-abstract's central de-confound, on a real application, with an interval.
+Both intervals exclude zero, and the victim-occupancy column moves with the tax
+rather than with the bandwidth. **Holding the byte rate fixed and changing how
+much the streamer allocates changes the victim's slowdown.** That is the
+abstract's central de-confound, on a real application, with an interval. It is
+a dose-response, not a binary contrast: read the two streamer-occupancy columns
+together and note that they do not order the effect -- 33.9 points buys +0.058
+and 9.9 points buys +0.093.
 
 **Neither pre-registered outcome fired, and this must be said plainly.**
 Outcome 1 required `WB_match_hi >= 1.5x` with `NTA_sat <= 1.2x`; the measured
@@ -64,14 +95,16 @@ cited: exp40's pointer-chase victim measured 2.042x at 24.82 GB/s and 2.025x at
 
 It also means **this campaign's headline control is conservative by
 construction, and now measurably so.** The matched-bandwidth write-back arms use
-1 and 2 cores against non-allocating arms on 2 and 8, and an 8-core write-back
+1 and 2 cores against less-allocating arms on 2 and 8, and an 8-core write-back
 streamer taxes 1.467x where a 2-core one at the same bandwidth taxes 1.112x. So
 the +0.058 and +0.093 figures **understate** allocation's contribution.
+That argument is about core count and survives A5.4 untouched; the separate
+argument from residual NTA allocation does not, and is barred above.
 
 ## What the campaign can and cannot bracket
 
 The largest tax observed, `WB_sat` at 1.467x, **cannot be decomposed**, because
-`PREFETCHNTA` saturates this CXL link at ~18 GB/s and no non-allocating arm
+`PREFETCHNTA` saturates this CXL link at ~18 GB/s and no less-allocating arm
 reaches 25 GB/s. There is no bandwidth-matched partner for it, and `-R` pacing
 is barred. So allocation's contribution is bracketed rather than pinned:
 
@@ -85,6 +118,11 @@ Expressed as recovery, the distinction matters: the bandwidth-unmatched
 comparison gives **89.5%** recovery, and the bandwidth-matched ones give
 **56%** and **84%**. Any recovery figure quoted from this victim must say which
 it is. The orphaned run's 84-91% was of the unmatched kind.
+
+Post-A5.4, each of those is **recovery delivered by a partially-allocating
+streamer**, not an estimate of what non-allocation would deliver, and must be
+quoted that way. There is no non-allocating arm on this host to estimate it
+with.
 
 ## The gap between capacity headroom and realised tax
 
@@ -165,3 +203,8 @@ victim cache with no reuse-aware insertion to defend the victim -- and where
 `PREFETCHNTA` appears not to change insertion at all, so flush-behind is the
 only viable non-allocating arm. `moscxl` must be frozen and captured first.
 `mos182` node-2 arms remain gated behind the latency-ladder check.
+
+*Done as of 2026-08-21; see `DUCKDB_JOIN_AMD_CORUN_OUTCOME.md`. The conjecture
+in the paragraph above turned out to be right and is now the project's only
+demonstrated non-allocating arm -- A5.3 and A5.4 disqualified `PREFETCHNTA` as
+one on both vendors.*

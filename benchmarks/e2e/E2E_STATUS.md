@@ -1,6 +1,6 @@
 # E2E status
 
-Updated 2026-08-21, second revision. The first revision of this file, written
+Updated 2026-08-22, third revision. The first revision of this file, written
 after the GAPBS and HNSW capacity gates and before the DuckDB campaign,
 contained a claim this revision **retracts**; see the box below.
 
@@ -60,15 +60,17 @@ de-confound now holds on it with an interval.** `mos181`, N = 2M, seven arms x
 10 repetitions, host exclusivity enforced per arm, streamer settle gated on the
 streamer's own occupancy, all 70 arms valid:
 
-- At ~18 GB/s, write-back taxes the victim **1.112x** and a non-allocating
+- At ~18 GB/s, write-back taxes the victim **1.112x** and a less-allocating
   streamer at the same byte rate taxes it **1.049x**: paired difference
   **+0.058** [+0.047, +0.071].
 - At ~10.8 GB/s, **1.113x** against **1.018x**: paired difference **+0.093**
   [+0.089, +0.097].
 
 Both intervals exclude zero and victim occupancy tracks the tax rather than the
-bandwidth (67 vs 126 MiB; 66 vs 93 MiB). Holding bytes fixed and changing only
-whether the streamer allocates changes the victim's slowdown.
+bandwidth (67 vs 126 MiB; 66 vs 93 MiB). Holding bytes fixed and changing how
+much the streamer allocates changes the victim's slowdown. **A5.4 relabelled
+this from a binary contrast to a dose-response and reproduced both differences;
+see below.**
 
 **Neither pre-registered outcome fired.** Outcome 1 wanted >= 1.5x at matched
 bandwidth and got 1.112x; outcome 2 wanted the arms indistinguishable and they
@@ -85,7 +87,7 @@ defends itself against a streamer in a way it cannot against a mask.
 |---|---|
 | magnitude | **DuckDB join clears the quiescent 2x gate on Intel at every valid size (2.200--2.354x) and on AMD at the one valid size (3.607x)**; the realised Intel co-run tax at the same operating point is 1.467x. GAPBS PageRank and HNSW do not clear it on Intel; PageRank clears it on AMD at g21 (2.580x) |
 | reproducibility | DuckDB corun CoV 1.09--2.66% over 10 reps, quiescent arm reproducing the independent gate sweep to 0.3%; gate CoV 0.02--0.25% on GAPBS/HNSW Intel arms |
-| recovery | **partially measured on Intel.** 56% and 84% at matched bandwidth, 89.5% unmatched -- every recovery figure must say which it is. **AMD is complete and yields no verdict**: A4.4 outcome 5 fired on CoV, and outcome 3 fired against the mechanism (see below) |
+| recovery | **partially measured on Intel, and relabelled by A5.4.** 56% and 84% at matched bandwidth, 89.5% unmatched -- every recovery figure must say which it is, *and* that it is recovery by a partially-allocating streamer (A5.4: the Intel "non-allocating" arms hold 44--68% of the LLC under competition). **AMD is complete and yields no verdict**: A4.4 outcome 5 fired on CoV, and outcome 3 fired against the mechanism (see below) |
 | frontier | preregistered; unmeasured |
 
 A quantitative by-product worth carrying into the paper: on `mos181` a 320 MiB
@@ -197,14 +199,67 @@ occupy the paper's corner -- per-instruction, unenforced, not object-scoped,
 vendor-divergent -- but it erodes the magnitude argument for occupying it.
 **Restating L5 is a §9 lead-only decision and has not been taken.**
 
-The same blind spot is **unmeasured on Intel**, where the headline de-confound
-(+0.058, +0.093) also rests on an arm never shown to be non-allocating under
-competition. Pre-registered as A5.4, threshold 25%, and running.
-
 What did pass: §5's per-repetition bandwidth assertion, cleanly, for the first
 time on either host (every referenced arm within 2.1% of A4.5); the A4.5
 cross-binary instrument check (+0.034, interval includes zero); and the
 quiescent arm against the independent gate (0.0288 vs 0.0280 s, 8 vs 8.70 MiB).
+
+## A5.4: the same blind spot on Intel, measured, and it fails there too
+
+`mos181`, five arms x 10 repetitions, all valid,
+`duckdb_join/DUCKDB_JOIN_INTEL_NTA_DISCRIMINATION.md`. `wb_prefetchnta` holds
+**43.6%** of the 320 MiB LLC at ~18 GB/s and **68.2%** at ~10.8, against
+`wb_load`'s 77.5% and 78.1%: rep-paired **0.637 [0.557, 0.754]** and **0.875
+[0.852, 0.893]** against a 0.25 threshold fixed in advance. **Both fail.** The
+Intel arms differ from the AMD ones in degree, not in kind.
+
+So the headline de-confound is a **dose-response between two allocating
+streamers**, not allocation against none. The causal result is untouched and
+was independently reproduced by this run (+0.069 [+0.038, +0.079] and +0.102
+[+0.094, +0.103] against the campaign's +0.058 and +0.093, quiescent 0.6050
+against 0.6070 s). What changes is every label: `DUCKDB_JOIN_CORUN_OUTCOME.md`
+is relabelled in place, and its 89.5/56/84% are recovery *delivered by a
+partially-allocating streamer*, not estimates of what non-allocation would give.
+
+**No host in this project now retains a demonstrated non-allocating arm except
+AMD flush-behind**, whose co-run arms fail the CoV bar and yield no verdict. So
+there is today no valid allocation-versus-none de-confound anywhere in the
+campaign. Flush-behind's own status survives on an argument worth stating: its
+5.5% is victimless, and victimless occupancy can only *over*-estimate what a
+streamer holds under competition, so 5.5% is an upper bound.
+
+**And occupancy does not predict harm, now on two vendors.** Excess tax
+recovered per point of streamer occupancy given up:
+
+| pair | occ drop | excess tax recovered | per point |
+|---|---:|---:|---:|
+| AMD, 24.3 GB/s | 11.3 pts | 40.3% | 3.6 %/pt |
+| Intel, ~18 GB/s | 33.9 pts | 57.8% | 1.7 %/pt |
+| Intel, ~10.8 GB/s | 9.9 pts | 85.6% | 8.6 %/pt |
+
+Within one host, one victim, one artifact, the pair giving up **3.4x more**
+streamer occupancy recovers **less** tax. That cannot be a vendor effect, and it
+independently corroborates A5.3 without using the streamer-yield argument. It
+also bars the tempting patch on the relabelling -- that a truly non-allocating
+streamer would recover more, so the Intel figures are conservative. That needs
+tax monotone in streamer occupancy, which is what these three rows refute. (The
+*core-count* conservatism argued in the Intel outcome is a different argument
+and still stands.)
+
+Three instrument defects surfaced and are recorded rather than repaired in
+place: `wait_for_streamer`'s three-samples-within-5% gate is satisfied by a slow
+monotone ramp, and `WB_match_hi` is consequently bimodal in occupancy *and*
+bandwidth across repetitions (verdict robust: 0.56 and 0.82 in the two states);
+`WB_match_lo` fails §5's bandwidth assertion at +15.1%, with the bias direction
+conservative for the threshold it failed anyway; and my own post-hoc idle
+estimator was invalid on Intel and is fixed, leaving only `NTA_lo` with a
+quotable idle reading there. AMD's numbers are unchanged by the fix.
+
+A5.4 was pre-registered as unable to produce a positive result -- "a pass leaves
+the Intel de-confound where it already was; a failure removes it" -- and it
+failed. Whether the L5 restatement now owed on AMD extends to Intel, and what
+either does to the paper's page-1 posture, are **§9 lead-only decisions and are
+not taken here.**
 
 ## Host state
 
@@ -258,7 +313,12 @@ rebuilt on the host. Detail in the preregistration's A4.7.
 - `duckdb_join/DUCKDB_JOIN_CORUN_PREREGISTRATION.md` -- the campaign and its
   four amendments; Amendment 4 rewrites the AMD arms around a measured fact
   about `PREFETCHNTA` on Zen4c
-- `duckdb_join/DUCKDB_JOIN_CORUN_OUTCOME.md` -- the Intel result
+- `duckdb_join/DUCKDB_JOIN_CORUN_OUTCOME.md` -- the Intel result, relabelled
+  in place by A5.4
+- `duckdb_join/DUCKDB_JOIN_AMD_NTA_DISCRIMINATION.md` -- A5.3: `PREFETCHNTA`
+  allocates under competition on Zen4c and recovered anyway
+- `duckdb_join/DUCKDB_JOIN_INTEL_NTA_DISCRIMINATION.md` -- A5.4: it allocates
+  on Intel too, and occupancy does not order the harm within a single host
 - `duckdb_join/DUCKDB_JOIN_CHAIN_CONTROL_OUTCOME.md` -- the `joinuniq`
   within-engine control, and what the counters may and may not be cited for
 - `gapbs/GAPBS_CAT_SENSITIVITY_OUTCOME.md` -- result, both falsified
