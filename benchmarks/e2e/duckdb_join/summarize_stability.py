@@ -17,6 +17,7 @@ runtime that removes a repetition from anything below.
 The trim is a declared SECONDARY and appears beside the untrimmed figure, never
 in place of it. S3 is applied to the untrimmed figure only.
 """
+import datetime as dt
 import json, statistics as st, sys
 from collections import defaultdict
 
@@ -87,6 +88,14 @@ def main(path):
         print(f"{a:<14}{cov(ts):>8.2%}{cov(trim1(ts)):>11.2%}{len(hits):>11}"
               f"{(max(r for _, r in hits) if hits else 0):>8.2f}"
               f"{f'{first}/{len(hits) - first}':>15}")
+    # A6.7: the A6 block crosses midnight and the campaign did not, so every
+    # counted anomaly is printed with its wall-clock time. dpkg-db-backup and
+    # logrotate fire at 00:00 and sysstat-summary at 00:07; a cluster there is
+    # a midnight artifact, not a property of the operating point.
+    for a, hits in inc.items():
+        for i, ratio in hits:
+            print(f"  anomaly  {a:<13} inv{i:<3} {ratio:.2f}x  "
+                  f"{dt.datetime.fromtimestamp(by[i][a][1]):%Y-%m-%d %H:%M:%S}")
     tot = sum(len(v) for v in inc.values())
     n = sum(1 for a in arms for i in invs if a in by[i])
     print(f"\n  incidence {tot}/{n} = {100 * tot / n:.1f}%  "

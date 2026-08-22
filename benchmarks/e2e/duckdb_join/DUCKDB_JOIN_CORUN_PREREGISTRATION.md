@@ -1010,3 +1010,57 @@ computed by `summarize_stability.py`, committed in the same commit as this
 amendment and before the first record exists. It implements S1, S2, S3, the
 Rule O clause 2 trim, and the Rule O clause 3 incidence count, and it prints the
 branch of A6.4 that fires rather than leaving the mapping to the reader.
+
+## A6.7 The block crosses midnight and the campaign did not — disclosed before any record exists
+
+Written 2026-08-22 15:15, after the run was armed and **before it starts at
+22:00**, so no record exists and nothing below is selected against data. It
+changes **no bar, no threshold, and no decision rule**; it discloses an exposure
+and adds one reported diagnostic.
+
+**The campaign ran 22:11--23:49 and stopped eleven minutes short of midnight.**
+The A6 block is 4.9 h from 22:00 and therefore ends near 02:53, crossing
+midnight. `moscxl`'s timers put three jobs inside that window which no AMD
+measurement in this project has ever run through:
+
+| fires | unit | in campaign window? |
+|---|---|---|
+| 00:00 | `dpkg-db-backup.service` | **no** |
+| 00:00 | `logrotate.service` | **no** |
+| 00:07 | `sysstat-summary.service` | **no** |
+| every 10 min | `sysstat-collect.service` | yes, ~10x |
+| hourly at :17 | `cron.hourly` (`0anacron`) | yes, 2x |
+
+`anacron`'s `cron.daily` last ran 07:36 and is next due after the block;
+`apt-daily-upgrade` is 06:24. Both are clear.
+
+**Consequence 1, abort risk.** `HostGuard.assert_quiescent` fails on any process
+with `pcpu >= 20` and `etimes >= 10` whose `comm` is not in `BENIGN`, and
+`dpkg-db-backup` and `logrotate` are neither benign nor obviously under ten
+seconds. The guard samples once per arm, about every 65 s, so the exposure is
+the fraction of that interval in which such a job is simultaneously alive and
+already ten seconds old — small, but real, and concentrated at a single instant
+00:00, roughly 40% of the way through. If it fires, A6.2's single permitted
+restart applies and the restart will cross midnight too.
+
+**Consequence 2, and the one that matters more.** The anomaly-incidence
+comparison in A6.3 clause 3 is against blocks that never saw these jobs. An
+excess in the re-run could therefore be a midnight artifact rather than a
+property of the operating point, and the incidence figure may not be compared
+with the campaign's 1/90 without saying so.
+
+**The start time is not moved, and no timer is masked.** Moving it is not an
+improvement: the only clean 4.9 h alternative, a 00:30 start, runs into
+`e2scrub_all` at 03:10, which is heavier than either midnight job. Masking a
+timer is a host-state change on a frozen host and a §9 decision, not one to take
+for convenience. Changing a declared start time after arming, on my own
+judgement, is also exactly the kind of undisclosed deviation this document
+exists to prevent. It stays at 22:00.
+
+**Recorded as a residual risk:** the projected 02:53 finish leaves about 17
+minutes before `e2scrub_all` at 03:10:33. A block running 10% long overlaps it.
+If that happens it will appear as a late abort and is reported as one.
+
+**Added diagnostic, no rule changed.** `summarize_stability.py` prints the
+wall-clock time of every counted anomaly alongside its arm, so proximity to
+00:00 is read directly off the output rather than argued about afterwards.
