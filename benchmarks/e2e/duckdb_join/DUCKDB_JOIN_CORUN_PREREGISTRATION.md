@@ -1858,3 +1858,78 @@ minute boundary would produce, detected at the next grid slot. Suggestive of a
 periodic trigger, consistent with A6.15's snapd/AV reading, and **not concluded
 here**: the period is read off the full log after the block per A6.14 item 6,
 where the whole series is available rather than eight points.
+
+## A6.17: three corrections to my own record, from reading the watcher's source instead of guessing at it
+
+Dated 2026-08-23 03:12, block at ~190/270. **No apparatus change. Rule O stands.**
+
+### 1. The burst duration bound in A6.14's addendum is wrong by 6x
+
+That addendum argued: no burst appears in two consecutive 5 s watcher samples,
+therefore each lasted under ~5 s. **The inference does not hold.** The watcher
+dedups per `(pid, comm)` for 30 s (`contention_watch.py`, `seen[k]` guard), so a
+process that persists is logged *once*, not once per sample. One line is one
+event, not one sample.
+
+The correct bound is **under 30 s**, and only because no pid repeats; a repeated
+pid is the sole evidence of a burst outstaying the dedup window. Against a
+~10 s measured window a 30 s burst spans it **entirely**, which is a materially
+worse case than the addendum allowed and further weakens its median-of-300
+reassurance. Direction of A6.13--A6.16 unchanged; the comfort margin is smaller
+again. Still no exclusion.
+
+### 2. I asserted there was no watcher log on the host. There is.
+
+I searched `/tmp/*.log`, found nothing, and reported that the burst record
+existed only in the monitor's notification stream. Wrong. The watcher writes to
+`artifacts/contention_watch.log` in the repo tree, which is where it belongs and
+where I did not look.
+
+The distinction matters for the declared analysis, because the two sources are
+not equivalent. The monitor stream is **lossy**: its durable file begins at
+`A6 progress: 30/270` and the 23:25:58 burst -- the first of the block, and one
+I have cited three times -- is absent from it. The on-host log is complete, and
+carries `argv`, `ppid` and the parent's `argv`, which the stream drops. **The
+post-block analysis uses `artifacts/contention_watch.log`.** Reducing the
+monitor stream instead would undercount, and an undercount here reads as a
+cleaner block than actually ran.
+
+### 3. `suarez` was already identified before I spent a login on it
+
+`suarez` appears in the watcher's own `AV_COMM` set, taken from the AhnLab
+product manifest at `/usr/local/ahnlab/etc/ahnprod.conf`. It is a transient V3
+component like `v3agent`, not a foreign experiment. The login I spent
+establishing that was avoidable by reading the script already on my own disk.
+
+The login was not worthless -- it confirms the host lock is held by
+`duckdb_join_corun30` pid 399804, that the only resctrl groups are `dagg_399804`
+and `djoin_399804`, and that loadavg is 3.90 with no other users. The resctrl
+check carries **no age exemption** and has not fired in 190 arms, so a competing
+cache experiment is positively excluded rather than merely unobserved. But the
+cheaper evidence should have come first, and A6.9's rule is that every login is
+a hazard.
+
+### What this changes in the tooling, and one thing it adds
+
+`overlap_bursts.py` now parses both log formats, distinguishes the two tags, and
+reports repeated pids as the only available duration evidence.
+
+The addition matters more than the fixes. The watcher records a second series,
+`av-activity`: AhnLab components at `pcpu >= 1.0`, *below* the 20% abort
+threshold. Its own comment says why it exists -- the marker A6.1 could not find
+would be "a scan burst too small to trip hostguard but large enough to perturb a
+30 ms query." That is the A6.9 hypothesis in its original form, and this block
+is the first to carry a series capable of testing it. Both tags are now counted
+and reported separately, and item 7's attribution test applies to each.
+
+This does not license attributing anything. A6.15 items 7--9 govern unchanged:
+if the overlapping invocations are not the dispersed ones, the hypothesis is
+reported as refuted.
+
+### One stale comment, not corrected in place
+
+`contention_watch.py`'s docstring states the deployed guard "has no age term at
+all." A6.10 changed that. The watcher's own `MIN_AGE_SECONDS = 0` remains right
+-- it should record everything and filter nothing -- but the stated reason is
+out of date. Left alone: it runs inside the block, and the apparatus rule
+applies to a diagnostic observer's source as much as to anything else.

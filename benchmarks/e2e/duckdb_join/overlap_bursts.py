@@ -12,6 +12,18 @@ Usage:
 
 The watcher log lines look like:
     2026-08-23T00:15:58  WOULD-ABORT  pid=428999 comm=v3agent pcpu=300.0 age=0s
+        argv   : ...
+        ppid   : ...
+and carry two tags. WOULD-ABORT is pcpu >= 20 off the BENIGN list; av-activity
+is an AhnLab component at pcpu >= 1.0, below the abort threshold. The second
+series is the one A6.1's missing marker would live in -- "a scan burst too
+small to trip hostguard but large enough to perturb a 30 ms query" -- so both
+are reported, separately.
+
+The watcher dedups per (pid, comm) for 30 s, so one line is one *event*, not
+one 5 s sample, and a burst persisting under 30 s appears exactly once. Event
+counts are therefore not durations, and a repeated pid is the only evidence of
+a burst outstaying 30 s.
 
 A record's measured window is reconstructed as
     end   = timestamp_unix                       (written just after the arm)
@@ -33,7 +45,16 @@ HARNESS = ("duckdb", "aggressor", "amd_flushbehind", "flushbehind", "wb_load",
 def parse_watcher(path, tz_offset_min=0):
     bursts, harness_hits = [], {}
     for line in open(path, errors="replace"):
-        if "WOULD-ABORT" not in line:
+        # The monitor's notification stream prefixes "watcher: "; the on-host
+        # log does not. Accept both so either source parses.
+        line = line.strip()
+        if line.startswith("watcher:"):
+            line = line[len("watcher:"):].strip()
+        if "WOULD-ABORT" in line:
+            tag = "abort"
+        elif "av-activity" in line:
+            tag = "av"
+        else:
             continue
         try:
             stamp = line.split()[0]
@@ -63,6 +84,7 @@ def parse_watcher(path, tz_offset_min=0):
         # thread exceeds 100%. Width decides whether temporal overlap means
         # actual contact with the pinned victim core.
         bursts.append({"t": t, "comm": comm, "pid": pid, "pcpu": pcpu,
+                       "tag": tag,
                        "min_threads": max(1, int(pcpu // 100))})
     bursts.sort(key=lambda b: b["t"])
     return bursts, harness_hits
@@ -135,6 +157,17 @@ def main():
               f"mean={sum(gaps)/len(gaps):.1f}")
         print("  a mean far from the median is the non-stationarity A6.14's "
               "addendum records; the mean alone is not a host property.")
+    nab = sum(1 for b in bursts if b["tag"] == "abort")
+    print(f"  tags: WOULD-ABORT={nab}  av-activity={len(bursts)-nab}"
+          "   (av-activity is below the abort threshold and is where A6.1's "
+          "missing marker would live)")
+    reps = {}
+    for b in bursts:
+        reps[b["pid"]] = reps.get(b["pid"], 0) + 1
+    multi = {p: n for p, n in reps.items() if n > 1}
+    print(f"  bursts outlasting the 30 s dedup window (repeated pid): "
+          f"{len(multi)}"
+          + (f" -> {sorted(multi.items(), key=lambda x:-x[1])[:5]}" if multi else ""))
     by_comm = {}
     for b in bursts:
         by_comm[b["comm"]] = by_comm.get(b["comm"], 0) + 1
@@ -154,6 +187,8 @@ def main():
 
     # --- per-arm exposure and overlap
     bt = [b["t"] for b in bursts]
+    bt_abort = [b["t"] for b in bursts if b["tag"] == "abort"]
+    bt_av = [b["t"] for b in bursts if b["tag"] == "av"]
     arms = {}
     for w in wins:
         a = arms.setdefault(w["arm"], {"n": 0, "exp": 0.0, "hit": 0,
@@ -163,6 +198,10 @@ def main():
         a["exp"] += w["m_dur"]
         hit = any(w["m_start"] <= t <= w["m_end"] for t in bt)
         a["hit"] += hit
+        a["hit_abort"] = a.get("hit_abort", 0) + any(
+            w["m_start"] <= t <= w["m_end"] for t in bt_abort)
+        a["hit_av"] = a.get("hit_av", 0) + any(
+            w["m_start"] <= t <= w["m_end"] for t in bt_av)
         a["settle_hit"] += any(w["s_start"] <= t < w["s_end"] for t in bt)
         (a["hit_meds"] if hit else a["miss_meds"]).append(w["median"])
 
@@ -172,14 +211,21 @@ def main():
     print(f"\nper-arm exposure and overlap  (uniform-rate expectation uses "
           f"{rate*3600:.1f} bursts/h)")
     print(f"{'arm':<14}{'reps':>5}{'win s':>8}{'exposure s':>12}"
-          f"{'hits':>6}{'exp.':>7}{'settle hits':>13}")
+          f"{'hits':>6}{'abort':>7}{'av':>5}{'exp.':>7}{'settle':>8}")
     for name in sorted(arms, key=lambda k: -arms[k]["exp"]):
         a = arms[name]
         print(f"{name:<14}{a['n']:>5}{a['exp']/a['n']:>8.1f}{a['exp']:>12.1f}"
-              f"{a['hit']:>6}{a['exp']*rate:>7.2f}{a['settle_hit']:>13}")
+              f"{a['hit']:>6}{a.get('hit_abort',0):>7}{a.get('hit_av',0):>5}"
+              f"{a['exp']*rate:>7.2f}{a['settle_hit']:>8}")
     tot_hit = sum(a["hit"] for a in arms.values())
     print(f"{'ALL':<14}{sum(a['n'] for a in arms.values()):>5}{'':>8}"
-          f"{total_exp:>12.1f}{tot_hit:>6}{total_exp*rate:>7.2f}")
+          f"{total_exp:>12.1f}{tot_hit:>6}"
+          f"{sum(a.get('hit_abort',0) for a in arms.values()):>7}"
+          f"{sum(a.get('hit_av',0) for a in arms.values()):>5}"
+          f"{total_exp*rate:>7.2f}")
+    print("  hits counts an arm once if ANY burst overlaps it. Because the "
+          "watcher dedups 30 s per (pid, comm), one burst may span a window "
+          "entirely and still contribute one event.")
 
     # --- A6.15 item 7: are the overlapping invocations the dispersed ones?
     print("\nA6.15 item 7 -- attribution test. For each arm, the median of the")
