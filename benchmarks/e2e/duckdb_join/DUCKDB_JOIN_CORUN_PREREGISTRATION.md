@@ -1244,3 +1244,59 @@ Start ~23:26, projected finish **~04:26** at the aborted block's observed
 n = 30, the nine arms, the 20260821 interleave seed, N = 100K, the operating
 point, Rule O, S1/S2/S3, and every branch's fixed wording. The 96-record
 aborted partial stays unmerged. The contention watcher stays diagnostic only.
+
+## A6.11: what the contention watcher logs during a block, and one hazard the guard fix removed by accident
+
+Dated 2026-08-22 23:30, with the restart at ~5/270 arms. Apparatus only. **No
+bar, threshold, arm, or decision rule is touched, and A6.9's ruling that the
+watcher is diagnostic only stands unaltered** -- a repetition the watcher
+happens to overlap remains non-excludable.
+
+Recorded now, before the outcome is known, so that neither observation can be
+read back as having been noticed because of how the block turned out.
+
+### The watcher spends a block reporting the experiment to itself
+
+Within four minutes of the restart the watcher logged `WOULD-ABORT` on
+`duckdb` (104%), `aggressor` (100%), `amd_flushbehind` (679%) and `pgrep`
+(166%). None is a contamination event. All four are on `HOSTILE_SUBSTR` or over
+the BUSY line by design, and the reason the real guard does not fire on them is
+that `assert_quiescent` is called **between** arms, when the victim and streamer
+are dead, whereas the watcher samples every 5 s and therefore samples mid-arm.
+
+This is worth writing down because the log is not self-explanatory: a reader
+who finds hundreds of `WOULD-ABORT` lines interleaved with valid records could
+reasonably conclude the guard was failing open, and it was not. When
+`contention_watch.log` is read after the block, lines whose `comm` is one of
+`duckdb`, `aggressor`, `amd_flushbehind`, `flushbehind`, `wb_load`, `pgrep`,
+`ps`, `python3`, `sshd`, `bash`, `sh` are self-matches and carry nothing. The
+lines that carry something are the foreign ones -- `v3agent` and its ten
+siblings, `suarez`, `user-session-he`, `e2scrub` -- and those are what the
+block's watch surfaces.
+
+### The `pgrep` line is the monitoring implicating itself
+
+`pgrep pcpu=166.0 age=0s` is not the campaign. It is the runner-liveness check
+in this session's own watch loop, which runs `pgrep -f run_join_campaign.py`
+once a minute over a single persistent `ssh`.
+
+Under the guard as it was deployed for the aborted block -- `pcpu >= 20.0` with
+no age term -- that `pgrep` was a live abort hazard every time it landed inside
+an `assert_quiescent` window, for exactly the reason A6.9 gave for
+`user-session-he`: `ps` reports pcpu as cputime over the whole lifetime, so a
+process a few milliseconds old reads as pegged. The monitoring built to watch
+the block could have killed it.
+
+The `MIN_AGE_SECONDS = 10` exemption deployed under A6.10 removes this, and
+`pgrep` at age 0 is now exempt. That is fortunate rather than clever: the
+exemption was deployed to stop *ssh logins* aborting blocks, and this second
+hazard was found only after arming the watch. Two independent processes,
+one from the operator's session and one from the desktop stack, both invisible
+to the rule that was live during the aborted block.
+
+The general form, which is the part worth keeping: **on this host any
+short-lived process is indistinguishable from a pegged one under the BUSY rule,
+so any tooling that periodically shells out is a self-inflicted abort risk.**
+That includes future monitoring. The A5 practice of polling by repeated `ssh`
+was doubly exposed -- the login and whatever the login ran -- and A6.9's rule
+against interactive polling during a block should be read as covering both.

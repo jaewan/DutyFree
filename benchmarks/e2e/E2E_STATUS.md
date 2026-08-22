@@ -329,10 +329,19 @@ estimate.** n rises 10 -> 30, all nine arms, nothing else changes, 4.9 h.
 **ABORTED 2026-08-22 22:30:58 at 96/270 arms (A6.9).** Started 20:45 on the lead's
 instruction ahead of the declared 22:00 (A6.8); killed by `v3agent` at 73.9% CPU --
 AhnLab V3 endpoint security, resident on moscxl since boot. 96 valid records preserved
-as `join_corun30_moscxl.ABORTED_96.jsonl`, never merged. A6.2's single restart is unspent
-and its timing is a lead decision (`run_a6_block.sh`,
-detached on `moscxl`, ~4.9 h, artifacts `join_corun30_moscxl.jsonl` /
-`corun30_moscxl.log`). The freeze was verified against `d8eda44` before launch
+as `join_corun30_moscxl.ABORTED_96.jsonl`, never merged.
+
+**RESTARTED 2026-08-22 23:24:06 (A6.10)** -- A6.2's single permitted restart, now spent,
+on the lead's instruction to go as soon as possible. The deployed `hostguard.py` was
+repaired first: **only** the `MIN_AGE_SECONDS = 10` exemption was taken from the repo
+copy, because the repo's HOSTILE-list change adds `flushbehind` as a substring and this
+campaign's recovery arm is `amd_flushbehind_aggressor` -- deploying it wholesale would
+have armed the guard against the experiment. Three costs were stated before the first
+record: `e2scrub_all` fires 03:10:33, ~78% through the block, and **if it fires the
+campaign ends with no verdict and no attempt remaining**; time-of-day is now further from
+the campaign than at any earlier point; the midnight timers land at ~11% in. Projected
+finish ~04:26 (`run_a6_block.sh` with `A6_START_NOW=1`, detached on `moscxl`, ~5 h,
+artifacts `join_corun30_moscxl.jsonl` / `corun30_moscxl.log`). The freeze was verified against `d8eda44` before launch
 and is re-verified into the log before the first arm: performance governor on
 all 512 CPUs, boost 0, `numa_balancing` 0, `perf_event_paranoid` -1, THP
 madvise, cpu8 at 2.25 GHz, no reboot since 2026-08-19. `MODE=corun30` gives the
