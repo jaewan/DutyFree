@@ -1354,3 +1354,85 @@ this campaign afterwards either, because the 270 arms must all be measured under
 one apparatus. It is queued for after the block, and any campaign that follows
 should be run against a reconciled guard with the md5 recorded at launch, as
 this one records its own.
+
+## A4.8 The `mos182` latency gate names the wrong binary and an unportable size
+
+Appended out of position, under Amendment 4's numbering, because it corrects
+A4.7. Dated 2026-08-22 23:50, written while the A6 block runs on `moscxl` and
+before any `mos182` ladder is taken, so that no operating point below can have
+been chosen against a result.
+
+**Nothing here unblocks a `mos182` node-2 arm. A5 still stands.**
+
+### The instrument is `cxl_join_bench`, not `latency_chase`
+
+A4.7 lists two prerequisites and one of them is the wrong binary. The ladder
+that produced `mos181`'s 54.41 / 54.32 is `cxl_join_bench --mode latency`,
+named as such in `RAW_2026-08-21.tsv:6` and
+`DUCKDB_JOIN_FINDING_2026-08-21.md:89`, and A5 itself names it correctly.
+A4.7's "`latency_chase` on `mos182` ... must be rebuilt there" sends the reader
+to a different tool.
+
+`latency_chase` on `mos182` was nonetheless genuinely broken and is now fixed,
+because it costs nothing to have done: it failed `GLIBC_2.38 not found` (built
+against a newer libc than that host's 2.35) and is rebuilt on the host,
+`bin/latency_chase` md5 `c0ff68bec6604fa309c9ea6ac8d44a98`. While doing it, its
+`src/common.h` was found to have silently diverged from `mos181`'s -- the
+`mos182` copy predated `alloc_wb_node` -- and was synced to
+`db65fc68c6a708299d3b51e14b8437ee`, with the prior copy kept as
+`src/common.h.pre_20260822`. The divergence could not have changed this binary
+(`latency_chase` uses `alloc_wb_cxl`, and the missing function is an unused
+`static inline`), and `-march=native` means the rebuild had to happen on the
+host regardless. **None of this touches the gate.**
+
+The actual prerequisite is that `cxl_join_bench` does not exist on `mos182` at
+all. `~/DutyFree` there is a stale checkout at `ebd93a4` with no
+`benchmarks/e2e/hash_join` tree in it. Provisioning it creates a second
+deployed copy that can diverge from the repo exactly as `hostguard.py` on
+`moscxl` did, so whenever it is done the source commit and the binary md5 are
+recorded at build time.
+
+### The 128 MiB operating point does not port to `mos182`, and would fail there for the wrong reason
+
+This is the substantive item. A5's logic is that *placement is invisible while
+the set is LLC-resident*, which is what makes an invariance reading a control
+rather than a coincidence. Residency is a fraction of the host's LLC, and the
+two hosts are not close:
+
+| host | L3 per socket | ways | gate set | as fraction of LLC | resident? |
+|---|---:|---:|---:|---:|---|
+| `mos181` | 320 MiB | 20 | 128 MiB | **40%** | yes |
+| `mos182` | **60 MiB** | 15 | 128 MiB | **213%** | **no** |
+
+At 128 MiB on `mos182` the chase is more than twice the LLC, so it is served
+from memory, so node 0 and node 2 *must* differ -- with the victim correctly on
+package 1, with a perfect device, and with A4.7's socket fix working exactly as
+intended. `mos181`'s own ladder is the proof: at 512 MiB, 160% of its LLC, it
+reads **87.79 against 127.01**, while at 128 MiB it reads 54.41 against 54.32.
+The ladder already contains both regimes; A5 quoted the resident point and A4.7
+carried the raw size across to a host where that point is not resident.
+
+Run literally, the gate would fail on `mos182`, and the failure would look like
+A4.7's fix not working -- or, worse, like a defect in the CXL device. That is
+precisely the misattribution A4.7 was written to prevent, reintroduced one step
+further along.
+
+### What is needed, and it is not taken here
+
+1. **Re-derive the set size as a fraction of LLC, not in bytes.** Holding
+   `mos181`'s 40% fixed gives **24 MiB** on `mos182`. The nearest point on the
+   existing ladder shape is 32 MiB, which is 53% there and 10% on `mos181` --
+   the shape does not transfer either and the ladder must be re-spaced.
+2. **Keep a spill point as a positive control.** An invariance reading is
+   uninterpretable on its own: it cannot distinguish "placement is invisible
+   because the set is resident" from "the instrument cannot see placement at
+   all." `mos181`'s ladder gets this for free from its 512 MiB point. The
+   `mos182` ladder must include the corresponding ~96 MiB (160%) point and
+   must show node 2 slower there. **A pass consists of invariance at the
+   resident point AND separation at the spill point.** Neither alone.
+3. Provision `cxl_join_bench` on `mos182` per the note above.
+
+Items 1 and 2 change a pre-registered command and its decision rule, so per the
+same treatment as the `-n 4` parity defect they are **left for the lead** and
+are not taken by the runner. Recorded now rather than at run time so that the
+sizes are fixed before any `mos182` number exists.

@@ -380,10 +380,11 @@ distance 24 from node 0 and 14 from node 1, while its configured victim
 (cpu16) and aggressors (cpus 4--11) are also all in package 0 — there the
 *far* socket, so every node-2 access crossed the inter-socket link first.
 **This unblocks nothing.** A5 stands: the ladder must be re-run and must pass
-from package 1 before any `mos182` node-2 arm is taken, and two prerequisites
-are outstanding — `HOSTS["mos182"]` in `run_join_campaign.py` still names
-package 0, and `latency_chase` there fails `GLIBC_2.38 not found` and must be
-rebuilt on the host. Detail in the preregistration's A4.7.
+from package 1 before any `mos182` node-2 arm is taken. Of the two
+prerequisites, `HOSTS["mos182"]` in `run_join_campaign.py` **is done** (`adf2821`:
+victim cpu32, aggressors 33--40, package 1 / L3 domain 1 / NUMA node 1, no SMT
+siblings recruited). Outstanding: `latency_chase` there fails `GLIBC_2.38 not
+found` and must be rebuilt on the host. Detail in the preregistration's A4.7.
 
 ## Still open before any further co-run arm
 
