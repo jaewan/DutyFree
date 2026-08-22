@@ -95,8 +95,8 @@ AMD_ARMS = {
     "WB_local":     ("wb_load", 7, "0"),          # local-DRAM placement control
     # A5.3: the 16.00 MiB here is VICTIMLESS and does not mean what this
     # comment used to say it meant. Under co-run this arm holds 13.88 MiB
-    # (86.7% of the CCX) against wb_load's 15.69, and yields 2.02 MiB to a
-    # competing victim where wb_load yields 0.21. It allocates, but it is
+    # (86.7% of the CCX) against wb_load's 15.69, and yields 1.98 MiB to a
+    # competing victim where wb_load yields 0.13. It allocates, but it is
     # not a negative control: it recovers 40% of the excess tax.
     "NTA_sat":      ("wb_prefetchnta", 7, "2"),   # 24.68; occ 16.00 idle, 13.88 competed
     "FB0_sat":      ("flushbehind_f0", 7, "2"),   # 24.69, occ 16.00
@@ -246,6 +246,19 @@ def wait_for_streamer(cfg, agg_group, domain, floor=25.0, cap=60.0, tol=0.05):
         time.sleep(1.0)
 
 
+def thp_report(path):
+    """Parse the LD_PRELOAD shim's exit line. None when A5.2 is not in play."""
+    if not path or not path.exists():
+        return None
+    out = {}
+    for tok in slurp(path).split():
+        if "=" in tok:
+            k, val = tok.split("=", 1)
+            out[k] = int(val) if val.isdigit() else val
+    path.unlink(missing_ok=True)
+    return out or None
+
+
 def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
             full_mask):
     """One victim invocation, optionally under an aggressor. Returns a record."""
@@ -298,11 +311,23 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
         if spec:
             asmp = Sampler(agg_group / "mon_data" / f"mon_L3_{domain:02d}")
             asmp.start()
+        # A5.2: VICTIM_PRELOAD points at thp_arena.so, which marks the victim's
+        # large anonymous mappings MADV_HUGEPAGE and pre-faults them. It is
+        # applied to the VICTIM ONLY -- deliberately not to the aggressor, so
+        # the streamer's page placement is held fixed and hugepage backing is
+        # the single thing that differs from the campaign arm. Unset, this is
+        # exactly the campaign's invocation.
+        venv = dict(os.environ)
+        thp_log = None
+        if os.environ.get("VICTIM_PRELOAD"):
+            thp_log = Path(f"/tmp/claude-1001/thp_{os.getpid()}_{time.time_ns()}.log")
+            venv["LD_PRELOAD"] = os.environ["VICTIM_PRELOAD"]
+            venv["STREAMING_THP_LOG"] = str(thp_log)
         t0 = time.time()
         v = subprocess.run(["numactl", f"--membind={cfg['node']}",
                             f"--physcpubind={cfg['vcpu']}", str(DUCKDB),
                             "-readonly", str(dbfile), "-c", f".read {sqlfile}"],
-                           text=True, capture_output=True)
+                           text=True, capture_output=True, env=venv)
         wall = time.time() - t0
         smp.stop = True
         smp.join(timeout=2)
@@ -324,6 +349,10 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
     got = installed[str(domain)] if installed else None
     return {
         "arm": arm, "mask_requested": mask, "mask_installed": got,
+        # A5.2 evidence that the manipulation took. A shim that silently failed
+        # to obtain huge pages would produce a null indistinguishable from the
+        # real one, which is the only way this diagnostic could lie.
+        "victim_thp": thp_report(thp_log),
         "trial_seconds_all": times, "trial_seconds_measured": times[1:],
         "returncode": v.returncode, "wall_seconds": wall,
         "occupancy_bytes_steady": steady(smp.rows, 1),
