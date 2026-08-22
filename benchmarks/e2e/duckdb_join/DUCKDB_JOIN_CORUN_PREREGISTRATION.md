@@ -1607,3 +1607,81 @@ records file is clean -- the aborted block's jsonl was renamed to
 `join_corun30_moscxl.ABORTED_96.jsonl`, so `join_corun30_moscxl.jsonl` contains
 only the restart. Anyone reducing the log rather than the jsonl must cut at the
 `=== A6 RESTART` header.
+
+## A6.14: the exempt bursters are a class, not one process, and their exposure is proportional to arm duration
+
+Dated 2026-08-23 00:10, block at ~37/270. **No apparatus change. Rule O stands.**
+Extends A6.13; recorded for the same reason and at the same point in the block.
+
+### `v3agent` is not special
+
+```
+2026-08-23T00:07:21  sar.sysstat  pcpu=253.0  age=0s
+```
+
+`sar.sysstat` is sysstat's own data collector, run from a timer. It is not on
+`HOSTILE_SUBSTR`, it is not in `BENIGN`, it reads 253% of a core, and at
+`age=0s` the BUSY rule exempts it exactly as it exempts `v3agent`. Three
+foreign bursts are now on record in 43 minutes of block time -- `v3agent` at
+23:25:58 and 00:01:05, `sar.sysstat` at 00:07:21 -- so roughly **one per 14
+minutes**, and the exemption is a property of a *class* of short-lived
+system processes rather than of one antivirus component. A6.13's statement
+should be read that way.
+
+### The aliasing hazard a timer-driven burst would create, and why the design already covers it
+
+A burst on a fixed period could, against a fixed arm cycle, land on the same
+arm every cycle and bias one arm systematically. Nine arms at ~1.06 min is
+~9.5 min per cycle, close enough to a 10-minute timer to be a real concern.
+
+It does not apply here. The order is **blocked randomization**: a fresh
+`rng.shuffle` of all nine arms for each of the 30 repetitions, one seeded
+stream (`run_join_campaign.py:441--445`, seed 20260821). Every block contains
+every arm exactly once, and the arm occupying a given offset within a block
+changes from block to block by construction. A periodic burst therefore
+precesses across arms instead of accumulating on one. This is stated because
+the property is load-bearing here and was not chosen for this reason.
+
+### What blocked randomization does not cover, and its direction
+
+Randomizing *order* does not equalize *exposure*. An arm's measured window is
+300 queries long, and query time differs across arms by a factor of eight, so
+the wall-clock during which an arm can be hit differs by the same factor:
+
+| arm | median query | measured window (300 q) | exposure vs `FB256_match` |
+|---|---:|---:|---:|
+| `WB_sat` / `FB0_sat` / `WB_local` | 0.234 s | ~70 s | 6.9x |
+| `NTA_sat` | 0.152 s | ~46 s | 4.5x |
+| `FB256_sat` | 0.075 s | ~22 s | 2.2x |
+| `WB_fbmatch` | 0.043 s | ~13 s | 1.26x |
+| `FB0_match` | 0.042 s | ~12 s | 1.22x |
+| `FB256_match` | 0.034 s | ~10 s | 1.00x |
+| `quiescent` | 0.029 s | ~9 s | 0.85x |
+
+(Durations from the AMD campaign's medians; this block's arms reproduce them.)
+
+The direction is unfavourable. In both matched pairs the **allocating** arm is
+the longer one, so it is the more exposed one, so any burst-induced slowdown
+accrues preferentially to it and **inflates** the recovery difference. This is
+an *anti-conservative* asymmetry, and it runs opposite to the two conservative
+asymmetries A4.4 already requires to be quoted with every AMD figure. It is
+recorded now so it is quoted alongside them rather than discovered later.
+
+**Its magnitude is bounded and small, by two independent arguments.** At one
+burst per 14 min, a 12 s window is hit with probability ~1.4% and a 10 s window
+with ~1.2%; over 30 repetitions that is 0.42 against 0.36 expected hits, a
+difference of well under one arm. And each repetition reports the **median of
+300 queries**, which a burst spanning a few queries cannot move. The concern is
+therefore registered as real, directional, and probably negligible -- not as a
+threat to the block. The saturating arms' 6.9x exposure is the larger figure
+but lands on arms that are not part of any matched pair.
+
+### Declared in advance, extending A6.13's item 1
+
+5. Overlap incidence is reported **per arm alongside each arm's measured-window
+   duration**, so exposure-proportional differences are visible rather than
+   inferred. Still reported, never acted on: no exclusion, no reweighting, no
+   duration-normalized adjustment to any estimate.
+6. The burst **period** is read off the watcher log itself after the block --
+   the timestamps give it directly -- rather than by inspecting timers on the
+   host, which would cost a login.
