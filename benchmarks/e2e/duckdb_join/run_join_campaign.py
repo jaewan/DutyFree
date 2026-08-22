@@ -224,25 +224,44 @@ def steady(rows, idx):
 
 
 def wait_for_streamer(cfg, agg_group, domain, floor=25.0, cap=60.0, tol=0.05):
-    """Block until the streamer's own LLC occupancy is stable; return elapsed.
+    """Block until the streamer's own LLC occupancy is stable.
+
+    Returns (elapsed, timed_out, spread). `timed_out` is True when the cap was
+    reached without the stability criterion ever being met.
 
     A 3 s settle understates the loaded arm: a measured ramp of 123.7 -> 162.4
     -> 190.7 -> 222.6 -> 252.0 ns across repetitions shows the streamer needs
     more than 20 s to reach steady-state occupancy.
+
+    A6.12: the cap exit was indistinguishable from the converged exit in the
+    record, because both returned only the elapsed time and the f256 arms
+    always run to the cap -- their occupancy churns by design, so a
+    stability-of-occupancy criterion cannot converge on them and never did. It
+    was still charged the full 60 s and recorded as though it had settled. The
+    flag makes the two exits distinguishable after the fact; it does not repair
+    the criterion, which needs a churn-appropriate replacement and is a
+    lead-only decision.
     """
     mon = agg_group / "mon_data" / f"mon_L3_{domain:02d}"
     t0, hist = time.time(), []
+
+    def spread_of(h):
+        if len(h) < 3:
+            return None
+        w = h[-3:]
+        return (max(w) - min(w)) / max(w) if max(w) > 0 else None
+
     while True:
         el = time.time() - t0
         v = slurp(mon / "llc_occupancy")
         if v is not None:
             hist.append(int(v))
         if el >= cap:
-            return el
+            return el, True, spread_of(hist)
         if el >= floor and len(hist) >= 3:
-            w = hist[-3:]
-            if max(w) > 0 and (max(w) - min(w)) / max(w) <= tol:
-                return el
+            sp = spread_of(hist)
+            if sp is not None and sp <= tol:
+                return el, False, sp
         time.sleep(1.0)
 
 
@@ -263,6 +282,7 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
             full_mask):
     """One victim invocation, optionally under an aggressor. Returns a record."""
     agg_proc, agg_out, settle = None, "", None
+    settle_timeout, settle_spread = None, None
     spec = ARMS[arm]
     line = "L3:" + ";".join(f"{d}={mask if d == domain else full_mask}" for d in domains)
     sudo(["sh", "-c", f"echo '{line}' > {group}/schemata"])
@@ -298,7 +318,8 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
             sudo(["sh", "-c",
                   f"echo {','.join(str(c) for c in cfg['agg'][:nt])} "
                   f"> {agg_group}/cpus_list"], check=False)
-            settle = wait_for_streamer(cfg, agg_group, domain)
+            settle, settle_timeout, settle_spread = wait_for_streamer(
+                cfg, agg_group, domain)
         mon = group / "mon_data" / f"mon_L3_{domain:02d}"
         smp = Sampler(mon)
         smp.start()
@@ -368,6 +389,8 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
         "mbm_monotonic": (loc_f is not None and tot_f is not None
                           and loc_l >= loc_f and tot_l >= tot_f),
         "streamer_settle_seconds": settle,
+        "streamer_settle_timeout": settle_timeout,
+        "streamer_settle_spread": settle_spread,
         "occupancy_series": [(round(r[0] - t0, 2), r[1]) for r in smp.rows],
         # Streamer-side, same sampler and same steady() window as the victim's.
         "agg_occupancy_bytes_steady": steady(asmp.rows, 1) if asmp else None,
@@ -382,7 +405,36 @@ def run_arm(cfg, group, agg_group, sqlfile, dbfile, arm, mask, domains, domain,
     }
 
 
+USAGE = """run_join_campaign.py is configured entirely by environment variables
+and takes no command-line arguments.
+
+  MODE   default "gate". "gate" and "select" are special-cased; ANY other
+         value runs the section 5 co-run arms and is used verbatim to name
+         the output file artifacts/join_<MODE>_<host>.jsonl. It is a label,
+         not a closed enum -- corun, corun30, nta, thp, thpctl are all just
+         labels that took the co-run path.
+  CHAIN  default 8. Any other value gets its own _chain<N> file.
+  REPS   default 10.   BUILDS  comma-separated, default per-host.
+  PROBE  default per-host (A2).   ARMS  comma-separated, default all.
+
+Output is APPENDED to an existing file, so a stray run contaminates a
+committed artifact. Check MODE before launching.
+
+Examples:
+  MODE=corun30 REPS=30 python3 run_join_campaign.py
+  BUILDS=100000 python3 run_join_campaign.py
+"""
+
+
 def main():
+    # A6.19: this script ignores sys.argv, so `--help` was indistinguishable
+    # from "run the default mode", and running it appended 11 records to the
+    # committed join_gate_mos181.jsonl and left a lock and two resctrl groups
+    # behind. Nothing was overwritten and the artifact was restored, but the
+    # same class of accident had already put two joinuniq records into a
+    # committed chain8 file (see the note at `out` below). Refuse argv.
+    if len(sys.argv) > 1:
+        raise SystemExit(USAGE)
     host = platform.node().split(".")[0]
     if host not in HOSTS:
         raise SystemExit(f"unsupported host {host}")

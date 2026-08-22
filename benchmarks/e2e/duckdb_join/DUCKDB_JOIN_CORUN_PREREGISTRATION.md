@@ -1973,3 +1973,56 @@ after seeing which grouping produces which answer is the §6.6 failure mode even
 when the motive is honest. The limitation is stated at the point of use in the
 outcome document instead, and the attribution table it prints is reported there
 as carrying less than it appears to.
+
+## A6.19: I contaminated a committed artifact on `mos181` after the block, and it is the second instance of the same class
+
+Dated 2026-08-23 04:36, after the A6 block closed and after its outcome was
+written. **No A6 figure is affected** — this happened on the *Intel* host, to
+the Intel gate artifact, and the AMD block was already complete, committed and
+reduced. Recorded because the mechanism is a live hazard for every campaign that
+follows and because it has now happened twice.
+
+**What I did.** I ran `python3 run_join_campaign.py --help` as a smoke test that
+my A6.12 edit had not broken the script's imports. The script is configured
+entirely by environment variables and **ignores `sys.argv`**, so it did not
+print help: it started a full gate campaign on `mos181` under the default
+`MODE=gate`. It ran for the two minutes before the tool timeout killed it.
+
+**What it did.**
+
+- Appended **11 records** to `artifacts/join_gate_mos181.jsonl`, a committed
+  artifact with 30 records that selected the Intel operating point.
+- Took the host lock as `duckdb_join_gate`.
+- Created resctrl groups `dagg_1876193` and `djoin_1876193`.
+
+**What was verified before repair.** The append was verified append-only: the
+first 30 lines were byte-identical to `HEAD`, so no committed record was
+overwritten or altered. The file was then restored with `git checkout --`, and
+the lock and both resctrl groups removed. `mos181` is now clean: no lock, no
+foreign resctrl groups, no stray processes, and the artifact is back to 30
+records matching `HEAD`.
+
+**Why it matters that it is the second one.** A comment already in `main()`
+records the first: *"two joinuniq records landed in the committed chain8 file
+before this."* That instance was caught the same way — by noticing a file was
+dirty — and was fixed by giving non-chain8 runs their own filename. The
+underlying hazard was left in place: **the script appends to whatever file its
+env vars name, and its default env vars name a committed file.** A fix that
+addresses one instance and leaves the mechanism is how a class of accident
+recurs, and this is that recurrence.
+
+**The fix, which is CLI-only and cannot affect a measurement.** `main()` now
+rejects any command-line argument and prints a usage string instead of running
+the default mode. Writing that string turned up a second inaccuracy worth
+recording: `MODE` is not the closed enum I would have documented from memory.
+Only `gate` and `select` are special-cased; every other value — `corun`,
+`corun30`, `nta`, `thp`, `thpctl` — is a free-text label that takes the co-run
+path and names the output file. The usage text now says so, and says that output
+is appended.
+
+**What is not done.** The append-to-committed-file hazard itself is untouched. A
+real fix — refusing to append to a file that is clean in git, or writing to a
+run-stamped name and promoting on success — is a change to how every artifact in
+this project is produced and is not made unilaterally at 04:36 after a block. It
+is queued, and flagged here so that the next campaign is launched with `MODE`
+checked deliberately rather than trusted.
