@@ -1511,3 +1511,99 @@ A6.9's AV-burst hypothesis remains the live candidate and remains a hypothesis.
    question and a change to a pre-registered procedure. Left for the lead.
 3. Neither item affects the A6 verdict, which is a paired difference between
    arms measured under the same gate.
+
+## A6.13: the age exemption has disarmed the guard against `v3agent`, and the deeper point is that the guard never saw mid-arm bursts anyway
+
+Dated 2026-08-23 00:05, block at 33/270. **No apparatus change. Rule O stands:
+nothing below licenses excluding any repetition.** Recorded now, at 12% of the
+block, so it cannot be read as an explanation constructed after seeing how the
+block turned out.
+
+### The measurement
+
+The contention watcher has now caught the process that killed the previous
+block, twice, inside this one:
+
+```
+2026-08-22T23:25:58  v3agent  pcpu=242.0  age=0s
+2026-08-23T00:01:05  v3agent  pcpu=194.0  age=0s
+```
+
+Two bursts in the first 37 minutes, at 194% and 242% of a core. `v3agent` is a
+transient component of AhnLab V3 Net (A6.9): it appears, burns two cores, and
+exits, which is why every sighting reads `age=0s`.
+
+### The consequence I did not anticipate when deploying the fix
+
+The deployed BUSY rule is now `pcpu >= 20.0 and etimes >= MIN_AGE_SECONDS and
+comm not in BENIGN`, with `MIN_AGE_SECONDS = 10`. `v3agent` is not on
+`HOSTILE_SUBSTR`, so it is judged by that rule, and at `age=0s` **it is
+exempt**. The previous block died on `v3agent` at 73.9% because the rule then
+had no age term. This block's guard cannot abort on it at any CPU load.
+
+So the fix deployed to stop *ssh logins* aborting blocks has also, as a side
+effect, silenced the guard against the specific contaminant that ended the
+previous attempt. That is materially close to what I explicitly refused to do
+in A6.9 -- adding `v3agent` to `BENIGN` -- on the grounds that "an AV scan
+genuinely perturbs the measurement; silencing the guard would convert a visible
+abort into an invisible confound." The age exemption converts it by a different
+route, and I did not see that when I deployed it. It is stated here rather than
+left for a reader to notice.
+
+**The apparatus is not changed now.** Re-arming the guard mid-block would
+change the apparatus 12% of the way through a campaign that already has no
+restart remaining, and would reintroduce the ssh-login abort hazard the
+exemption exists to remove. The cost is accepted and recorded instead.
+
+### The deeper point, which is not about the age rule at all
+
+`assert_quiescent` runs **between** arms (`run_join_campaign.py:462`), never
+during one. A burst that begins after the check and ends before the next one is
+invisible to the guard under *any* rule -- with an age term, without one, at
+242% or at 2%. Both bursts above landed mid-arm, not in a check window.
+
+This sharpens A6.9's hypothesis for A6.1's missing marker and corrects its
+mechanism. A6.9 supposed the anomaly might come from an AV scanner "bursting
+below the 20% line," staying under the guard's threshold. That is not needed
+and is probably wrong: `v3agent` bursts far *above* the line. What makes it
+invisible is **when** it runs, not how hard. The original AMD campaign ran
+under the no-age rule and recorded 90/90 valid arms with no aborts, which is
+consistent -- every burst it experienced fell between the guard's samples,
+because that is where almost all of a block's wall-clock time is.
+
+A6.1 searched the recorded fields for a marker and found none. It could not
+have found one: nothing the runner writes samples the host during the measured
+window. The hypothesis remains a hypothesis, but it is now a better-specified
+one, and the reason it cannot be tested against the campaign or A5.2 is
+unchanged -- neither has a contemporaneous host record.
+
+### What this block gains that no earlier one had
+
+The watcher gives this campaign something the campaign proper and A5.2 lack: a
+5 s-resolution record of foreign CPU activity spanning every arm. Each record
+carries `timestamp_unix`, so after the block each arm's measured window can be
+intersected with the burst log and **the incidence of overlap can be reported**.
+
+Fixed now, before the numbers exist:
+
+1. Overlap incidence is **reported, not acted on**. No repetition is excluded,
+   reweighted, or annotated as suspect in any estimate. Rule O is unconditional
+   and A6.9 already ruled that watcher overlap is not an exclusion ground.
+2. It is reported for **all nine arms together and for each arm separately**,
+   whatever it shows, including if it shows nothing.
+3. If overlap incidence is materially higher in one arm than others, that is
+   reported as a threat to that arm's comparability and **not** as a reason to
+   drop anything.
+4. At the observed rate -- 2 bursts in 37 minutes -- a 4.6 h block should see
+   roughly 15, touching on the order of 5% of arms if each burst hits one. That
+   figure is written down now so the observed count can be compared against an
+   expectation formed before it was counted.
+
+### Provenance note
+
+`corun30_moscxl.log` is **appended across both attempts**: lines 121--130 are
+the previous block's `v3agent` abort and traceback, not this one's. The
+records file is clean -- the aborted block's jsonl was renamed to
+`join_corun30_moscxl.ABORTED_96.jsonl`, so `join_corun30_moscxl.jsonl` contains
+only the restart. Anyone reducing the log rather than the jsonl must cut at the
+`=== A6 RESTART` header.
