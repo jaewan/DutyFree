@@ -7,10 +7,17 @@ cd "$HOME/DutyFree/benchmarks/e2e/duckdb_join" || exit 1
 LOG="$HOME/DutyFree/benchmarks/e2e/duckdb_join/artifacts/corun30_moscxl.log"
 mkdir -p "$(dirname "$LOG")"
 
-# --- wait for the declared 22:00 start -------------------------------------
-TARGET=$(date -d 'today 22:00' +%s)
+# --- start time ------------------------------------------------------------
+# Declared 22:00 (A6.2). A6_START_NOW=1 starts immediately instead; that is a
+# deviation from the pre-registration and is only legitimate as the lead-
+# directed one recorded in A6.8. It is never taken on the runner's judgement.
 NOW=$(date +%s)
-[ "$TARGET" -le "$NOW" ] && TARGET=$(date -d 'tomorrow 22:00' +%s)
+if [ "${A6_START_NOW:-0}" = "1" ]; then
+  TARGET=$NOW
+else
+  TARGET=$(date -d 'today 22:00' +%s)
+  [ "$TARGET" -le "$NOW" ] && TARGET=$(date -d 'tomorrow 22:00' +%s)
+fi
 {
   echo "=== A6 re-run, pre-registration 08d0775 ==="
   echo "launched  $(date -Iseconds)"

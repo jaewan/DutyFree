@@ -1064,3 +1064,42 @@ If that happens it will appear as a late abort and is reported as one.
 **Added diagnostic, no rule changed.** `summarize_stability.py` prints the
 wall-clock time of every counted anomaly alongside its arm, so proximity to
 00:00 is read directly off the output rather than argued about afterwards.
+
+## A6.8 The declared 22:00 start is moved earlier, on the lead's instruction
+
+Written and committed 2026-08-22 20:42, **before the first record exists**. The
+run was armed and sleeping; it had produced nothing.
+
+A6.2 fixed "one contiguous night block beginning at 22:00 local." **The lead
+directed an immediate start.** The block therefore begins near 20:45 and is
+projected to finish near 01:38, on the campaign's observed 65.1 s/arm over 270
+arms. This is a deviation from a declared parameter
+and is recorded as one rather than absorbed silently.
+
+**It is a lead decision, not the runner's.** A6.7 refused this same change on my
+own judgement two hours ago, in terms — "changing a declared start time after
+arming, on my own judgement, is also exactly the kind of undisclosed deviation
+this document exists to prevent" — and that refusal stands as written. What
+changes is who is deciding, which is the distinction §9 draws.
+
+**What it costs.** A6.2's reason for 22:00 was that time-of-day is the one
+confound A5.2 could not exclude, so the re-run held it at the campaign's value.
+That control is now gone. Roughly the first 75 minutes, about 25% of the block,
+fall in evening hours that **neither** prior block occupied — the campaign ran
+22:11--23:49, A5.2 ran 13:49--14:13. The re-run's hours now match neither. A6.7's
+caveat on comparing anomaly incidence is therefore strengthened, not merely
+retained: the incidence figure may not be compared with the campaign's 1/90 or
+with A5.2's 1/40 without stating that all three blocks ran at different hours.
+
+**What it buys.** A6.7's residual risk is removed. The projected finish moves
+from 02:53 to 01:38, clearing `e2scrub_all` at 03:10:33 by more than 90 minutes
+instead of seventeen.
+
+**What is unchanged.** The block still crosses midnight, so A6.7's two
+consequences stand in full: `dpkg-db-backup` and `logrotate` at 00:00 and
+`sysstat-summary` at 00:07 are still inside it. They now fall about 67% of the
+way through rather than 40%, so an abort there costs more work, not less.
+
+**No bar, threshold, or decision rule changes.** n = 30, the nine arms, the
+20260821 interleave seed, N = 100K, the operating point, Rule O, and S1/S2/S3
+are all exactly as fixed in A6.2--A6.4. Only the wall-clock start moved.
