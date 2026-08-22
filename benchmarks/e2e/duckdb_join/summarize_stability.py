@@ -116,11 +116,18 @@ def main(path):
         s1 = len({x > 0 for x in loo}) == 1
         s2 = (max(loo) - min(loo)) / abs(pt) <= LOO_RANGE_BAR if pt else False
         s12[(wb, na)] = (s1, s2, pt, min(loo), max(loo))
+        # span/|d| is undefined when the point estimate is exactly zero, which
+        # is the *expected* value for the A4.5 instrument-check pair. Render it
+        # undefined rather than crashing, and mark the sign/span bars n/a there:
+        # that pair's declared criterion is a CI spanning zero, not this ratio.
+        zero = (pt == 0)
+        span = "--" if zero else f"{(max(loo) - min(loo)) / abs(pt):.1%}"
         print(f"{wb + ' - ' + na + '  ' + label:<62}{pt:>+8.3f}"
               f"{st.median(trim1(d)):>+11.3f}"
               f"{f'[{min(loo):+.3f}, {max(loo):+.3f}]':>20}"
-              f"{(max(loo) - min(loo)) / abs(pt):>9.1%}"
-              f"{'  ok' if s1 else ' FAIL':>5}{'  ok' if s2 else ' FAIL':>5}")
+              f"{span:>9}"
+              + (f"{' n/a':>5}{' n/a':>5}" if zero else
+                 f"{'  ok' if s1 else ' FAIL':>5}{'  ok' if s2 else ' FAIL':>5}"))
 
     # ---- A6.4 branch -------------------------------------------------------
     covs = {a: cov([by[i][a][0] for i in invs if a in by[i]]) for a in PRIMARY

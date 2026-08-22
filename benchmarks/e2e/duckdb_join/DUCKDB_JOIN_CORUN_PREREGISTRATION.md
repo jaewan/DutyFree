@@ -1933,3 +1933,43 @@ all." A6.10 changed that. The watcher's own `MIN_AGE_SECONDS = 0` remains right
 -- it should record everything and filter nothing -- but the stated reason is
 out of date. Left alone: it runs inside the block, and the apparatus rule
 applies to a diagnostic observer's source as much as to anything else.
+
+## A6.18: the block completed, A6.15 is refuted, and one correction to `overlap_bursts.py`'s summary column
+
+Written 2026-08-23 after the block closed 270/270. The outcome is
+`DUCKDB_JOIN_A6_OUTCOME.md`, written before any figure from this block is quoted
+anywhere else, as A6.4 requires.
+
+**A6.4 branch 2 fired.** S3 FAIL (`FB0_match` 9.13%, `FB256_match` 30.50%), S1
+PASS, S2 PASS. The host remains under §6 outcome 5: no verdict, not a vendor
+null. Per A6.2 there is no third campaign at this operating point.
+
+**A6.15 is refuted and is reported as refuted**, in the words A6.15 fixed in
+advance. None of the three anomalies overlaps any foreign burst — the nearest,
+to `FB256_match` inv5, is 17 s *after* that invocation's window closed. The
+converse holds too: the eight invocations that do overlap a genuine transient
+have a median ratio of 0.998 to their arm median (range 0.986--1.004), including
+one arm that overlapped an ≥11-thread burst and moved 0.4%.
+
+Per A6.15 item 9, this refutation licenses nothing. No repetition has been
+excluded, reweighted or adjusted, and none may be.
+
+### The correction
+
+`overlap_bursts.py`'s `hits` column, and the "601 foreign bursts" line above it,
+**overcount by counting a resident process as a burst.** 585 of the 601 lines
+are one pid (`v3metricd`, 6448) re-logged at the watcher's 30 s dedup interval.
+It is present continuously, so every arm "overlaps" it and the column saturates
+at 30/30 on the long arms. The genuine transients number **16**, touching
+**8/270 = 3.0%** of arms.
+
+A6.14 predicted "~15 bursts touching ~5% of arms" before the block. Sixteen
+touching 3.0% is a good calibration of that prediction; the discrepancy is
+entirely in my summary column, not in the prediction or the watcher.
+
+**The script is not being patched.** Its output is already recorded, the
+correction changes no declared quantity, and re-grouping an analysis script
+after seeing which grouping produces which answer is the §6.6 failure mode even
+when the motive is honest. The limitation is stated at the point of use in the
+outcome document instead, and the attribution table it prints is reported there
+as carrying less than it appears to.

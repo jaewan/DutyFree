@@ -1,0 +1,426 @@
+=== A6 re-run, pre-registration 08d0775 ===
+launched  2026-08-22T14:50:22+09:00
+start at  2026-08-22T22:00:00+09:00  (waiting 25778s)
+--- armed block CANCELLED before any record, 2026-08-22T20:45:23+09:00 ---
+    pid 320842 killed while sleeping; 0 of 270 arms recorded, no jsonl created.
+    restarting immediately per A6.8 (lead-directed), pre-registration 08d0775 + A6.8 7a1373b
+
+=== A6 re-run, pre-registration 08d0775 ===
+launched  2026-08-22T20:45:23+09:00
+start at  2026-08-22T20:45:23+09:00  (waiting 0s)
+
+=== freeze verification against d8eda44, 2026-08-22T20:45:53+09:00 ===
+governors distinct : performance 
+cpufreq boost      : 0
+numa_balancing     : 0
+perf_event_paranoid: -1
+THP enabled        : always [madvise] never
+cur freq cpu8      : 2250000
+boot               : 2026-08-19 12:00:27
+runner md5         : dc90186ba057584e9b06a8354b4db73f
+expected           : governors=performance boost=0 numa_balancing=0 paranoid=-1 THP=madvise freq~2250000 runner=dc90186ba057584e9b06a8354b4db73f
+
+moscxl: victim cpu8 L3 domain 1, 16 MiB / 16 ways = 1 MiB/way; full=ffff min=1; mode=corun30 chain=8 builds=[100000] probe=250000 (scan 1 MiB = 12% of LLC)
+[hostguard] moscxl reserved by duckdb_join_corun30 (pid 336239)
+  n=   100000 R=  3MiB full FB256_sat    inv0 eff=  16MiB occ=   4MiB bw= 16.94 settle=  54s med=  0.0760s  38.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv0 eff=  16MiB occ=   9MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv0 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0490s  24.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv0 eff=  16MiB occ=   2MiB bw= 12.68 settle=  25s med=  0.0410s  20.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv0 eff=  16MiB occ=   0MiB bw= 24.22 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv0 eff=  16MiB occ=   2MiB bw= 24.57 settle=  25s med=  0.1470s  73.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv0 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv0 eff=  16MiB occ=   7MiB bw= 15.39 settle=  39s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv0 eff=  16MiB occ=   0MiB bw= 24.20 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv1 eff=  16MiB occ=   2MiB bw= 24.53 settle=  25s med=  0.1520s  76.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv1 eff=  16MiB occ=   7MiB bw= 15.38 settle=  60s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv1 eff=  16MiB occ=   2MiB bw= 12.74 settle=  25s med=  0.0470s  23.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv1 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv1 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2320s 116.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv1 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv1 eff=  16MiB occ=   4MiB bw= 16.98 settle=  60s med=  0.0770s  38.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv1 eff=  16MiB occ=   2MiB bw= 12.79 settle=  25s med=  0.0410s  20.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv1 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2580s 129.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv2 eff=  16MiB occ=   5MiB bw= 16.96 settle=  47s med=  0.0780s  39.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv2 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv2 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0450s  22.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv2 eff=  16MiB occ=   7MiB bw= 15.43 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv2 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv2 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv2 eff=  16MiB occ=   2MiB bw= 24.54 settle=  25s med=  0.1500s  75.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv2 eff=  16MiB occ=   0MiB bw= 24.22 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv2 eff=  16MiB occ=   2MiB bw= 12.74 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv3 eff=  16MiB occ=   0MiB bw= 24.18 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv3 eff=  16MiB occ=   2MiB bw= 24.55 settle=  25s med=  0.1520s  76.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv3 eff=  16MiB occ=   7MiB bw= 15.42 settle=  44s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv3 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv3 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv3 eff=  16MiB occ=   2MiB bw= 12.73 settle=  25s med=  0.0400s  20.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv3 eff=  16MiB occ=   5MiB bw= 16.93 settle=  59s med=  0.0910s  45.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv3 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv3 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv4 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv4 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv4 eff=  16MiB occ=   1MiB bw= 24.55 settle=  25s med=  0.1530s  76.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv4 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv4 eff=  16MiB occ=   2MiB bw= 12.83 settle=  25s med=  0.0440s  22.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv4 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv4 eff=  16MiB occ=   7MiB bw= 15.39 settle=  45s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv4 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv4 eff=  16MiB occ=   5MiB bw= 16.96 settle=  60s med=  0.0770s  38.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv5 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv5 eff=  16MiB occ=   6MiB bw= 15.37 settle=  28s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv5 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2610s 130.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv5 eff=  16MiB occ=   2MiB bw= 12.80 settle=  25s med=  0.0370s  18.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv5 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv5 eff=  16MiB occ=   1MiB bw= 24.49 settle=  25s med=  0.1630s  81.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv5 eff=  16MiB occ=   5MiB bw= 16.96 settle=  60s med=  0.0780s  39.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv5 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv5 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv6 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv6 eff=  16MiB occ=   5MiB bw= 16.96 settle=  60s med=  0.0720s  36.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv6 eff=  16MiB occ=   2MiB bw= 24.54 settle=  25s med=  0.1480s  74.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv6 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv6 eff=  16MiB occ=   2MiB bw= 12.69 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv6 eff=  16MiB occ=   2MiB bw= 12.75 settle=  25s med=  0.0490s  24.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv6 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv6 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv6 eff=  16MiB occ=   7MiB bw= 15.41 settle=  60s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv7 eff=  16MiB occ=   5MiB bw= 16.95 settle=  60s med=  0.0750s  37.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv7 eff=  16MiB occ=   6MiB bw= 15.41 settle=  60s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv7 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv7 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv7 eff=  16MiB occ=   2MiB bw= 24.55 settle=  25s med=  0.1480s  74.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv7 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv7 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv7 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv7 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv8 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv8 eff=  16MiB occ=   0MiB bw= 24.20 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv8 eff=  16MiB occ=   6MiB bw= 15.39 settle=  42s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv8 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv8 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv8 eff=  16MiB occ=   5MiB bw= 16.96 settle=  60s med=  0.0760s  38.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv8 eff=  16MiB occ=   2MiB bw= 12.76 settle=  25s med=  0.0380s  19.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv8 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0440s  22.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv8 eff=  16MiB occ=   1MiB bw= 24.58 settle=  25s med=  0.1500s  75.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv9 eff=  16MiB occ=   4MiB bw= 16.95 settle=  60s med=  0.0750s  37.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv9 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv9 eff=  16MiB occ=   6MiB bw= 15.41 settle=  38s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv9 eff=  16MiB occ=   2MiB bw= 24.52 settle=  25s med=  0.1490s  74.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv9 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv9 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv9 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv9 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv9 eff=  16MiB occ=   2MiB bw= 12.69 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv10 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv10 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv10 eff=  16MiB occ=   2MiB bw= 24.55 settle=  25s med=  0.1500s  75.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv10 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv10 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv10 eff=  16MiB occ=   2MiB bw= 12.73 settle=  25s med=  0.0440s  22.00ns/out valid=True
+ABORT arm FB256_match: moscxl not quiescent: unexplained busy processes: [('392974', 'v3agent', 73.9)]
+[hostguard] lock released
+Traceback (most recent call last):
+  File "/home/domin/DutyFree/benchmarks/e2e/duckdb_join/run_join_campaign.py", line 511, in <module>
+    main()
+  File "/home/domin/DutyFree/benchmarks/e2e/duckdb_join/run_join_campaign.py", line 462, in main
+    guard.assert_quiescent(max_load=64.0,
+  File "/home/domin/DutyFree/benchmarks/e2e/lib/hostguard.py", line 126, in assert_quiescent
+    raise Contention(f"{self.host} not quiescent: " + "; ".join(problems))
+hostguard.Contention: moscxl not quiescent: unexplained busy processes: [('392974', 'v3agent', 73.9)]
+=== A6 exit rc=1  2026-08-22T22:30:58+09:00  records=96 ===
+
+=== A6 RESTART (A6.2 single permitted restart), 2026-08-22T23:24:06+09:00 ===
+    pre-registration 08d0775 + A6.8 7a1373b + A6.9 17c14e5 + A6.10 75cd9fc
+    prior block aborted at 96/270 on v3agent (AhnLab V3); partial preserved, not merged
+    hostguard age exemption deployed: md5 8aefe9deec4286c642579930535434b9
+
+=== A6 re-run, pre-registration 08d0775 ===
+launched  2026-08-22T23:24:06+09:00
+start at  2026-08-22T23:24:06+09:00  (waiting 0s)
+
+=== freeze verification against d8eda44, 2026-08-22T23:24:36+09:00 ===
+governors distinct : performance 
+cpufreq boost      : 0
+numa_balancing     : 0
+perf_event_paranoid: -1
+THP enabled        : always [madvise] never
+cur freq cpu8      : 2250000
+boot               : 2026-08-19 12:00:27
+runner md5         : dc90186ba057584e9b06a8354b4db73f
+expected           : governors=performance boost=0 numa_balancing=0 paranoid=-1 THP=madvise freq~2250000 runner=dc90186ba057584e9b06a8354b4db73f
+
+moscxl: victim cpu8 L3 domain 1, 16 MiB / 16 ways = 1 MiB/way; full=ffff min=1; mode=corun30 chain=8 builds=[100000] probe=250000 (scan 1 MiB = 12% of LLC)
+[hostguard] moscxl reserved by duckdb_join_corun30 (pid 399804)
+  n=   100000 R=  3MiB full FB256_sat    inv0 eff=  16MiB occ=   5MiB bw= 16.92 settle=  60s med=  0.0730s  36.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv0 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv0 eff=  16MiB occ=   2MiB bw= 12.68 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv0 eff=  16MiB occ=   2MiB bw= 12.73 settle=  25s med=  0.0410s  20.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv0 eff=  16MiB occ=   0MiB bw= 24.22 settle=  25s med=  0.2360s 118.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv0 eff=  16MiB occ=   2MiB bw= 24.59 settle=  25s med=  0.1490s  74.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv0 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv0 eff=  16MiB occ=   7MiB bw= 15.38 settle=  60s med=  0.0300s  15.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv0 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv1 eff=  16MiB occ=   2MiB bw= 24.54 settle=  25s med=  0.1500s  75.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv1 eff=  16MiB occ=   6MiB bw= 15.40 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv1 eff=  16MiB occ=   2MiB bw= 12.69 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv1 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv1 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2360s 118.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv1 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv1 eff=  16MiB occ=   4MiB bw= 16.99 settle=  60s med=  0.0750s  37.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv1 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0610s  30.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv1 eff=  16MiB occ=   0MiB bw= 24.22 settle=  25s med=  0.2360s 118.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv2 eff=  16MiB occ=   4MiB bw= 16.92 settle=  26s med=  0.0770s  38.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv2 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv2 eff=  16MiB occ=   2MiB bw= 12.75 settle=  25s med=  0.0390s  19.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv2 eff=  16MiB occ=   7MiB bw= 15.37 settle=  25s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv2 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv2 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv2 eff=  16MiB occ=   2MiB bw= 24.43 settle=  25s med=  0.1670s  83.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv2 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2600s 130.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv2 eff=  16MiB occ=   2MiB bw= 12.87 settle=  25s med=  0.0450s  22.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv3 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2600s 130.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv3 eff=  16MiB occ=   2MiB bw= 24.53 settle=  25s med=  0.1640s  82.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv3 eff=  16MiB occ=   6MiB bw= 15.44 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv3 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv3 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv3 eff=  16MiB occ=   2MiB bw= 12.73 settle=  25s med=  0.0470s  23.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv3 eff=  16MiB occ=   4MiB bw= 16.93 settle=  47s med=  0.0800s  40.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv3 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv3 eff=  16MiB occ=   2MiB bw= 12.73 settle=  25s med=  0.0400s  20.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv4 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv4 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0440s  22.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv4 eff=  16MiB occ=   2MiB bw= 24.58 settle=  25s med=  0.1470s  73.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv4 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv4 eff=  16MiB occ=   2MiB bw= 12.74 settle=  25s med=  0.0370s  18.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv4 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv4 eff=  16MiB occ=   7MiB bw= 15.41 settle=  54s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv4 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv4 eff=  16MiB occ=   5MiB bw= 16.95 settle=  60s med=  0.0720s  36.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv5 eff=  16MiB occ=   2MiB bw= 12.76 settle=  25s med=  0.0390s  19.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv5 eff=  16MiB occ=   4MiB bw= 15.32 settle=  35s med=  0.0910s  45.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv5 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv5 eff=  16MiB occ=   2MiB bw= 12.70 settle=  25s med=  0.0450s  22.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv5 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv5 eff=  16MiB occ=   2MiB bw= 24.60 settle=  25s med=  0.1480s  74.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv5 eff=  16MiB occ=   4MiB bw= 16.95 settle=  60s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv5 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv5 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv6 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv6 eff=  16MiB occ=   5MiB bw= 16.94 settle=  60s med=  0.0750s  37.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv6 eff=  16MiB occ=   2MiB bw= 24.51 settle=  25s med=  0.1470s  73.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv6 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv6 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0410s  20.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv6 eff=  16MiB occ=   2MiB bw= 12.73 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv6 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv6 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv6 eff=  16MiB occ=   7MiB bw= 15.41 settle=  60s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv7 eff=  16MiB occ=   5MiB bw= 16.98 settle=  60s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv7 eff=  16MiB occ=   7MiB bw= 15.43 settle=  60s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv7 eff=  16MiB occ=   2MiB bw= 12.75 settle=  25s med=  0.0400s  20.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv7 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv7 eff=  16MiB occ=   2MiB bw= 24.54 settle=  25s med=  0.1490s  74.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv7 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv7 eff=  16MiB occ=   0MiB bw= 24.19 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv7 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv7 eff=  16MiB occ=   2MiB bw= 12.65 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv8 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv8 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv8 eff=  16MiB occ=   7MiB bw= 15.37 settle=  60s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv8 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv8 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv8 eff=  16MiB occ=   5MiB bw= 16.95 settle=  60s med=  0.0750s  37.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv8 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv8 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv8 eff=  16MiB occ=   2MiB bw= 24.51 settle=  25s med=  0.1490s  74.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv9 eff=  16MiB occ=   4MiB bw= 16.93 settle=  60s med=  0.0800s  40.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv9 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv9 eff=  16MiB occ=   6MiB bw= 15.40 settle=  60s med=  0.0350s  17.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv9 eff=  16MiB occ=   2MiB bw= 24.53 settle=  25s med=  0.1590s  79.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv9 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2600s 130.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv9 eff=  16MiB occ=   2MiB bw= 12.86 settle=  25s med=  0.0410s  20.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv9 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv9 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv9 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0790s  39.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv10 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv10 eff=  16MiB occ=   2MiB bw= 12.69 settle=  25s med=  0.0440s  22.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv10 eff=  16MiB occ=   2MiB bw= 24.54 settle=  25s med=  0.1430s  71.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv10 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv10 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2590s 129.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv10 eff=  16MiB occ=   2MiB bw= 12.81 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv10 eff=  16MiB occ=   6MiB bw= 15.40 settle=  60s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv10 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2600s 130.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv10 eff=  16MiB occ=   4MiB bw= 16.91 settle=  33s med=  0.0790s  39.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv11 eff=  16MiB occ=   7MiB bw= 15.41 settle=  60s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv11 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2600s 130.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv11 eff=  16MiB occ=   2MiB bw= 12.75 settle=  25s med=  0.0490s  24.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv11 eff=  16MiB occ=   2MiB bw= 24.48 settle=  25s med=  0.1600s  80.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv11 eff=  16MiB occ=   0MiB bw= 24.28 settle=  25s med=  0.2580s 129.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv11 eff=  16MiB occ=   2MiB bw= 12.79 settle=  25s med=  0.0410s  20.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv11 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv11 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv11 eff=  16MiB occ=   5MiB bw= 16.93 settle=  50s med=  0.0750s  37.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv12 eff=  16MiB occ=   2MiB bw= 12.70 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv12 eff=  16MiB occ=   0MiB bw= 24.22 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv12 eff=  16MiB occ=   2MiB bw= 12.74 settle=  25s med=  0.0400s  20.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv12 eff=  16MiB occ=   7MiB bw= 15.41 settle=  60s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv12 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv12 eff=  16MiB occ=   5MiB bw= 16.95 settle=  60s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv12 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv12 eff=  16MiB occ=   2MiB bw= 24.56 settle=  25s med=  0.1490s  74.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv12 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv13 eff=  16MiB occ=   1MiB bw= 24.50 settle=  25s med=  0.1520s  76.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv13 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv13 eff=  16MiB occ=   0MiB bw= 24.18 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv13 eff=  16MiB occ=   7MiB bw= 15.42 settle=  60s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv13 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv13 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv13 eff=  16MiB occ=   5MiB bw= 16.98 settle=  60s med=  0.0760s  38.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv13 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2320s 116.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv13 eff=  16MiB occ=   2MiB bw= 12.76 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv14 eff=  16MiB occ=   4MiB bw= 16.97 settle=  53s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv14 eff=  16MiB occ=   0MiB bw= 24.20 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv14 eff=  16MiB occ=   2MiB bw= 24.55 settle=  25s med=  0.1460s  73.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv14 eff=  16MiB occ=   2MiB bw= 12.76 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv14 eff=  16MiB occ=   7MiB bw= 15.43 settle=  60s med=  0.0340s  17.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv14 eff=  16MiB occ=   2MiB bw= 12.83 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv14 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv14 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv14 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv15 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv15 eff=  16MiB occ=   0MiB bw= 24.19 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv15 eff=  16MiB occ=   7MiB bw= 15.40 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv15 eff=  16MiB occ=   5MiB bw= 16.97 settle=  60s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv15 eff=  16MiB occ=   2MiB bw= 12.70 settle=  27s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv15 eff=  16MiB occ=   2MiB bw= 12.70 settle=  25s med=  0.0410s  20.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv15 eff=  16MiB occ=   2MiB bw= 24.55 settle=  25s med=  0.1500s  75.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv15 eff=  16MiB occ=   0MiB bw= 24.20 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv15 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv16 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0440s  22.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv16 eff=  16MiB occ=   2MiB bw= 12.75 settle=  25s med=  0.0390s  19.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv16 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv16 eff=  16MiB occ=   5MiB bw= 16.98 settle=  60s med=  0.0730s  36.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv16 eff=  16MiB occ=   0MiB bw= 24.18 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv16 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv16 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv16 eff=  16MiB occ=   1MiB bw= 24.58 settle=  25s med=  0.1500s  75.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv16 eff=  16MiB occ=   7MiB bw= 15.39 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv17 eff=  16MiB occ=   5MiB bw= 16.96 settle=  60s med=  0.0730s  36.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv17 eff=  16MiB occ=   0MiB bw= 24.20 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv17 eff=  16MiB occ=   2MiB bw= 24.52 settle=  25s med=  0.1480s  74.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv17 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv17 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv17 eff=  16MiB occ=   7MiB bw= 15.38 settle=  32s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv17 eff=  16MiB occ=   2MiB bw= 12.75 settle=  25s med=  0.0400s  20.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv17 eff=  16MiB occ=   9MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv17 eff=  16MiB occ=   2MiB bw= 12.74 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv18 eff=  16MiB occ=   2MiB bw= 12.73 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv18 eff=  16MiB occ=   7MiB bw= 15.43 settle=  49s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv18 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv18 eff=  16MiB occ=   0MiB bw= 24.15 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv18 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0440s  22.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv18 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv18 eff=  16MiB occ=   2MiB bw= 24.51 settle=  26s med=  0.1490s  74.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv18 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv18 eff=  16MiB occ=   5MiB bw= 16.96 settle=  60s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv19 eff=  16MiB occ=   0MiB bw= 24.17 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv19 eff=  16MiB occ=   7MiB bw= 15.41 settle=  60s med=  0.0350s  17.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv19 eff=  16MiB occ=   2MiB bw= 12.68 settle=  25s med=  0.0450s  22.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv19 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0440s  22.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv19 eff=  16MiB occ=   2MiB bw= 24.55 settle=  25s med=  0.1480s  74.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv19 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv19 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv19 eff=  16MiB occ=   5MiB bw= 16.97 settle=  60s med=  0.0750s  37.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv19 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv20 eff=  16MiB occ=   2MiB bw= 12.74 settle=  25s med=  0.0400s  20.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv20 eff=  16MiB occ=   5MiB bw= 16.97 settle=  60s med=  0.0770s  38.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv20 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv20 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0440s  22.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv20 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv20 eff=  16MiB occ=   6MiB bw= 15.42 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv20 eff=  16MiB occ=   0MiB bw= 24.20 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv20 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv20 eff=  16MiB occ=   2MiB bw= 24.52 settle=  25s med=  0.1460s  73.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv21 eff=  16MiB occ=   2MiB bw= 12.70 settle=  25s med=  0.0480s  24.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv21 eff=  16MiB occ=   0MiB bw= 24.20 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv21 eff=  16MiB occ=   2MiB bw= 12.77 settle=  25s med=  0.0370s  18.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv21 eff=  16MiB occ=   2MiB bw= 24.56 settle=  25s med=  0.1470s  73.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv21 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv21 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv21 eff=  16MiB occ=   5MiB bw= 16.95 settle=  60s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv21 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv21 eff=  16MiB occ=   7MiB bw= 15.42 settle=  60s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv22 eff=  16MiB occ=   2MiB bw= 12.73 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv22 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv22 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv22 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv22 eff=  16MiB occ=   2MiB bw= 12.68 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv22 eff=  16MiB occ=   7MiB bw= 15.41 settle=  30s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv22 eff=  16MiB occ=   1MiB bw= 24.50 settle=  25s med=  0.1480s  74.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv22 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv22 eff=  16MiB occ=   5MiB bw= 16.97 settle=  60s med=  0.0730s  36.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv23 eff=  16MiB occ=   0MiB bw= 24.20 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv23 eff=  16MiB occ=   2MiB bw= 12.67 settle=  25s med=  0.0470s  23.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv23 eff=  16MiB occ=   7MiB bw= 15.41 settle=  30s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv23 eff=  16MiB occ=   2MiB bw= 12.69 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv23 eff=  16MiB occ=   2MiB bw= 24.52 settle=  25s med=  0.1490s  74.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv23 eff=  16MiB occ=   5MiB bw= 16.97 settle=  60s med=  0.0720s  36.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv23 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv23 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv23 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv24 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv24 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2320s 116.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv24 eff=  16MiB occ=   4MiB bw= 16.94 settle=  60s med=  0.0770s  38.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv24 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2600s 130.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv24 eff=  16MiB occ=   6MiB bw= 15.40 settle=  60s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv24 eff=  16MiB occ=   2MiB bw= 12.79 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv24 eff=  16MiB occ=   2MiB bw= 12.81 settle=  25s med=  0.0380s  19.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv24 eff=  16MiB occ=   2MiB bw= 24.51 settle=  25s med=  0.1630s  81.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv24 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv25 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv25 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv25 eff=  16MiB occ=   2MiB bw= 24.51 settle=  25s med=  0.1480s  74.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv25 eff=  16MiB occ=   6MiB bw= 15.40 settle=  39s med=  0.0410s  20.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv25 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv25 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv25 eff=  16MiB occ=   5MiB bw= 16.94 settle=  60s med=  0.0770s  38.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv25 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv25 eff=  16MiB occ=   0MiB bw= 24.23 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv26 eff=  16MiB occ=   2MiB bw= 12.76 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv26 eff=  16MiB occ=   6MiB bw= 15.40 settle=  60s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv26 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv26 eff=  16MiB occ=   0MiB bw= 24.26 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv26 eff=  16MiB occ=   0MiB bw= 24.22 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv26 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv26 eff=  16MiB occ=   2MiB bw= 12.70 settle=  25s med=  0.0440s  22.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv26 eff=  16MiB occ=   2MiB bw= 24.53 settle=  25s med=  0.1500s  75.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv26 eff=  16MiB occ=   5MiB bw= 16.96 settle=  60s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv27 eff=  16MiB occ=   0MiB bw= 24.16 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv27 eff=  16MiB occ=   2MiB bw= 12.72 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv27 eff=  16MiB occ=   2MiB bw= 12.71 settle=  25s med=  0.0380s  19.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv27 eff=  16MiB occ=   7MiB bw= 15.40 settle=  60s med=  0.0320s  16.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv27 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv27 eff=  16MiB occ=   5MiB bw= 16.95 settle=  60s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv27 eff=  16MiB occ=   2MiB bw= 24.54 settle=  25s med=  0.1530s  76.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv27 eff=  16MiB occ=   0MiB bw= 24.18 settle=  25s med=  0.2350s 117.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv27 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv28 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0280s  14.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv28 eff=  16MiB occ=   2MiB bw= 12.67 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv28 eff=  16MiB occ=   0MiB bw= 24.25 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv28 eff=  16MiB occ=   7MiB bw= 15.41 settle=  49s med=  0.0330s  16.50ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv28 eff=  16MiB occ=   2MiB bw= 24.57 settle=  25s med=  0.1490s  74.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv28 eff=  16MiB occ=   5MiB bw= 16.96 settle=  60s med=  0.0730s  36.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv28 eff=  16MiB occ=   0MiB bw= 24.21 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv28 eff=  16MiB occ=   2MiB bw= 12.73 settle=  25s med=  0.0450s  22.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv28 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2320s 116.00ns/out valid=True
+  n=   100000 R=  3MiB full NTA_sat      inv29 eff=  16MiB occ=   1MiB bw= 24.52 settle=  25s med=  0.1480s  74.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_fbmatch   inv29 eff=  16MiB occ=   2MiB bw= 12.69 settle=  25s med=  0.0430s  21.50ns/out valid=True
+  n=   100000 R=  3MiB full WB_sat       inv29 eff=  16MiB occ=   0MiB bw= 24.22 settle=  25s med=  0.2330s 116.50ns/out valid=True
+  n=   100000 R=  3MiB full FB0_sat      inv29 eff=  16MiB occ=   0MiB bw= 24.24 settle=  25s med=  0.2340s 117.00ns/out valid=True
+  n=   100000 R=  3MiB full FB0_match    inv29 eff=  16MiB occ=   2MiB bw= 12.75 settle=  25s med=  0.0420s  21.00ns/out valid=True
+  n=   100000 R=  3MiB full FB256_match  inv29 eff=  16MiB occ=   6MiB bw= 15.35 settle=  31s med=  0.0350s  17.50ns/out valid=True
+  n=   100000 R=  3MiB full FB256_sat    inv29 eff=  16MiB occ=   6MiB bw= 16.95 settle=  60s med=  0.0740s  37.00ns/out valid=True
+  n=   100000 R=  3MiB full WB_local     inv29 eff=  16MiB occ=   0MiB bw= 24.27 settle=  25s med=  0.2320s 116.00ns/out valid=True
+  n=   100000 R=  3MiB full quiescent    inv29 eff=  16MiB occ=   8MiB bw=  0.00 settle=   0s med=  0.0290s  14.50ns/out valid=True
+[hostguard] lock released
+=== A6 exit rc=0  2026-08-23T04:23:12+09:00  records=270 ===
