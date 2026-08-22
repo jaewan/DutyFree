@@ -42,17 +42,28 @@ def parse_watcher(path, tz_offset_min=0):
         except Exception:
             continue
         comm = pid = None
+        pcpu = 0.0
         for tok in line.split():
             if tok.startswith("comm="):
                 comm = tok[5:]
             elif tok.startswith("pid="):
                 pid = tok[4:]
+            elif tok.startswith("pcpu="):
+                try:
+                    pcpu = float(tok[5:])
+                except ValueError:
+                    pcpu = 0.0
         if comm is None:
             continue
         if any(comm == h or comm.startswith(h) for h in HARNESS):
             harness_hits[comm] = harness_hits.get(comm, 0) + 1
             continue
-        bursts.append({"t": t, "comm": comm, "pid": pid})
+        # A6.16: pcpu/100 lower-bounds concurrent threads. Unlike total work,
+        # this survives the near-zero-lifetime artifact, because no single
+        # thread exceeds 100%. Width decides whether temporal overlap means
+        # actual contact with the pinned victim core.
+        bursts.append({"t": t, "comm": comm, "pid": pid, "pcpu": pcpu,
+                       "min_threads": max(1, int(pcpu // 100))})
     bursts.sort(key=lambda b: b["t"])
     return bursts, harness_hits
 
@@ -129,6 +140,13 @@ def main():
         by_comm[b["comm"]] = by_comm.get(b["comm"], 0) + 1
     print("  by comm: " + ", ".join(f"{c}={n}" for c, n in
                                     sorted(by_comm.items(), key=lambda x: -x[1])))
+    widths = sorted(b["min_threads"] for b in bursts)
+    wide = sum(1 for w in widths if w >= 6)
+    print(f"  width (A6.16, min concurrent threads from pcpu/100): "
+          f"median={widths[len(widths)//2]} max={widths[-1]}  "
+          f"{wide}/{len(widths)} at >=6 threads")
+    print("    narrow bursts usually miss the pinned victim core, so hits below "
+          "over-count contact; wide bursts do not, so hits are then tight.")
     if harness_hits:
         print("  (harness self-matches excluded: " +
               ", ".join(f"{c}={n}" for c, n in

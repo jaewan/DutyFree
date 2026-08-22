@@ -1808,3 +1808,53 @@ measured window, inside a settle window, and outside both -- and recovers each
 placement exactly. It refuses to report a null when the record and watcher time
 spans do not overlap, because clock skew between the two sources produces zero
 overlaps and that reads exactly like a clean result. It performs no exclusion.
+
+## A6.16: pcpu bounds burst *width* even when it cannot bound duration, and one burst is at least six threads wide
+
+Dated 2026-08-23 02:38, block at ~180/270. **No apparatus change. Rule O stands.**
+
+```
+2026-08-23T02:30:58  v3agent  pid=501498  pcpu=58.3    age=0s
+2026-08-23T02:35:58  v3agent  pid=503498  pcpu=1150.0  age=0s
+```
+
+### Correcting the A6.14 addendum, which over-generalised
+
+That addendum ruled the pcpu figures "a presence indicator, not an intensity
+measure," on the ground that `ps` divides cputime by a near-zero lifetime. That
+is correct about **total work and duration** and I stand by it. It is too broad
+about one thing: no single thread can exceed 100%, so a ratio above 100% cannot
+be manufactured by the small-denominator artifact alone. **pcpu / 100 is a lower
+bound on the number of threads running concurrently**, and that bound survives
+the timing problem.
+
+At 1150% the process had at least twelve threads on core simultaneously. Even
+allowing a factor-two error from jiffy-resolution rounding in both numerator and
+denominator, it is at least six. That is a structural fact about the burst, not
+an artifact, and A6.14's addendum should be read as striking the *magnitude*
+claims while retaining this one.
+
+### Why width matters here and the direction it cuts
+
+The victim is pinned to `cpu8` and the aggressor to cores 9--15 on a 128-core
+part. A one- or two-thread burst that overlaps an arm in *time* will usually
+miss those cores entirely, so A6.14's hit counts were an **over**count of actual
+contact -- conservative, in the direction of overstating the problem. A burst
+twelve or more threads wide will not miss them: temporal overlap becomes actual
+contention for the victim's core and the streamer's.
+
+So the hit count is a loose upper bound on contact for narrow bursts and a tight
+one for wide bursts, and this block contains at least one wide burst. The
+correct reading of A6.13--A6.15 is unchanged in direction and slightly less
+comfortable in magnitude. Nothing here licenses an exclusion.
+
+### An arrival-time regularity, recorded but not concluded
+
+The two bursts above are exactly 300 s apart, and five of the eight foreign
+bursts so far carry `:58` seconds. The watcher samples on a fixed 5 s grid, so
+`:58` is one of twelve slots and five-of-eight landing in it is not what an
+unsynchronised process would produce -- it is what a timer aligned near a
+minute boundary would produce, detected at the next grid slot. Suggestive of a
+periodic trigger, consistent with A6.15's snapd/AV reading, and **not concluded
+here**: the period is read off the full log after the block per A6.14 item 6,
+where the whole series is available rather than eight points.
