@@ -1685,3 +1685,48 @@ but lands on arms that are not part of any matched pair.
 6. The burst **period** is read off the watcher log itself after the block --
    the timestamps give it directly -- rather than by inspecting timers on the
    host, which would cost a login.
+
+### A6.14 addendum, 00:13: two corrections to the paragraph above, from the fourth burst
+
+A fourth burst (`v3agent`, pid 426101, 00:10:58) makes the inter-arrival series
+35.1, 6.3, 3.6 minutes. **The rate is not stationary**, so "one per 14 minutes"
+is a sample mean over a non-stationary process and must not be read as a
+property of the host. A6.14's expected-hit bound scales linearly with the rate:
+at one per 3.6 min it is ~1.7 against ~1.4 hits over 30 repetitions instead of
+0.42 against 0.36. Still under two arms, still the same direction, but the
+figure quoted above is a snapshot and the post-block reduction (item 6)
+supersedes it.
+
+**The pcpu figures are a presence indicator, not an intensity measure, and I
+have been quoting them as though they were.** A6.10's own finding is that `ps`
+reports pcpu as cputime over a process's whole lifetime, so a sub-second
+process reads as pegged -- that is precisely why the age exemption exists.
+Every one of these four bursts is `age=0s` with a distinct pid, so 242%, 194%,
+253% and 43.5% are ratios with a near-zero denominator. They establish that a
+CPU-bound process existed; they do not establish that it consumed 2.4 cores for
+any meaningful span, and the spread between 43.5% and 253% is not evidence that
+one burst was six times larger than another. A6.13 and A6.14 should be read
+with the magnitudes struck and only the incidence retained.
+
+What the distinct pids *do* bound: no burst appears in two consecutive 5 s
+watcher samples, so each lasted **under ~5 s**. Against a 10 s measured window
+that is not self-evidently negligible, which weakens A6.14's median-of-300
+argument more than that paragraph allowed.
+
+### The tempting test that does not work
+
+The data appear to offer a clean check. Exposure runs 6.9x from `WB_sat` to
+`FB256_match`, and observed dispersion runs the *opposite* way -- `WB_sat` is
+the tightest arm in the AMD campaign at CoV_rep 0.37% and `FB256_match` the
+loosest at 13.10%. If burst contamination drove invocation-level excursions,
+the most-exposed arm should carry the most, and it carries none.
+
+That reasoning is confounded and is recorded here so it is not reached for
+later. Exposure and *sensitivity* run in opposite directions across these arms:
+`WB_sat`'s victim is already crushed to 0 MiB and saturated at 8.175x, where
+additional perturbation has little room to act, while the matched arms sit at
+2--7 MiB of 16 where the campaign's own analysis says small perturbations have
+leverage. Low dispersion in the most-exposed arm is therefore equally explained
+by insensitivity as by absence of contamination, and the comparison cannot
+separate them. It is not evidence against A6.9's hypothesis, and it must not be
+cited as such.
