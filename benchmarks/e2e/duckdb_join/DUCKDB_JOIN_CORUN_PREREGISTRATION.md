@@ -810,3 +810,203 @@ de-confound where it already was; a failure removes it. As in A5.3, the best
 available outcome is that a declared negative does not fire. `mos181` is frozen
 and this measurement does not change it: it adds a monitoring group read, and
 runs the same arms at the same operating point that campaign already used.
+
+# Amendment 6, 2026-08-22 — the AMD re-run, with the outlier rule fixed before any repetition exists
+
+## A6.0 What licenses this, stated accurately
+
+**A5.2 does not license it.** A5.2's declared rule was "anything between -> no
+conclusion, **and no re-run**," and its own validity condition fired: the
+contemporaneous control read CoV_rep 4.28% against the historical 13.10% it was
+supposed to reproduce, 67% relative, so the "unchanged -> physical" branch is
+void. Nothing in `DUCKDB_JOIN_A52_OUTCOME.md` clears a re-run and this amendment
+does not pretend otherwise.
+
+The re-run is taken **on the lead's instruction**, as a decision about whether
+the AMD de-confound exists, which `DUCKDB_JOIN_A52_OUTCOME.md` put to the lead
+rather than taking. It is therefore constrained more tightly than a
+diagnostic-cleared re-run would be, and this amendment is the constraint. The
+within-binary difference **+0.263 [+0.179, +0.420] is already known**, which is
+precisely the §6.6 hazard — "fishing for a config that reproduces a published
+number is not reconciliation" — so every rule below is fixed here, before the
+first record exists, and the commit hash of this text is quoted in the outcome
+document.
+
+## A6.1 What the anomaly is, measured on the 150 AMD invocations that exist
+
+Declared as the empirical basis for the design, from
+`join_corun_moscxl.jsonl` (90), `join_nta_moscxl.jsonl` (20),
+`join_thpctl_moscxl.jsonl` (20), `join_thp_moscxl.jsonl` (20).
+
+**Incidence is 1.3%, not 5%.** Counting invocations whose median exceeds their
+arm's median by >= 25%: exactly **2 of 150**, one in seventy-five.
+
+| block | n | hits | which |
+|---|---:|---:|---|
+| campaign, night | 90 | 1 | `FB256_match` inv5, 1.38x |
+| A5.3, day | 20 | 0 | -- |
+| A5.2 control, day | 20 | 0 | -- |
+| A5.2 hugepage, day | 20 | 1 | `quiescent` inv5, 1.43x |
+
+Four properties, all of which the design below depends on:
+
+1. **It occurs with no streamer running.** One of the two events is a quiescent
+   arm on an idle frozen host. It is not a co-run operating point on a cliff.
+2. **It is a whole-invocation state, not a transient.** In both events the
+   warm-up query is *normal* — 0.0400 s against a 0.037--0.048 pool, and
+   0.0340 s against 0.034--0.036 — and the 300 measured queries that follow are
+   both shifted and widened (`FB256_match` inv5 p10/p90 = 0.0320/0.0690 against
+   a normal 0.028--0.033 / 0.034--0.038). The invocation starts normal and does
+   not recover.
+3. **It is not what makes `FB0_match` disperse.** That arm's ten repetitions
+   span 0.037--0.047 with no member over 1.13x, and its best leave-one-out CoV
+   is 6.98%. Its dispersion is broad and intrinsic. **A6 forecasts that
+   `FB0_match` fails the 5% CoV bar again, outliers or not**, and that forecast
+   is recorded here so that an S3 pass cannot later be presented as a surprise.
+4. **No independent marker distinguishes an anomalous invocation.** This was
+   searched for before the rule was written, over every field in the record:
+   warm-up time, wall-clock overhead outside the query stream, first-sample
+   (victimless) occupancy, sample count, MBM totals, return code, stderr. The
+   anomalous invocations are ordinary in all of them. They are visible **only**
+   in runtime and in mean occupancy — and occupancy is the mediator of the
+   effect being measured (r = -0.86, -0.61, -0.83 across three blocks), so
+   keying an exclusion on it would bias the de-confound more directly than
+   keying on runtime would. **There is nothing to exclude on that is not the
+   outcome variable.** That fact, not a preference, determines A6.3.
+
+## A6.2 The design, fixed
+
+- **n = 30 repetitions**, up from 10. The only change from the campaign.
+- **All nine arms**, unchanged: `quiescent`, `WB_sat`, `FB0_sat`, `WB_local`,
+  `NTA_sat`, `FB256_sat`, `WB_fbmatch`, `FB0_match`, `FB256_match`. No arm is
+  dropped, so no arm is selected. Cost at the campaign's measured 65.1 s per
+  arm is **4.9 h** for 270 arms, which is affordable and is why nothing is
+  trimmed for time.
+- **N = 100K, chain8, `probe_rows` at the A2 value, `QUERIES` unchanged.**
+  A5.1 clauses 1 and 3 are binding and are not touched.
+- **No THP shim.** A5.2 showed page placement is not a controllable driver
+  (5.69% against a contemporaneous 5.90%, needing < 3%). Running stock keeps
+  the re-run comparable to the campaign.
+- **Same fixed seeded interleave**, same hostguard, same per-arm exclusivity,
+  same streamer settle gated on the streamer's own occupancy.
+- **One contiguous night block beginning at 22:00 local**, the campaign's start
+  hour. Time-of-day is the one confound A5.2 could not exclude; it is held at
+  the campaign's value rather than varied. Incidence is additionally reported
+  split by first and second half of the block, so drift within the night is
+  visible at no extra cost, and against A5.2's 40 daytime invocations.
+- **`moscxl` stays frozen at `d8eda44`.** The freeze is verified and its hash
+  recorded in the log before the first arm.
+- **Exactly one attempt.** If the block aborts, it is restarted from scratch at
+  most once and the partial artifact is retained and reported. Completed
+  repetitions from an aborted block are never merged into a later one.
+
+**Raising n is not a dispersion remedy and may not be reported as one.** CoV_rep
+is a property of the arm's per-invocation distribution, not of the sample size;
+n changes only how precisely it is estimated. Declared now so that a lower
+number at n = 30 cannot be narrated as a repair. Under A5.1 clause 3 — "a re-run
+that lowers CoV must say which change did it" — the answer is fixed in advance:
+**nothing was changed except n, so the only available explanation is that the
+n = 10 estimate was imprecise.** With a tail at 1.3% incidence the n = 10
+estimate is imprecise in both directions, and that is the whole of what a
+movement means.
+
+## A6.3 Rule O, the outlier rule, fixed here
+
+**No repetition is excluded from the primary analysis for any reason relating
+to its runtime, its occupancy, or its effect on any estimate. There is no
+exclusion path that a slow repetition can take.** All 30 enter every declared
+figure.
+
+This is not conservatism for its own sake. Per A6.1 item 4 there is no marker to
+exclude on except the outcome variable itself, and a rule that removes slow
+repetitions from both arms of a *difference* still selects on the dependent
+variable — it would shrink whichever arm happens to draw more anomalies, and the
+de-confound is exactly a difference between two arms.
+
+Three subordinate clauses, each fixed now:
+
+1. **Voiding is unchanged and is not exclusion.** A repetition is void, and
+   re-run, only on grounds already in the protocol and detectable without
+   looking at the timing: hostguard abort, `valid: false`, a failed
+   per-repetition bandwidth assertion (§5), or a missing counter series. Voids
+   are counted and reported.
+2. **One secondary, symmetric, fixed-count trim.** Drop the single fastest and
+   the single slowest repetition of each arm — 2 of 30, one from each end,
+   every arm identically. For a paired *difference* the same one-from-each-end
+   trim is taken on the per-repetition difference series instead, so that
+   pairing is never broken. The trimmed figures are reported **beside** the
+   untrimmed ones, never in place of them. It is symmetric, so it cannot
+   preferentially remove slow repetitions; it bounds any single repetition's
+   leverage and nothing more. **No verdict may rest on it**, and the CoV bar is
+   applied to the untrimmed figure only.
+3. **Anomaly incidence is a reported quantity, not a filter.** Count of
+   repetitions whose median is >= 1.25x their arm's median, per arm and per
+   half-block. The 1.25 threshold is set from the 150 existing invocations,
+   where the normal maximum is 1.13x and the two events are 1.38x and 1.43x;
+   it is descriptive, it separates nothing that is close, and no verdict
+   rests on it either.
+
+## A6.4 The bars, and what each outcome obliges
+
+Three checks. **S3 is the original bar and is not weakened, replaced, or
+reinterpreted.** S1 and S2 are additional and can only ever license a *weaker*
+statement than S3 would.
+
+- **S3 (the §6 outcome-5 bar, unchanged).** CoV across repetition medians
+  < 5%, untrimmed, on both members of the primary pair (`FB0_match`,
+  `FB256_match`).
+- **S1 (sign stability).** The sign of both matched-pair differences is the
+  same in all 30 leave-one-out estimates.
+- **S2 (point stability).** The leave-one-out range of each matched-pair
+  difference is <= 20% of its point estimate. **The campaign already meets
+  this** — +0.250 to +0.276 on +0.263 is 9.9% — which is why the outcome
+  document called the effect "probably real." Declaring a bar the existing data
+  already passes is stated plainly rather than presented as a hurdle.
+
+**S3 passes.** Outcome 5 is lifted for this host and a verdict may be drawn. It
+must be reported together with A6.2's fixed sentence: nothing changed but n, so
+the n = 10 CoV estimate was imprecise and the operating point was not repaired.
+
+**S3 fails, S1 and S2 both pass.** The declared result, in these words fixed in
+advance:
+
+> The AMD host remains under §6 outcome 5 and yields **no verdict**. It may not
+> be quoted as a vendor null either. What 30 repetitions add is that the
+> within-binary difference is *stable* under resampling at this operating point
+> while its interval is not trustworthy: the point estimate is D with a
+> leave-one-out range of R, and the sign does not turn. That is a bounded
+> observation about a host that fails its stability bar, it is not a
+> de-confound, and it does not enter the paper as a result.
+
+**S1 or S2 fails.** The difference is not stable and the campaign's +0.263 does
+not survive replication. Reported as such, prominently, and
+`DUCKDB_JOIN_AMD_CORUN_OUTCOME.md` is amended at the point of use.
+
+**In every branch the result is reported whether or not any bar clears, and the
+outcome document is written before any figure is quoted elsewhere.** Per A5.1
+clause 4, if the spread is again uncontrollable that *is* the finding — "a
+16 MiB CCX cannot host this victim at a stable operating point" — reported as a
+result and not retuned around. **There is no third campaign at this operating
+point.**
+
+## A6.5 What this cannot do
+
+It cannot resurrect the AMD de-confound to full standing, and it is not designed
+to. The best available outcome above S3 is a bounded non-verdict. It also does
+not disturb two things already settled: A5.3's finding that `PREFETCHNTA`
+allocates under competition (0.884, threshold 0.50) stands whatever this
+returns, and **A5.2 did not retract outcome 5** — `FB0_match` sits at 6.98% on
+its best leave-one-out and is broadly dispersed, so the CoV trigger was never
+carried by one repetition alone.
+
+Any consequence for **L5**, for the paper's page-1 evidentiary posture, or for
+whether an AMD number appears at all remains a **§9 lead-only decision** and is
+not taken here.
+
+## A6.6 Reduction, committed before the data
+
+`summarize_corun.py` is used **unchanged**, at its existing seed. Stability is
+computed by `summarize_stability.py`, committed in the same commit as this
+amendment and before the first record exists. It implements S1, S2, S3, the
+Rule O clause 2 trim, and the Rule O clause 3 incidence count, and it prints the
+branch of A6.4 that fires rather than leaving the mapping to the reader.

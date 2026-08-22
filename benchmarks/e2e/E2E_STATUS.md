@@ -309,6 +309,30 @@ the AMD de-confound exists and is put to the lead.**
 Unexcluded: time of day. The campaign ran late at night, this run in the
 afternoon, on a host with other logged-in users. Nothing here tests it.
 
+## A6: the re-run is pre-registered, not yet run
+
+The lead directed the re-run, so it is taken on that instruction rather than
+because a diagnostic cleared it -- A5.2 clears nothing. **Amendment 6 of
+`DUCKDB_JOIN_CORUN_PREREGISTRATION.md` fixes every rule before the first record
+exists**, with `summarize_stability.py` committed alongside it.
+
+The measured basis, from the 150 AMD invocations that already exist: the
+anomaly runs at **1.3% incidence, 2 in 150** -- not the rate a 13.10% CoV
+suggests -- one of the two events is a *quiescent* arm with no streamer, both
+have a normal warm-up query and then a shifted and widened measured stream, and
+**no field in the record distinguishes an anomalous invocation** except runtime
+and occupancy. Occupancy is the mediator, so there is nothing to exclude on that
+is not the outcome variable. Hence the fixed rule: **no repetition is excluded
+for any reason relating to its runtime, its occupancy, or its effect on any
+estimate.** n rises 10 -> 30, all nine arms, nothing else changes, 4.9 h.
+
+Raising n is not a dispersion remedy and A6 forbids reporting it as one. The
+original 5% CoV bar is retained unweakened; two stability checks are *added* and
+can only license a weaker statement than it would. **`FB0_match` is forecast in
+the document to fail the CoV bar again** -- its dispersion is broad, not
+outlier-driven, 6.98% on its best leave-one-out -- so the realistic best outcome
+is a bounded non-verdict, in wording already fixed. There is no third campaign.
+
 ## Host state
 
 `moscxl` is **frozen** as of commit `d8eda44`: all 512 CPUs on the
