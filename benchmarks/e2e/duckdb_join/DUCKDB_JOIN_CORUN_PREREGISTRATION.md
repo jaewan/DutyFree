@@ -1730,3 +1730,71 @@ leverage. Low dispersion in the most-exposed arm is therefore equally explained
 by insensitivity as by absence of contamination, and the comparison cannot
 separate them. It is not evidence against A6.9's hypothesis, and it must not be
 cited as such.
+
+## A6.15: the bursts are correlated, which threatens the CoV bar rather than the difference -- fixed before the CoV is known
+
+Dated 2026-08-23 00:18, block at ~41/270. **No apparatus change. Rule O stands.**
+This is the last apparatus amendment of the block unless something structurally
+new appears; the remaining analysis is the post-block reduction A6.14 declared.
+
+### The observation
+
+```
+2026-08-23T00:15:58  v3agent  pid=428999  age=0s
+2026-08-23T00:15:58  snap     pid=429016  age=0s
+```
+
+Two distinct foreign processes in a single 5 s sample, and `snap` is a comm not
+seen before. Six bursts now, at 23:25:58, 00:01:05, 00:07:21, 00:10:58 and two
+at 00:15:58. A snapd refresh writes files and an on-access AV scanner scans
+what is written, which would make these two causally linked rather than
+coincident, and would explain inter-arrivals that shorten from 35 minutes to
+under 4. Stated as the obvious reading, not as a diagnosed cause -- confirming
+it means inspecting snapd and V3 on the host, which costs a login and is not
+worth one.
+
+### Why this is a different concern from A6.13 and A6.14
+
+Those two are about **bias in the paired difference**, and both were bounded
+small. Correlated arrivals do something else. If bursts come in episodes rather
+than independently, contamination concentrates in a few stretches of wall-clock
+instead of spreading thinly, and a few invocations absorb it all while the rest
+absorb none. That is a **variance** effect, and variance is the criterion this
+block exists to decide: A4.4 outcome 5 voids the host at CoV_rep > 5%, and the
+AMD campaign failed it at 13.10%, 7.83% and 5.68%.
+
+Two structural points, both of which cut in the reassuring direction and are
+stated with their limits:
+
+- Blocked randomization covers clustering for the same reason it covers
+  periodicity. Within a block the nine arms are distinct, so an episode
+  spanning several consecutive arms hits several *different* arms rather than
+  concentrating on one. The observed cluster spans ~15 min against a ~9.5 min
+  block, so an extended episode can reach some arms in two adjacent
+  repetitions, but it cannot preferentially load one arm.
+- The effect therefore lands on **dispersion within each arm**, roughly evenly
+  across arms, and not on the between-arm contrast the de-confound rests on.
+
+### What is fixed now, before the CoV is computed
+
+This is the part that matters, and it is written while the outcome is unknown:
+
+7. **A CoV_rep above 5% in this block may not be attributed to foreign bursts**
+   on the strength of this section. The hypothesis is on record; that is not the
+   same as evidence. Attribution requires the per-arm overlap analysis of item 5
+   to show that the specific invocations carrying the excursions are the ones
+   that overlap bursts. If the overlapping invocations are not the dispersed
+   ones, this section is refuted and is reported as refuted.
+8. **A CoV_rep below 5% is not thereby clean either.** Six bursts in 52 minutes
+   went unflagged by the guard, so a passing block passed with unmeasured
+   contamination in it, and the outcome document says so.
+9. Neither branch licenses a re-run, a re-tune, or an exclusion. A6.2's
+   requirement that the aborted 96-record partial be reported as well as
+   retained applies to this record too: the burst log is reported whatever it
+   shows.
+
+The reason for fixing this now is the one §6.6 states. If this block clears the
+bar, "the host was noisy last time" is available as an explanation for why the
+first campaign did not, and it would be available *because* of how this block
+turned out. Writing the constraint down before the number exists is what stops
+that.
