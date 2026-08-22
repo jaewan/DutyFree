@@ -326,7 +326,11 @@ is not the outcome variable. Hence the fixed rule: **no repetition is excluded
 for any reason relating to its runtime, its occupancy, or its effect on any
 estimate.** n rises 10 -> 30, all nine arms, nothing else changes, 4.9 h.
 
-**Launched 2026-08-22 14:50; started 20:45 on the lead's instruction, ahead of the declared 22:00 (A6.8)** (`run_a6_block.sh`,
+**ABORTED 2026-08-22 22:30:58 at 96/270 arms (A6.9).** Started 20:45 on the lead's
+instruction ahead of the declared 22:00 (A6.8); killed by `v3agent` at 73.9% CPU --
+AhnLab V3 endpoint security, resident on moscxl since boot. 96 valid records preserved
+as `join_corun30_moscxl.ABORTED_96.jsonl`, never merged. A6.2's single restart is unspent
+and its timing is a lead decision (`run_a6_block.sh`,
 detached on `moscxl`, ~4.9 h, artifacts `join_corun30_moscxl.jsonl` /
 `corun30_moscxl.log`). The freeze was verified against `d8eda44` before launch
 and is re-verified into the log before the first arm: performance governor on

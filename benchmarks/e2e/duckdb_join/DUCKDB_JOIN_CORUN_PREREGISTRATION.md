@@ -1103,3 +1103,87 @@ way through rather than 40%, so an abort there costs more work, not less.
 **No bar, threshold, or decision rule changes.** n = 30, the nine arms, the
 20260821 interleave seed, N = 100K, the operating point, Rule O, and S1/S2/S3
 are all exactly as fixed in A6.2--A6.4. Only the wall-clock start moved.
+
+## A6.9 The block aborted at 96/270, and the cause is resident on the host
+
+The A6 block started 20:45:53 and aborted **22:30:58** with
+`hostguard.Contention: moscxl not quiescent: unexplained busy processes:
+[('392974', 'v3agent', 73.9)]`, on the `FB256_match` arm of invocation 10.
+
+**96 records, all valid**: invocations 0--9 complete at nine arms each, plus six
+arms of invocation 10. Per A6.2 the partial is retained and **never merged**; it
+is preserved as `artifacts/join_corun30_moscxl.ABORTED_96.jsonl` with its log at
+`artifacts/corun30_moscxl.ABORTED_96.log`. **A6.2's single permitted restart is
+unspent**, and is not spent here.
+
+### What `v3agent` is
+
+`/usr/local/ahnlab/v3net/bin/v3agent` — a transient component of **AhnLab V3 Net
+for Linux Server 3.6.25.4 (Build 1487)**, with AhnLab Security Agent for Linux
+1.0.18.12, licensed to ETRI and installed 2025-11-18. The product manifest is
+`/usr/local/ahnlab/etc/ahnprod.conf`. Eleven V3 daemons have been resident since
+boot, idling at 0.0--1.1% CPU, including **`v3fbmond`, a real-time file-access
+scanner**. `v3agent` itself is not resident: it appears, burns CPU, and exits,
+which is why nothing named `v3agent` was running two minutes after the abort and
+why it left no journal entry.
+
+This also settles an older loose end. `suarez` — the root process at ~50% CPU
+that appeared in one `ps` sample during A5 and was gone by the next, and was
+recorded then as unexplained — is `udt/bin/suarez` in the same manifest.
+
+**It is not my polling.** That was the first hypothesis and it is wrong. The
+monitor's logins are in `/var/log/auth.log` at 22:20:19, 22:24:20, 22:28:21 and
+22:28:29, on an exact 240 s grid, and the next is 22:32:23. Nothing logged in
+between, and the abort is at 22:30:58.
+
+### The deployed guard has no age exemption, and that is a second defect
+
+`hostguard.py` on moscxl reads `elif pcpu >= 20.0 and comm not in BENIGN:`. The
+repo copy reads `elif pcpu >= 20.0 and etimes >= MIN_AGE_SECONDS and comm not in
+BENIGN:` with `MIN_AGE_SECONDS = 10`, added precisely because `ps` reports pcpu
+as cputime over lifetime, so a process a fraction of a second old reads as
+permanently busy. **That fix was never deployed to this host.** The repo comment
+records that an ssh login's own user-session-helper once aborted a selection
+sweep at 49.1% while the 1-minute load was 0.19.
+
+Directly confirmed here rather than inferred: within one second of arming the
+watcher below, an ssh login produced
+`user-session-he pcpu=70.0 age=0s`, argv
+`/snap/snapd-desktop-integration/391/usr/bin/user-session-helper`. So **every
+`ssh` into this host is a chance to abort a running block**, at roughly a
+3 s exposure against a 65 s arm. That did not cause this abort, but it is a
+standing hazard and the reason interactive polling during a block stops.
+
+### A contention watcher is added, and it is diagnostic only
+
+`/tmp/contention_watch.py` on moscxl, logging to
+`artifacts/contention_watch.log`, pinned to **cpu200 on NUMA node 1** — a
+different socket from the victim (cpu8) and the aggressor (9--15), which share
+L3 domain 1 on node 0 — and sampling every 5 s. It records two things: every
+process the *deployed* rule would abort on, with argv and parent so the next one
+is identified rather than merely named; and every AhnLab component at >= 1% CPU.
+
+**It changes no rule.** Rule O stands unaltered: no repetition is excluded from
+the primary analysis for any reason, and a repetition that the watcher happens
+to overlap is **not** excludable on that basis. It is not an exclusion
+criterion, it is not a covariate in any declared estimate, and no verdict may
+rest on it.
+
+**Why it exists.** A6.1 searched the record for an independent marker of the
+1.3% invocation-level anomaly — warm-up, wall overhead, first-sample occupancy,
+sample count, MBM, rc, stderr — and found none, which forced Rule O to be "no
+exclusion." It is now clear that a candidate marker existed all along and was
+never recorded: a real-time AV scanner resident on the host, whose bursts can
+sit below hostguard's 20% line while still perturbing a 30 ms query, would
+produce exactly A6.1's signature — whole-invocation, warm-up normal, present in
+`quiescent` arms with no streamer, invisible in every field the runner writes.
+**This is a hypothesis, not a finding.** It cannot be tested against the
+campaign or A5.2, because no such channel existed when they ran; it can only be
+tested prospectively, and only if the watcher is running during a block.
+
+### Restart timing is not decided here
+
+The restart is the last one A6.2 allows and the host now has a known aborting
+process on an unknown schedule, so when to spend it is put to the lead rather
+than taken. Nothing about n, the arms, the seed, the operating point, Rule O or
+S1/S2/S3 changes.
