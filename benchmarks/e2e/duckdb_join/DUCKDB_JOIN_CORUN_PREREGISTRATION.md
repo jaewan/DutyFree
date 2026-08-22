@@ -1303,7 +1303,7 @@ against interactive polling during a block should be read as covering both.
 
 ### Correction to A6.10's stated reason for withholding the repo HOSTILE list
 
-Dated 2026-08-22 23:40, block at ~9/270. **The decision recorded in A6.10 stands
+Dated 2026-08-22 23:33, block at ~8/270. **The decision recorded in A6.10 stands
 and nothing deployed changes. Its stated justification was wrong, and the wrong
 version is in a committed amendment and in a comment in the deployed source, so
 it is corrected here rather than quietly.**
@@ -1358,7 +1358,7 @@ this one records its own.
 ## A4.8 The `mos182` latency gate names the wrong binary and an unportable size
 
 Appended out of position, under Amendment 4's numbering, because it corrects
-A4.7. Dated 2026-08-22 23:50, written while the A6 block runs on `moscxl` and
+A4.7. Dated 2026-08-22 23:37, written while the A6 block runs on `moscxl` and
 before any `mos182` ladder is taken, so that no operating point below can have
 been chosen against a result.
 
@@ -1439,7 +1439,7 @@ sizes are fixed before any `mos182` number exists.
 
 ## A6.12: `wait_for_streamer` times out silently on the f256 arms, and it is not the missing marker
 
-Dated 2026-08-23 00:05, block running. Diagnostic on committed artifacts only.
+Dated 2026-08-22 23:40, block at ~13/270. Diagnostic on committed artifacts only.
 **No exclusion, no apparatus change, and Rule O is untouched.** Nothing here is
 applied to the block in flight; the gate is left exactly as it is, per the rule
 that apparatus does not change mid-campaign.
