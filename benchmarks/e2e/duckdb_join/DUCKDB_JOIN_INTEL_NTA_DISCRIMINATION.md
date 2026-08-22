@@ -141,9 +141,14 @@ sampler's first and last samples. On AMD both read idle, because a 16 MiB CCX
 refills in the interval between the victim exiting and the sampler stopping. On
 Intel a 320 MiB LLC does not, so the last sample still reads the *competed*
 level and averaging the two splits the difference between two different states.
-`summarize_nta.py` now uses the first sample only. **AMD's numbers are
-unchanged** (yields 1.95 and 0.12 MiB against 2.00 and 0.20 as first reported;
-the declared A5.3 ratio does not use this estimator at all and is untouched).
+`summarize_nta.py` now uses the first sample only. **AMD moves by <= 0.09 MiB
+and nothing there changes qualitatively**: yields 1.98 and 0.13 MiB against the
+2.02 and 0.21 first reported, with the idle readings now identical at 15.80 for
+both arms rather than 15.84 and 15.89, which if anything sharpens the point
+that a victimless sweep cannot tell the two streamers apart. The asymmetry
+reads 15x rather than 10x, on non-overlapping intervals. The declared A5.3
+ratio does not use this estimator at all and is untouched.
+`DUCKDB_JOIN_AMD_NTA_DISCRIMINATION.md` carries the corrected table.
 
 The fix also prints the spread of per-invocation idle readings, and on Intel it
 shows that only one arm admits a trustworthy idle reading at all:

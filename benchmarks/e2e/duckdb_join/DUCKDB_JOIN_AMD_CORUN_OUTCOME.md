@@ -96,8 +96,8 @@ mechanism as stated is wrong.**
 
 The same artifact also shows what A4.1 could not have seen and what the
 victim-side counters above were groping towards. With no victim competing the
-two streamers are identical (15.84 and 15.89 MiB); under competition `wb_load`
-yields 0.21 MiB and NTA yields 2.02. The operative variable is insertion
+two streamers are identical (15.80 MiB each); under competition `wb_load`
+yields 0.13 MiB and NTA yields 1.98. The operative variable is insertion
 priority in a cache both streamers fill, not allocation versus bypass. Full
 result, including why the reverse-causation reading fails on the sign, in
 `DUCKDB_JOIN_AMD_NTA_DISCRIMINATION.md`.

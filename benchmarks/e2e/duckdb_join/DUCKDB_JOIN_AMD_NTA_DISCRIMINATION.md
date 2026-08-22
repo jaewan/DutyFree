@@ -46,21 +46,28 @@ is how this project has been stating it.
 
 Unplanned, and the cleanest thing in the artifact. Every invocation carries its
 own victimless reading: the sampler's first sample is taken while the victim is
-still starting up and its last after the queries have finished, with the
-streamer running at steady state throughout both. So A4.1's measurement is
-reproduced inside every repetition of this run, beside the competed one.
+still starting up, with the streamer already at steady state. So A4.1's
+measurement is reproduced inside every repetition of this run, beside the
+competed one.
+
+(Only the first sample is used. An earlier version of this table averaged the
+first and last samples, which is sound on a 16 MiB CCX -- it refills before the
+sampler stops -- and wrong on Intel's 320 MiB LLC, where the last sample still
+reads the competed level. A5.4 caught it there and the estimator was fixed for
+both hosts; the figures below are the corrected ones and moved by <= 0.09 MiB.
+The declared verdict above does not use this estimator at all.)
 
 | arm | streamer, victim absent | streamer, victim competing | **yield** | 95% CI |
 |---|---:|---:|---:|---|
-| `WB_sat` | 15.89 MiB | 15.69 MiB | **0.21 MiB** | [0.13, 0.23] |
-| `NTA_sat` | 15.84 MiB | 13.85 MiB | **2.02 MiB** | [1.91, 2.09] |
+| `WB_sat` | 15.80 MiB | 15.69 MiB | **0.13 MiB** | [0.06, 0.15] |
+| `NTA_sat` | 15.80 MiB | 13.85 MiB | **1.98 MiB** | [1.85, 2.06] |
 
-With no victim the two streamers are indistinguishable at 15.84 and 15.89 MiB,
-which is A4.1's 15.99/16.00 reproduced to within a rounding difference. **A4.1
-measured correctly.** Put a victim in the cache and `wb_load` gives up 0.21 MiB
-while NTA gives up 2.02 -- a tenfold asymmetry that is invisible by
-construction to any victimless sweep, because both streamers fill an idle cache
-to capacity.
+With no victim the two streamers read the same 15.80 MiB, which is A4.1's
+15.99/16.00 reproduced to within a rounding difference. **A4.1 measured
+correctly.** Put a victim in the cache and `wb_load` gives up 0.13 MiB while
+NTA gives up 1.98 -- a fifteenfold asymmetry, with non-overlapping intervals,
+that is invisible by construction to any victimless sweep because both
+streamers fill an idle cache to capacity.
 
 This is the failure mode A5.3 was written to test, and it is confirmed. The
 inference "occupancy is 100%, therefore the arm allocates, therefore it is a

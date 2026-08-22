@@ -185,8 +185,8 @@ NTA holds **86.7% of the CCX**, a rep-paired **0.884 [0.880, 0.889]** of
 `wb_load`'s, against a 0.50 threshold fixed in advance. It allocates and
 recovered anyway, so **the mechanism as stated is wrong**, in the words A5.3
 declared. The same artifact shows why a victimless sweep could never have seen
-it: with no victim the two streamers are identical (15.84 vs 15.89 MiB), and
-under competition `wb_load` yields 0.21 MiB while NTA yields 2.02. The operative
+it: with no victim the two streamers are identical (15.80 MiB each), and
+under competition `wb_load` yields 0.13 MiB while NTA yields 1.98. The operative
 variable is insertion priority in a cache both streamers fill, not allocation
 versus bypass, and the reverse-causation reading fails on the sign -- the
 `WB_sat` victim drives 2.5x more DRAM traffic and retains 6.8x less cache.
