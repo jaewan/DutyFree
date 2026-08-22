@@ -1798,3 +1798,13 @@ bar, "the host was noisy last time" is available as an explanation for why the
 first campaign did not, and it would be available *because* of how this block
 turned out. Writing the constraint down before the number exists is what stops
 that.
+
+### A6.15 tooling note, 02:24
+
+`overlap_bursts.py` implements items 5, 6 and 7 and was written and tested at
+~151/270, with no outcome in hand; the git history corroborates the timing.
+It was validated against a synthetic fixture with planted bursts -- inside a
+measured window, inside a settle window, and outside both -- and recovers each
+placement exactly. It refuses to report a null when the record and watcher time
+spans do not overlap, because clock skew between the two sources produces zero
+overlaps and that reads exactly like a clean result. It performs no exclusion.
