@@ -423,6 +423,27 @@ why the argument does not need the benefit magnitude to be large.
 > and `RUBY_RANDOMIZATION` seeds 1-3 for variance. **A0/B0 is re-measured rather
 > than compared across campaigns**, which is what makes the gem5 drift harmless.
 >
+> **Analysis script `w7_analyze.py`, committed before the data exists** and
+> self-checked against the completed 2026-08-15 runs, whose numbers are already
+> published. Every stat key it reads is verified to reproduce a published
+> figure: LLC hit 53.58% (published 53.6), HNF fills 1,340,360 (the **last**
+> column of `Cache_Controller.DataArrayWriteOnFill`, which is the HNF), DRAM
+> read 12.09 MB, CXL read 66.76 MB. It computes P1/P2/P3/P5 and prints the
+> cross-arm `matches_last_rep` gate, since `--check` is inert (F12). P4 is not
+> computed -- it needs a resctrl arm SE mode cannot run.
+>
+> The self-check paid for itself twice. It rejected a first draft that defined
+> fused bandwidth as CXL bytes / `simSeconds` (0.239) rather than the
+> bench-reported `stream_bandwidth_gbps` (0.420) that the published table
+> actually uses, which fixes what P2's ">= 2.0 GB/s" threshold is measured on
+> *before* the data lands. And it surfaced queue row 33: the three figures in
+> `GATE1_FUSED_NULL_CORRECTION_2026-08-15.md` section 4 -- 4.17 / 4.78 / 0.52
+> GB/s -- are all the **2 MiB** hot table, the arm that same memo calls null by
+> construction, while the 4 MiB "window" arm the section is otherwise about
+> reads 0.42. The sentence is currently commented out in
+> `Sec5_Evaluation.tex:336`, so nothing published is wrong; the row exists so it
+> does not become wrong when someone uncomments it.
+>
 > **One pre-registered cell is deferred, with its reason.** The second A1 point
 > at 8 cores exists to vary aggregate-L2 : LLC. At `--threads 1` the seven extra
 > cores never fill their L2s, so 8 idle cores are indistinguishable from 2.

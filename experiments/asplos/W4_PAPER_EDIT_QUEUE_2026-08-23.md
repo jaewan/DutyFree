@@ -52,6 +52,7 @@ headline table.
 | 30 | wherever the cost argument lands (new, see row 26) | **argue from CAT, not from WC/MOVNTDQA.** `PLAN_B_REBUILD.md` W6.1 proposes arguing against "datapaths that already exist for WC and MOVNTDQA"; those are instruction-scoped hierarchy bypass and are the weaker analogy. The SDM (Vol. 3B §17, read at source) says CAT tags every request from a logical processor with its COS and consults that tag in the LLC **allocation** decision — H2's mechanism, in the same pipeline position, shipping since E5-2600 v3. The difference is what the label names: CAT's is a *thread*, bound at context switch; ours is an *object*, bound at translation. **That is the paper's title as an architectural fact and it is the sharpest form of contribution (2) we have.** | `W6.3_CAT_COMPARISON_2026-08-24.md` |
 | 31 | **do not write** "CAT shipped for less benefit than this" | The sentence sits in `PLAN_B_REBUILD.md` W6.3 and would otherwise be drafted straight into the cost section. It is unsupported (published CAT benefits are not small), it contradicts W5.3's own table (CAT *recovers* the Intel capacity charge on mos182), and it argues the wrong axis (cache QoS shipped on a capability argument, not a throughput one). Replace with the footprint comparison: CAT needs a CPUID leaf, a per-logical-processor association register, a file of mask MSRs per class, an architectural mask-contiguity rule, and a write on every context switch; \textsc{Streaming} needs no new architectural state at all. **Negative row — recorded so the claim is not made, not so it is fixed later.** | `W6.3_CAT_COMPARISON_2026-08-24.md` |
 | 32 | **do not write** "one PTE bit" (or "a new PTE bit", "1 PTE flag") anywhere in the paper | The mechanism adds **no new PTE bit**. `pagetable_walker.cc` decodes `bits(pte,12) && pte.pcd && !pte.pwt` for a PMD leaf and `bits(pte,7) && pte.pcd && !pte.pwt` for a 4K PTE — that is the existing PAT selector triple, architecturally defined since the PAT was introduced, selecting slot 6. The phrase appears in `W6_COST_ARGUMENT_2026-08-23.md` twice (its cost table says "1 PTE flag"; its summary sentence says "One PTE bit and two fill-path predicates can be") and would be drafted straight from there. Correct phrasing: **"A PAT encoding and two fill-path predicates can be."** Same rhetorical shape, strictly stronger claim — the paper is currently understating its own cheapness. **Negative row.** | `W6.1_IMPLEMENTATION_COST_AUDIT_2026-08-24.md`, four decision lines quoted; correction appended same day |
+| 33 | `Sec5_Evaluation.tex:336-337` (currently commented out) | **if this MLP sentence is ever uncommented, name the arm.** It reads "stream-smoke reaches 4.17 GB/s (WB) / 4.78 GB/s (H2) while the fused kernel reaches 0.52 GB/s -- ~8x below". All three figures are the **2 MiB** hot-table configuration, and 2 MiB is the arm `GATE1_FUSED_NULL_CORRECTION_2026-08-15.md` section 3 itself calls null by construction ("the hot table never leaves the cache hierarchy"). The arm section 5 is otherwise about -- 4 MiB, "the window" -- reads **0.4199** (WB) / **0.4224** (H2), so the honest sentence is either "0.42 GB/s at the 4 MiB window arm, ~10x below the 2 MiB pure-stream ceiling" or the 2 MiB triple with "2 MiB hot table" stated once. Note also that the memo's neighbouring "~1.3 lines in flight" is the **4 MiB** number (0.42 x 203ns / 64B = 1.33); 0.52 gives 1.65. The conclusion (~10% of the 5.04 GB/s MLP ceiling) holds either way. | Bench JSON re-read 2026-08-24: `m22_small_wb` 0.5180 / `m22_small_st` 0.5209 (hot 2 MiB), `m22_mid_wb` 0.4199 / `m22_mid_st` 0.4224 (hot 4 MiB), `m22_bw_wb` 4.172 / `m22_bw_st` 4.777 (stream-smoke, hot 2 MiB). Key is `stream_bandwidth_gbps` / `bandwidth_gbps`, not CXL bytes / simSeconds -- the latter reads 0.239 and 0.483 for the same two runs. [S5.1] |
 
 ## Tier 3 — restructure, larger than a line edit
 
@@ -138,3 +139,20 @@ makes twice. A negative row is cheaper than a correction only if it is filed
 before the sentence is drafted; this one nearly was not, because the memo
 carrying the error is the same memo that was itself never read (F11, third
 instance). Both failures had the same cause and one fix.
+
+
+**Fifth amendment, 2026-08-24: row 33, and a metric that is not the metric.**
+Row 33 came out of writing `w7_analyze.py` against the completed 2026-08-15
+runs before the W7 data existed. The script's first draft defined fused
+bandwidth as CXL bytes / `simSeconds`, which is a defensible quantity and is
+not the published one: it reads 0.239 where the bench reports 0.420 at the same
+run, because `simSeconds` spans SE startup, table build and warmup while the
+bench times only the measured region. The published table is bench-reported
+throughout. Two things follow. First, the pre-registered P2 threshold
+(">= 2.0 GB/s" fused) is on the **bench-reported** figure -- on the
+simSeconds-derived one it would be a different and much harder test, and
+choosing between them after seeing the data would be exactly the move S6.6
+forbids, so it is fixed here in writing before the campaign returns. Second,
+checking a new analysis script against a completed run whose numbers are
+already published is cheap and catches this class immediately; it also
+surfaced row 33, which reading the memo alone did not.
