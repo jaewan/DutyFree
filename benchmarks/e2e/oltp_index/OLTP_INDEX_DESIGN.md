@@ -1,5 +1,30 @@
 # Design: OLTP index as the headline e2e victim
 
+> ## ABANDONED 2026-08-23 — G-probe failed. See `GPROBE_OUTCOME.md`.
+>
+> The pre-registered kill switch in §4 fired on its first run. On mos182 the
+> largest co-run tax at any working set in any arm is **1.065×**, and at the
+> operating point this design depends on — an L2-resident victim — it is
+> **1.000×**, with the victim's L2 miss rate at 0.00% while a streamer holds
+> 41 of the 60 MiB LLC and takes the victim's LLC occupancy to 0.1 MiB.
+>
+> Replicated on moscxl (EPYC 9754): an L2-resident victim reads 1.011–1.026×
+> while the streamer holds the **entire** 16 MiB L3.
+>
+> The single load-bearing assumption of §1 — that a co-runner back-invalidates
+> the victim's **private** L2, which is what would make the residual
+> CAT-irrecoverable — **does not hold on either vendor**. Gates G1–G6 are moot:
+> they gate a victim that has no tax to gate. **Masstree is not built.**
+>
+> The direction is what was wrong, not the existence of a CAT-resistant tax.
+> One working set out of L2, moscxl reads **18.8×**, and **12.4×** with the
+> victim granted 12 of 16 ways — see `GPROBE_OUTCOME.md` §5.2–5.3. This design
+> aimed at the one victim population that turns out to be immune.
+>
+> This document is kept unedited below as the pre-registration it was, so that
+> the prediction and the result can be read against each other. Do not resume
+> it without reading `GPROBE_OUTCOME.md` §6 first.
+
 Dated 2026-08-23. Written before any code and before any measurement.
 
 This is a **design and gate pre-registration**. The campaign pre-registration
