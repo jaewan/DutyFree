@@ -28,6 +28,13 @@ resetstats to m5_exit. Quote that one, and name it. The first section is the
 state at the benchmark's own dumpstats, before teardown; the delta between them
 is teardown activity, not workload.
 
+VALIDATED ON. Arm 1 (`wb`), where every value is known to be zero -- which is a
+weak test, since a reader that printed nothing would also pass it. Also on a
+synthetic two-section arm carrying the shape arm 2 is predicted to have: 4 TLB
+rows with the mass in a single dtb row, a strictly larger second section, and
+repeated Ruby `avg_size` rows present. Per-section totals, the per-row
+breakdown, and the teardown delta all came back correct.
+
 Usage: t5_sections.py <outdir> [needle ...]     (default needles: the T5 stats)
 """
 import re
