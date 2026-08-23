@@ -877,6 +877,25 @@ should wait for T5, which is what T5 produces.
 > Use `grep -a`. `t5_analyze.py`'s `stats.txt` reader hardened to match its
 > console reader.
 
+> **W8.3: T4's gate written down while the checkpoint was still being written.**
+> T4's acceptance criterion existed nowhere -- T3's did, T5's did -- so it was
+> stated before the outcome was known rather than inferred from it. Six criteria:
+> guest reaches userspace, the mechanism is live in the *running* kernel, a clean
+> boot with no fault of any kind, exactly one `cpt.<tick>` with a non-empty
+> `m5.cpt` and gem5 exited, the checkpoint's recorded image is the one T5 will
+> attach, and gem5 exits 0. Four met at the time of writing; the two checkpoint
+> criteria left open. **If either fails, T5 does not start.** The boot-log audit
+> found 23 warnings, all boilerplate, and one worth chasing: `wbinvd
+> unimplemented`. Traced and cleared -- streaming's transition flush is
+> `clflush_cache_range` (`mm/streaming.c:322`), not `wbinvd`, and `clflush` *is*
+> modeled, expanding to a `clflushopt` microop that carries `Request::CLEAN |
+> INVALIDATE | DST_POC` with Ruby's Sequencer branching on
+> `isCleanInvalidateRequest()`. Limit kept explicit: that establishes the request
+> is decoded and recognized, **not** that a guest `clflush` was traced through
+> CHI to the HNF -- and T4 booted `--caches` while T5 restores into Ruby/CHI.
+> Also flagged: gem5's own boot log is in `/tmp` and uncommitted, which is the
+> F10 failure mode, and must be copied into the outdir.
+
 ---
 
 # Stop-work list
