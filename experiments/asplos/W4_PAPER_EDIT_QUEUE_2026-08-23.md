@@ -51,6 +51,7 @@ headline table.
 | 29 | same sites | **add the two numbers that answer the first reviewer's objection.** "The victim got faster because the aggressor got slower" is refuted by: the victim's L2 demand miss count is **invariant, 714,210 → 714,068, 0.02%**, while the fraction of those misses reaching DRAM goes **62.4% → ≤0.45%** (LLC-served 37.6% → 99.55%; `LocalHN_Eviction` fills −99.3%). A throttle shortens queues and lowers miss *latency*; it cannot relocate a miss from DRAM to the LLC. Neither number is currently in any table. | `W2.1_DECONFOUND_2026-08-24.md`; corroborated by `W1.4_CHARGE_DECOMPOSITION_2026-08-24.md` |
 | 30 | wherever the cost argument lands (new, see row 26) | **argue from CAT, not from WC/MOVNTDQA.** `PLAN_B_REBUILD.md` W6.1 proposes arguing against "datapaths that already exist for WC and MOVNTDQA"; those are instruction-scoped hierarchy bypass and are the weaker analogy. The SDM (Vol. 3B §17, read at source) says CAT tags every request from a logical processor with its COS and consults that tag in the LLC **allocation** decision — H2's mechanism, in the same pipeline position, shipping since E5-2600 v3. The difference is what the label names: CAT's is a *thread*, bound at context switch; ours is an *object*, bound at translation. **That is the paper's title as an architectural fact and it is the sharpest form of contribution (2) we have.** | `W6.3_CAT_COMPARISON_2026-08-24.md` |
 | 31 | **do not write** "CAT shipped for less benefit than this" | The sentence sits in `PLAN_B_REBUILD.md` W6.3 and would otherwise be drafted straight into the cost section. It is unsupported (published CAT benefits are not small), it contradicts W5.3's own table (CAT *recovers* the Intel capacity charge on mos182), and it argues the wrong axis (cache QoS shipped on a capability argument, not a throughput one). Replace with the footprint comparison: CAT needs a CPUID leaf, a per-logical-processor association register, a file of mask MSRs per class, an architectural mask-contiguity rule, and a write on every context switch; \textsc{Streaming} needs no new architectural state at all. **Negative row — recorded so the claim is not made, not so it is fixed later.** | `W6.3_CAT_COMPARISON_2026-08-24.md` |
+| 32 | **do not write** "one PTE bit" (or "a new PTE bit", "1 PTE flag") anywhere in the paper | The mechanism adds **no new PTE bit**. `pagetable_walker.cc` decodes `bits(pte,12) && pte.pcd && !pte.pwt` for a PMD leaf and `bits(pte,7) && pte.pcd && !pte.pwt` for a 4K PTE — that is the existing PAT selector triple, architecturally defined since the PAT was introduced, selecting slot 6. The phrase appears in `W6_COST_ARGUMENT_2026-08-23.md` twice (its cost table says "1 PTE flag"; its summary sentence says "One PTE bit and two fill-path predicates can be") and would be drafted straight from there. Correct phrasing: **"A PAT encoding and two fill-path predicates can be."** Same rhetorical shape, strictly stronger claim — the paper is currently understating its own cheapness. **Negative row.** | `W6.1_IMPLEMENTATION_COST_AUDIT_2026-08-24.md`, four decision lines quoted; correction appended same day |
 
 ## Tier 3 — restructure, larger than a line edit
 
@@ -117,3 +118,23 @@ contains yet, because the plan tells a future drafter to write it. F11 in the
 W4.3 ledger is the same failure in the other direction — a correct artifact
 nobody read. A queue that only tracks existing text cannot catch either. Any
 future memo that overturns a planned claim gets a negative row here.
+
+**Fourth amendment, 2026-08-24: row 30 carries measurements, and row 32 is the
+second negative row.** Row 30 as written argues only mechanism — that CAT's
+per-request COS label consulted in the LLC allocation decision *is* H2's
+mechanism. It should also carry the four measured rows from
+`W5.3_L5_EVIDENCE_2026-08-23.md`: CAT recovers the mos182 co-run tax completely
+(1.00x residual under CAT12), charges **1.222x with no co-runner present**
+because a way mask shrinks the victim's own capacity, leaves a **12.4x**
+residual on moscxl where the harm is rate-class rather than capacity, and
+recovers **nothing** on `tab:fused` (214.6 -> 215.0 Mtuple/s) because a
+core-scoped knob has no boundary to draw when the streamer is the victim's own
+thread. The fused null is the row a referee cannot answer, and it is why the
+argument does not require the benefit magnitude to be large.
+
+Row 32 is a negative row of a kind row 31 is not: row 31 stops a claim the
+*plan* proposes, row 32 stops a claim one of our own **outcome memos** already
+makes twice. A negative row is cheaper than a correction only if it is filed
+before the sentence is drafted; this one nearly was not, because the memo
+carrying the error is the same memo that was itself never read (F11, third
+instance). Both failures had the same cause and one fix.
