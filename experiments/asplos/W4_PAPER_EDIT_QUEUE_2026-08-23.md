@@ -211,3 +211,47 @@ under-specified in the same way the numbers it audits are.
 Also owed here, from the same memo: every "gem5 `<hash>`" cell in the W4.3
 ledger's main table is under-specified and should be re-emitted in the triple
 form when the appendix is written. Not a defect in any number.
+
+## Eighth amendment, 2026-08-24: row 35, and the counter that should have been reported all along
+
+**Row 35 — Tier 2.** *Sites: wherever H2's effect is quantified
+(`Sec5_Evaluation.tex`, `tab:h3sf`, `tab:sens`), and the metric definitions in
+the appendix.*
+
+**Report H2's LLC effect as data-array writes, not fills.** Fills answer "did the
+line allocate"; they do not answer "did the declaration take effect", and at a
+hierarchy where the stream is resident the two diverge completely. Measured, W7
+stream-smoke references, one run each:
+
+| point | HNF data-array writes, wb -> stream | fills, wb -> stream | CXL read | bench GB/s |
+|---|---|---|---:|---|
+| A0, 5 MiB LLC | 1,315,975 -> 298,625 (**−77.3%**) | 1,314,720 -> 298,569 (−77.3%) | 84.40 -> 65.21 MB | 3.960 -> 4.609 |
+| A1, 20 MiB effective LLC | 1,475,801 -> 434,160 (**−70.6%**) | 321,818 -> 321,815 (**−0.001%**) | 16.78 -> 16.78 MB | 9.273 -> 9.270 |
+
+Read on fills alone, A1 says H2 does nothing. Read on array writes, A1 says H2
+does **the same proportional work as at A0** and none of it reaches memory,
+because a resident line is updated in place by the thrashing L2 rather than
+re-allocated. At A0, 99.9% of the HNF's data-array writes are fills; at A1,
+21.8%.
+
+Two consequences for the text.
+
+1. **A claim that H2 is inert at some operating point must say which counter it
+   is inert on.** This is §5.1's arm-identity rule applied to metrics rather than
+   to arms, and it is the same failure mode as row 25's "indistinguishable":
+   a null that is a property of the column read, not of the machine.
+2. **It supplies a clean statement of what \textsc{Streaming} is for.** H2's
+   mechanism is hierarchy-invariant; its *payoff* is not. Where the stream
+   overflows the LLC the excluded fills are refetches, and removing them buys
+   16.4% bandwidth and 19.2 MB of CXL traffic. Where the stream fits, the same
+   exclusion buys array-write traffic and write-port pressure that neither this
+   campaign nor the paper prices. That is an argument for the mechanism being
+   correctly targeted, and the paper currently makes it nowhere.
+
+**Constraint, inherited from W7.2.** The A1 numbers above are from a hierarchy
+that is **20 MiB, not the 32 MiB configured** — gem5's `CacheMemory` indexes only
+`2^floorLog2(sets)`. Any use of them must name 20 MiB. They may be cited for the
+*mechanism* contrast, which does not depend on the exact capacity, and may not be
+cited as a bandwidth result: 9.27 GB/s is on-chip.
+
+Source: `W7.2_A1_SIZING_2026-08-24.md` and its 2026-08-24 addendum.

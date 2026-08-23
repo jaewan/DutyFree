@@ -568,6 +568,21 @@ because that would buy a benefit result by destroying the necessity result.
 > `PASS -- invariant` on an **empty** result set (`len(set()) <= 1`), an F12-class
 > vacuous PASS caught by running the analyzer against partial data rather than
 > waiting to trust it.
+>
+> **W7.2 addendum, same day.** The memo left A1's wb/stream indistinguishability
+> unresolved between two readings; it is resolvable from a counter the memo did
+> not read. `hnf.cntrl.cache.numDataArrayWrites` falls **1,475,801 -> 434,160
+> (−70.6%)** at A1 under the stream policy, against −77.3% at A0. **H2 is active
+> at A1**; the reading "the declaration is not reaching the HNF" is refuted. The
+> difference is composition: 99.9% of A0's HNF data-array writes are fills, so
+> removing them removes CXL refetches and buys 16.4% bandwidth; only 21.8% of
+> A1's are, because a resident line is updated in place by the thrashing 512 KiB
+> L2, so removing 1,041,641 of them changes no fill, no miss, no CXL byte and no
+> bandwidth. H2's mechanism is hierarchy-invariant; its payoff is not — which is
+> Knob A's thesis, arriving from the reference runs rather than the morsel cells.
+> Filed as **edit-queue row 35** (eighth amendment): report H2's LLC effect on
+> data-array writes, not fills, and never claim inertness without naming the
+> counter. Nothing here rehabilitates A1 as a bandwidth point.
 
 ## W8 -- gem5 FS capability demonstration. Stretch, not critical path.
 
