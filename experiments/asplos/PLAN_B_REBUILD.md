@@ -1243,3 +1243,47 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > already refreshed to 28 cells / 60 MB on ext4 before this was attempted. No
 > data or analysis is affected — the campaign ran on the old file and its results
 > stand.
+
+> **2026-08-24 05:30, T2's blocker cleared and I found that T2 already ran, was
+> truncated on all three arms, and reported success.**
+> `W8.5_T2_SUPERVISED_TRIO_WAS_TRUNCATED_2026-08-24.md`. **T2 was not launched.**
+> The T2 audit names
+> `intel_8592_4cpu_dirtax_streaming_supervised.sh` as the next authorized
+> measurement; it ran on 2026-08-23 and **every arm was SIGINT'd at 5400 s**
+> (`tripwire_reason=zero-byte_stats_after_5400s` in all three `provenance.txt`,
+> `Exiting @ tick N because user interrupt received` at the end of all three
+> `run.log`). **gem5 handles SIGINT by dumping a complete stats file and exiting
+> 0**, so `[[ $status -eq 0 && -s stats.txt ]]` passed on all three, each with
+> 1.8–2.0 MB of normal-looking statistics. The arms stopped at 193.1e9 / 48.7e9 /
+> 51.9e9 ticks — **~4× different amounts of work in a "matched trio"**. F12, in
+> the runner the audit points at.
+>
+> Root cause is not marginal: **5400 s is shorter than the known completion time
+> of the fastest 53% arm.** `alone_53p` completed naturally at hostSeconds 6072
+> in the historical sweep already in the repo. The contended arms need **≥12.1 h
+> and ≥10.9 h** at their own measured tick rates (172.5e9 and 191.8e9 ticks at
+> 17,400 s against `alone`'s 431.8e9), and those are *lower* bounds because
+> contention raises the victim's per-iteration tick cost. **A serial 53% trio
+> costs 25–30 host-hours, not 4.5 — the budget was off ~6×.**
+>
+> Fixed and committed in the submodule (`d4fe79a9dd`): a tripped arm returns
+> failure via two independent detectors, the trio aborts at the first failure,
+> `provenance.txt` gains `tripwire_fired`/`user_interrupt`/`completed`, and
+> `TIMEOUT_S` defaults to 50400 with the derivation written in at the assignment.
+> Verified the only way that counts — **old test PASS / new test FAIL on all
+> three real truncated arms**. Both invalid run dirs carry
+> `INVALID_DO_NOT_ANALYSE.md`.
+>
+> **F9.4 audit of T2's frozen geometry: clean.** L1I 64, L1D 64, L2 2048, L3
+> slice 4096 sets — all exact powers of two. Fourth geometry audited, first
+> outside W7/tab:sens; the affected set repo-wide is still exactly three cells.
+>
+> **Escalated, not decided** (W8: spend beyond the timebox is the lead's).
+> Recommendation is option 1: **run the trio concurrently, ~12 h wall instead of
+> 25–30.** Serialization was a response to the historical sweep *losing its
+> children* — a supervision failure, not a contention one — and gem5's
+> determinism in simulated time means host load moves wall clock, not
+> `stats.txt`; the same argument already licensed W7 and T5 running together.
+> Options 2 (serial at 14 h/arm) and 3 (drop 53%, since T2 gates neither T3 nor
+> T4) are in the memo. **No published number moves**; the supervised trio's
+> numbers have never been reported and this is their only appearance.
