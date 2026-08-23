@@ -571,6 +571,33 @@ The script is **not** being edited while bash is still executing it -- an
 in-place edit shifts the byte offsets of a running script. It gets a
 `[ "$DRY" = 1 ] && exit 0` before the marker once the driver exits.
 
+**T3 gate stated, T4 built, T5 armed.** `nm` on the linked `vmlinux` shows 53
+streaming symbols, so the code is in the image and not merely in the `.config`
+-- including a debugfs `pte_query` that resolves addresses in `current->mm`.
+That relocated the T5 gate somewhere better than the simulator: the benchmark
+now reads its own PTE back after `mprotect` and decodes `PAT<<2|PCD<<1|PWT`,
+the same three bits `pagetable_walker.cc:360-390` reads, and prints `GATE=PASS`
+only on slot 6. gem5 was rebuilt with two new counters --
+`streamingTranslations` at the walker's `doTLBInsert` (once per classification,
+so a hot TLB entry cannot inflate it) and `tlb.streamingAccesses` (once per
+tagged access). Declaration and consumption are counted separately so the
+second can never be quietly reported as the first.
+
+The image is `w8-busybox-streaming-r1.img`: a busybox rootfs, 257 MiB, built
+unprivileged with `mke2fs -d` under `fakeroot`, contents verified with
+`debugfs` before any boot. It is **not** the v2 image -- that one is gone from
+all three hosts and its binary had a `--line-stride` option no revision in this
+repository contains -- and it says so in its own `/etc/W8-PROVENANCE`.
+
+`w8/t5_analyze.py` was written before the first restore, and fixes four gates
+in advance: G1 walker classifications (zero in wb, non-zero in mprotect), G2
+the in-guest readback, G3 tagged accesses, G4 the run actually completed. It
+states in its own docstring that **no performance comparison is licensed by
+these arms** -- the FS geometry has never been calibrated against SE, the runs
+are single-rep and cold, and W8 is a capability demonstration. A speedup here
+would not be evidence for L3, and the script says so where a reader will hit
+it before the numbers.
+
 ---
 
 # Stop-work list
