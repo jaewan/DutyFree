@@ -1,0 +1,41 @@
+# W8 / T3 kernel config fragment -- Linux 6.8 (submodule b9f60fafda72) for gem5
+# x86 FS boot with the STREAMING contract compiled in.
+#
+# Applied on top of x86_64_defconfig, then `make olddefconfig`. Every line has
+# a reason; a config fragment without reasons is the defect class REPO_DISCIPLINE
+# section 6 is about.
+
+# --- the contract itself. PAT_STREAMING is `default n`; forgetting it yields a
+# clean build, a clean boot, a successful mprotect and a silent null result.
+# This is trap 1 in the session prompt and the reason gate T3 exists.
+CONFIG_X86_PAT=y
+CONFIG_PAT_STREAMING=y
+
+# --- in-guest self-check of the PTE bit pattern, so the boot log tells us the
+# encoding is right before any gem5-side counter is consulted.
+CONFIG_KUNIT=y
+CONFIG_PAT_STREAMING_KUNIT_TEST=y
+
+# --- gem5 x86 platform. The simulated machine has a legacy PIIX4 IDE disk and
+# an 8250 UART and nothing else; a defconfig kernel finds no root device.
+CONFIG_SERIAL_8250=y
+CONFIG_SERIAL_8250_CONSOLE=y
+CONFIG_ATA=y
+CONFIG_ATA_PIIX=y
+CONFIG_BLK_DEV_SD=y
+CONFIG_EXT4_FS=y
+CONFIG_EXT4_USE_FOR_EXT2=y
+
+# --- gem5 loads the ELF vmlinux at its link address and has no relocation
+# support, so KASLR must be off or the entry point is wrong.
+# CONFIG_RANDOMIZE_BASE is not set
+# CONFIG_RANDOMIZE_MEMORY is not set
+
+# --- gem5's x86 APIC model is xAPIC only.
+# CONFIG_X86_X2APIC is not set
+
+# --- keep the image small and the boot short: no modules to load from a
+# rootfs we build by hand, no graphics on a serial-only machine.
+# CONFIG_MODULES is not set
+# CONFIG_DRM is not set
+# CONFIG_FB is not set

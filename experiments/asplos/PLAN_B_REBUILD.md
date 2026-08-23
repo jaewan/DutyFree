@@ -496,6 +496,43 @@ Closes the "is this implementable end to end" question: guest kernel encodes
 PROT_STREAMING as PAT slot 6, the x86 walker classifies, CHI applies H2/H3.
 Explicitly a capability demonstration, not a calibration claim.
 
+**Opened 2026-08-24, while W7 occupies the simulator.** W3 is lead-blocked and
+W4/W5 are held on the co-author decision, so W8 is the only unblocked item, and
+it is the one that buys the sentence no other experiment can: every gem5
+STREAMING number this project owns came from a pseudo-instruction
+(`aggressor.c:24`, m5op 0x55), which validates the hardware half and says
+nothing about I0/I1. Two artifacts existed that the plan did not name --
+`GEM5_FS_OS_CONTRACT_SESSION_PROMPT.md` (410 lines, five gated tasks) and
+`GEM5_FS_OS_CONTRACT_T2_AUDIT.md` -- and both were read before anything was
+written, per F11's fifth fix.
+
+**Gate T1 PASSED, on an existing build, with no new build time.** A prior
+session already built `gem5/build_Intel_8592/gem5.opt` (25.1.0.1, compiled
+2026-08-23), which the session prompt lists as absent. All three T1 checks
+shown: `--build-info` runs; `enable_H3_streaming_bypass` is present in the
+SLICC-emitted `params/CHI_Cache_Controller.hh` and in four other generated
+files, so H3 survived the build rather than merely existing in the `.sm`; and
+all 17 keys of the checked-in `build_opts/Intel_8592` resolve identically in
+`build_Intel_8592/gem5.build/config`, including `PROTOCOL="CHI"`,
+`NUMBER_BITS_PER_SET=256` and `USE_X86_ISA=y`.
+
+**T2 is deliberately deferred, not skipped.** Its runner
+(`intel_8592_4cpu_dirtax_streaming_supervised.sh`, the bounded serial trio the
+T2 audit names as the next authorized measurement) launches concurrent O3+Ruby
+arms, and 28 W7 cells plus three `sf_h3_inf_*` cells are already resident --
+`hostguard.py` reads CONTENDED on my own load. T2 does not gate T3 or T4, so it
+runs after W7 drains. That the supervised runner is **untracked** in the gem5
+submodule is itself an F10-class defect and is fixed in the same commit.
+
+**T3 apparatus committed before it is run:** `w8/streaming_gem5.fragment` (a
+reasoned config fragment, not a dumped `.config`) and `w8/build_kernel_t3.sh`.
+The fragment turns on `CONFIG_PAT_STREAMING` -- `default n`, and the single
+highest-probability way this task produces a confidently-wrong null -- plus the
+KUnit self-check, the PIIX4/8250 devices gem5's x86 platform actually has, and
+KASLR off because gem5 loads the ELF `vmlinux` at its link address. The builder
+gates on all three symbols surviving `olddefconfig` before it spends a minute
+compiling. `CC=gcc-13`: the host default is gcc 15.2, newer than 6.8 accepts.
+
 ---
 
 # Stop-work list
