@@ -33,11 +33,33 @@ ODIR="$G/logs/fs_restore_chi/$RUN"
 
 # --- gate 1: the checkpoint exists and is finished being written -------------
 [ -d "$CDIR" ] || { echo "FAIL no checkpoint dir $CDIR" >&2; exit 2; }
+# A stock gem5 FS checkpoint leaves TWO cpt.* directories behind, and only one
+# of them is a checkpoint. src/python/m5/simulate.py:checkpoint() runs
+# os.makedirs(dir) on the name Simulation.py handed it -- the literal,
+# unsubstituted "cpt.%d" -- and only afterwards does C++ substitute the tick:
+# CheckpointIn::setDir (src/sim/serialize.cc:142-147) csprintf()s curTick() in
+# when it sees a '%', and serializeAll mkdir()s that. The result is an always-
+# empty cpt.%d beside the real cpt.<tick>. This is upstream behaviour, not ours,
+# and it happens on every FS checkpoint.
+#
+# So "exactly one cpt.* dir" is the wrong test -- it would refuse every valid
+# T4 checkpoint. The test is "exactly one cpt.* dir that HAS a checkpoint in
+# it", which still refuses if two real checkpoints are present.
 shopt -s nullglob
-CPTS=("$CDIR"/cpt.*)
+ALLCPT=("$CDIR"/cpt.*)
 shopt -u nullglob
-[ ${#CPTS[@]} -eq 1 ] || { echo "FAIL expected exactly 1 cpt.* in $CDIR, found ${#CPTS[@]}" >&2; exit 2; }
-[ -s "${CPTS[0]}/m5.cpt" ] || { echo "FAIL ${CPTS[0]}/m5.cpt missing or empty -- boot may still be writing it" >&2; exit 2; }
+CPTS=()
+for c in "${ALLCPT[@]}"; do [ -s "$c/m5.cpt" ] && CPTS+=("$c"); done
+[ ${#CPTS[@]} -eq 1 ] || {
+  echo "FAIL expected exactly 1 cpt.* holding a non-empty m5.cpt in $CDIR;" >&2
+  echo "     found ${#CPTS[@]} such, out of ${#ALLCPT[@]} cpt.* directories:" >&2
+  for c in "${ALLCPT[@]}"; do
+    echo "       ${c##*/}  m5.cpt $( [ -s "$c/m5.cpt" ] && stat -c %s "$c/m5.cpt" || echo "absent/empty" )" >&2
+  done
+  exit 2; }
+# A non-empty m5.cpt does NOT mean the checkpoint is finished: m5.cpt is written
+# before the physmem stores (observed at T4 -- m5.cpt at 03:02, store1 at 03:03).
+# The process-ownership check below is what actually establishes completeness.
 if pgrep -a -f -- "--outdir=$CDIR" >/dev/null 2>&1; then
   echo "FAIL a gem5 process still owns $CDIR; m5.cpt is written after the dir appears (parse race)" >&2
   exit 2

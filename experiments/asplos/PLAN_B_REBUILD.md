@@ -829,6 +829,22 @@ should wait for T5, which is what T5 produces.
 > to protect anything, and gate 2 is the one whose failure mode is silent
 > corruption rather than an error.
 
+> **T5 gate 1 was wrong, and T4's checkpoint proved it before a run was spent.**
+> A stock gem5 FS checkpoint leaves *two* `cpt.*` directories: `simulate.py`'s
+> `checkpoint()` runs `os.makedirs()` on the literal, unsubstituted `"cpt.%d"`
+> that `Simulation.py` hands it, and only afterwards does C++
+> `CheckpointIn::setDir` (`serialize.cc:142-147`) `csprintf` the tick in and
+> create the real `cpt.<tick>`. The empty `cpt.%d` is upstream behaviour and
+> appears on every FS checkpoint. Gate 1 tested "exactly one `cpt.*`", so it
+> would have refused **every valid T4 checkpoint**. Corrected to "exactly one
+> `cpt.*` holding a non-empty `m5.cpt`", which still refuses when two real
+> checkpoints are present, and which prints the full directory inventory when it
+> does refuse. Also recorded at the gate: a non-empty `m5.cpt` does **not** mean
+> the checkpoint is complete -- T4 wrote `m5.cpt` at 03:02 and its second physmem
+> store at 03:03, so completeness rests entirely on the process-ownership check.
+> Verified live: against T4's still-writing checkpoint the count check passes
+> (the `cpt.%d` is correctly ignored) and the ownership check correctly refuses.
+
 ---
 
 # Stop-work list
