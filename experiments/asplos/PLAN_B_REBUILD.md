@@ -845,6 +845,19 @@ should wait for T5, which is what T5 produces.
 > Verified live: against T4's still-writing checkpoint the count check passes
 > (the `cpt.%d` is correctly ignored) and the ownership check correctly refuses.
 
+> **W7's registered reading rule now prints with W7's numbers.** W7.2 had already
+> recorded both the 20 MiB realization and the asymmetric reading it forces --
+> a falsified P1/P3 at the realized point may not be reported as falsifying the
+> registered prediction, while a confirmed one is a real positive that must be
+> stated at the realized point. That rule lived only in the memo; the analyzer
+> that computes and prints P1 and P3 said nothing. It now prints the rule, and
+> the note that P2 is unaffected because it is evaluated at A0 against a
+> reference that is sound (5.03 CXL passes against a 4-pass floor), while the A1
+> smoke references are on-chip bandwidths and not streaming references. Nothing
+> new was discovered here: F11 fix #5 (`ls experiments/asplos/ | grep -i X`
+> first) caught that the finding was already recorded, and the work became
+> carrying it to the point of use rather than restating it.
+
 ---
 
 # Stop-work list
