@@ -303,7 +303,20 @@ This is the highest-value non-experiment task in the plan.
 
 ## W6 -- The cost argument. **COMPLETE 2026-08-24.** W6.1/W6.2 measured, W6.3 sourced and overturned.
 
-> **Outcome: `W6.1_IMPLEMENTATION_COST_AUDIT_2026-08-24.md`.** Static audit of
+> **Primary outcome: `W6_COST_ARGUMENT_2026-08-23.md`**, written 2026-08-23 and
+> covering W6.1, W6.2 and W6.3 together. **It was not read before the
+> 2026-08-24 memos were written** -- F11, third instance, recorded in
+> `W4.3_PROVENANCE_LEDGER_2026-08-23.md`. Read it first. It is the only place
+> that records two facts nothing else does: `STREAMING_BIT` rides a
+> `cacheCoherenceFlags` word already carrying `GLC`/`SLC` for shipped GPU bypass
+> semantics, so that wire is in use rather than merely unextended; and
+> `5bdfcd8e19` bundles a baseline change (it removed `is_prefetch ||` from
+> `needCacheEntry`), so **no number we report is "\textsc{Streaming} vs. stock
+> gem5"** -- within-campaign comparisons are unaffected. Its cost table's "1 PTE
+> flag" and its summary sentence's "One PTE bit" are both **wrong** and are
+> superseded below; queue row 32 stops the phrase reaching the paper.
+>
+> **Second outcome: `W6.1_IMPLEMENTATION_COST_AUDIT_2026-08-24.md`.** Static audit of
 > both trees against their pre-STREAMING bases, zero compute. The assertions
 > below were checkable and are now checked. Every structural claim holds -- and
 > **one clause is wrong in our favour: there is no new PTE bit.** The decode
@@ -358,7 +371,26 @@ default -- and the sound retention variants (b)/(c) are unbuilt, so nothing here
 prices them. (iii) The kernel's exit drain (`WBNOINVD` to one CPU per core) is
 counted in lines, not cycles; that is the §3 δ embargo's unresolved item, and
 measuring the *streamer-side* cost of flush-behind -- which is **not** embargoed
--- is the obvious way to convert the largest unpriced item into a number.
+-- is the obvious way to convert the largest unpriced item into a number. (iv)
+The line counts must never be quoted without their counting rule, because three
+correct ones disagree: **787** raw added lines over ten mechanism files from
+base `037af838cf7a^` (which sits *after* the first three STREAMING commits and
+so undercounts its own foundation by 89), **876** raw over the same files from
+the true v6.8 base `e8f897f4afef` (17 commits, 32 files, 2,227 insertions), and
+**564** non-comment non-blank kernel-wide excluding `tools/`/`Documentation/`/
+tests, **447** of that without the removable debugfs facility. Comments and
+blanks are ~36% of these files. This is §5.1's arm-identity rule relocated from
+a figure to a cost table, and it is the reason two memos disagreed for a day.
+
+**The comparison to make, with our own numbers** (`W5.3_L5_EVIDENCE_2026-08-23.md`,
+folded into `W6.3_CAT_COMPARISON_2026-08-24.md`'s appended correction): CAT
+recovers the mos182 co-run tax completely (1.00x under CAT12) and charges
+**1.222x** for it with no co-runner present, because a way mask shrinks the
+victim's own capacity; it leaves **12.4x** on moscxl, where the harm is
+rate-class and a capacity knob cannot reach it; and on `tab:fused` it recovers
+**nothing** (214.6 -> 215.0 Mtuple/s), because a core-scoped knob has no
+boundary to draw when the streamer is the victim's own thread. That last row is
+why the argument does not need the benefit magnitude to be large.
 
 ## W7 -- Necessity and benefit at the same operating point. The structural gap.
 
