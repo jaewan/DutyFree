@@ -1,7 +1,7 @@
 # G-probe outcome: the kill switch fires, and the victim population inverts
 
 **Date:** 2026-08-23 · **Hosts:** mos182 (Xeon 8462Y+, SPR), moscxl (EPYC 9754, Bergamo)
-**Artifacts (moscxl):** `probe_moscxl.jsonl` (72), `probe_moscxl_cat12_control.jsonl` (36), `probe_moscxl_mba.jsonl` (99), `probe_moscxl_mba_knee.jsonl` (36), `probe_moscxl_mba_knee2.jsonl` (18), `probe_moscxl_mba_2x2.jsonl` (18), `moscxl_mba_calib.jsonl` (9)
+**Artifacts (moscxl):** `probe_moscxl.jsonl` (72), `probe_moscxl_cat12_control.jsonl` (36), `probe_moscxl_mba.jsonl` (99), `probe_moscxl_mba_knee.jsonl` (36), `probe_moscxl_mba_knee2.jsonl` (18), `probe_moscxl_mba_2x2.jsonl` (18), `probe_moscxl_mba_paperpoint.jsonl` (144), `moscxl_mba_calib.jsonl` (9)
 **Artifacts (mos182):** `probe_mos182_matrix.jsonl` (60), `probe_mos182_cat_control.jsonl` (18), `probe_mos182_sfpressure.jsonl` (15), `mos182_wsext.jsonl` (75), `probe_mos182_mba.jsonl` (54), `probe_mos182_cat12_control.jsonl` (18), `mos182_mba_calib.jsonl` (10)
 — 519 probe runs plus two MBA unit calibrations, all valid, all in `artifacts/`
 **Runners:** `scripts/run_probe.py`, `run_cat_control.py`, `run_sfpressure.py`, `run_cat12_control_mos182.py`, `run_mba_mos182.py`, `mba_calib_mos182.py`, `run_probe_moscxl.py`, `run_cat12_control_moscxl.py`, `run_mba_moscxl.py`, `run_mba_knee_moscxl.py`, `run_mba_knee2_moscxl.py`, `run_mba_2x2_moscxl.py`, `mba_calib.py`
@@ -63,8 +63,8 @@ about a third of its L3 residency and runs 12.4× slower.
 So the design got the *direction* wrong, not the existence of a CAT-resistant
 residual. It predicted harm concentrated on L2-resident victims and defendable
 capacity harm on LLC-resident ones. Measurement says: **nothing on L2-resident
-victims, and a large CAT-irrecoverable tax on everything else — on AMD.** The
-same relative operating point on Intel reads 1.065×.
+victims, and a large tax on everything else that way-partitioning does not
+recover — on AMD.** The same relative operating point on Intel reads 1.065×.
 
 And that residual is a bandwidth problem that shipping hardware already
 solves. The MBA arm has now been run (§5.6, on the lead's instruction).
@@ -72,6 +72,15 @@ solves. The MBA arm has now been run (§5.6, on the lead's instruction).
 96% of its bandwidth** — both mechanisms ship in every current server part and
 are set through the same kernel interface. So the AMD residual cannot carry an
 L5 "unoccupied corner" claim, and that claim should not be written.
+
+**§5.8 removes the last way to read that as an off-point result.** Re-run at
+the paper's own published cell — 4 MiB victim, 8/8 split, CXL streamer, n=12 —
+the same pair takes 9.97× to **0.985× [0.961, 1.008] of its own no-streamer
+control** at 95.7% of streamer bandwidth, with the non-binding caps clean. The
+same run also finds the paper is printing a **superseded number**: page 1's
+6.92× was set aside in this repo on 2026-08-08 in favour of 9.87×, and an
+independent runner reads 9.97× today. That correction is owed to the paper
+whatever is decided about everything else.
 
 What survives from the AMD leg is narrower but is the part the paper's
 admission-gate argument actually needs: **CAT alone — way-partitioning, the
@@ -96,9 +105,11 @@ The OLTP-index victim was derived from the gem5 mechanism decomposition, in
 which capacity displacement is the minority charge (1.369×) and
 snoop-filter back-invalidation of the victim's **private** L1/L2 is the
 majority (2.501× total). The whole point of choosing an index probe whose hot
-set sits in the private L2 was that **CAT cannot defend a private cache**: a
-back-invalidation is an invalidation, not an allocation, so no way-partitioning
-at any level prevents it. That is what would have made the residual
+set sits in the private L2 was that **no way mask defends against
+back-invalidation**: a bitmask governs what a requester may allocate, and a
+back-invalidation is an eviction performed on a line the victim already holds,
+so no mask at any level is consulted — including the per-core L2 mask this
+silicon does expose (§8). That is what would have made the residual
 CAT-irrecoverable and the corner unoccupied (L5).
 
 That argument requires back-invalidation of the private L2 to actually happen
@@ -287,9 +298,10 @@ fraction, nothing more.)
 
 ## 5. moscxl — the harsh-capacity replication, and the finding that inverts
 
-*Host note: §5.1–§5.6 are all moscxl. §5.7 returns to mos182 to run §5.6's arm
-there, and is kept in this section because it only means anything read against
-§5.6. Every figure below names its host.*
+*Host note: §5.1–§5.6 are moscxl. §5.7 returns to mos182 to run §5.6's arm
+there; §5.8 returns to moscxl to run it at the paper's published operating
+point. Both are kept in this section because neither means anything except read
+against §5.6. Every figure below names its host.*
 
 mos182 alone cannot distinguish "SPR does not back-invalidate" from "shipping
 server LLCs do not back-invalidate," and those are very different claims.
@@ -699,6 +711,89 @@ anything above — the peak operating point has CAT12 at 1.222×, well clear of
 it — but any future use of a `0fff` mask on this host should establish what
 this is first.
 
+### 5.8 The paper's own operating point (moscxl): the published cell falls, and it was already the wrong cell
+
+§5.6 measured an 8 MiB victim at a 12/4 split against a local-DDR streamer.
+The paper's Sec5 portability paragraph measures something else: a **4 MiB**
+victim at an **8/8** split against a **CXL** streamer, and reports 19.85×
+unpartitioned with a **6.92× residual** after way-partitioning — the figure
+page 1 cites for "capacity control is insufficient". Three deltas, so §5.6 did
+not touch the published cell. `run_mba_paperpoint_moscxl.py` closes all three
+at once and adds the MBA ladder. n=12 to match the paper, 144/144 rows valid,
+95% rep-paired bootstrap over 20k resamples, seed 1.
+
+| arm | cyc/access | tax | 95% CI | streamer GB/s | % BW | socc |
+|---|---:|---:|---|---:|---:|---:|
+| quiescent | 55.21 | 1.000× | — | — | — | 0.7 |
+| CAT8_nostream | 57.79 | 1.047× | [1.029, 1.065] | — | — | 0.7 |
+| WB_cxl | 1138.52 | **20.620×** | [20.435, 20.789] | 24.67 | 100.0% | 15.9 |
+| CAT8_cxl | 550.51 | **9.971×** | [9.883, 10.057] | 24.69 | 100.1% | 8.0 |
+| CAT8_cxl_MBA256 *(non-binding)* | 552.39 | 10.005× | [9.901, 10.105] | 24.71 | 100.1% | 8.0 |
+| CAT8_cxl_MBA224 *(non-binding)* | 550.56 | 9.972× | [9.876, 10.069] | 24.70 | 100.1% | 8.0 |
+| **CAT8_cxl_MBA192** | 56.92 | **1.031×** | [1.017, 1.047] | 23.62 | **95.7%** | 8.0 |
+| CAT8_cxl_MBA176 | 56.90 | 1.031× | [1.020, 1.041] | 21.05 | 85.3% | 8.0 |
+| MBA192_cxl *(no partition)* | 210.07 | 3.805× | [3.586, 3.978] | 23.71 | 96.1% | 15.2 |
+| WB_local | 1138.85 | 20.626× | [20.433, 20.796] | 24.68 | 100.0% | 16.0 |
+| CAT8_local | 549.59 | 9.954× | [9.864, 10.039] | 24.70 | 100.1% | 8.0 |
+| CAT8_local_MBA192 | 57.41 | 1.040× | [1.029, 1.051] | 23.63 | 95.8% | 8.0 |
+
+Against the §5.3 no-streamer control — the same victim under the same 8/8
+partition with nothing co-running, which is the only denominator that separates
+co-run harm from partition starvation:
+
+| arm | vs CAT8_nostream | 95% CI |
+|---|---:|---|
+| CAT8_cxl | 9.526× | [9.359, 9.688] |
+| **CAT8_cxl_MBA192** | **0.985×** | **[0.961, 1.008]** |
+| CAT8_cxl_MBA176 | 0.985× | [0.968, 1.001] |
+| CAT8_local_MBA192 | 0.993× | [0.975, 1.011] |
+
+**The published residual does not reproduce, and the repo already knew.** The
+unpartitioned arm does reproduce — 20.620× [20.435, 20.789] against a published
+19.85×, +3.9%, so the apparatus is measuring the paper's phenomenon. The
+partitioned arm is not: 9.971× [9.883, 10.057] against a published 6.92×.
+That is not a new discovery. `experiments/phase1/e1_residual_decomp/RESULTS.md`
+carries a **CORRECTION dated 2026-08-08**: a rerun of that campaign's own
+unmodified script reproduced **9.87×**, the drift was verified all the way to
+the hardware QoS mask MSRs (enforcement correct, physical cause unidentified),
+and per explicit decision "**9.87× is now the campaign's standard number for
+this arm**". Today's independent runner, different code, fifteen days later,
+reads 9.97× — agreeing with the corrected number to 1%, not with the published
+one. **The paper is printing a figure its own provenance record superseded.**
+The derived quantity is wrong in the same direction: way-partitioning recovers
+**54.3%** of the tax here, not the published 69%.
+
+Per §6.6 this is reported, not reconciled. No configuration hunt was run and
+none should be; two independent runners now agree on ~9.9× and the 6.92× has
+a dated supersession notice against it.
+
+**MBA closes the residual at the paper's point, whatever its value.** 9.971× →
+1.031× at 95.7% of streamer bandwidth, and against its own no-streamer control
+**0.985× [0.961, 1.008]** — statistically indistinguishable from the victim
+running alone under the same partition. The two non-binding caps are the arm's
+control and they are clean: 256 and 224 read 10.005× and 9.972× against the
+uncapped 9.971×, so it is the cap doing the work, not the act of arming MBA.
+That control was missing from §5.6's first pass and is present here.
+
+**CAT is still necessary — this is the one result that goes the paper's way.**
+MBA192 with no partition reads 3.805× [3.586, 3.978]. The deployed answer is
+the *pair*, not MBA alone. "Capacity control is insufficient" survives as a
+literal statement; what does not survive is "and nothing deployed closes the
+gap."
+
+**Capacity is again ruled out as the mechanism.** The streamer holds 8.0 MiB —
+its full eight ways — in every CAT8 arm including the recovered ones. MBA
+removes the tax without removing a single line of streamer occupancy, exactly
+as on the §5.6 arm and the §5.7 Intel mirror.
+
+**CXL contributes nothing at this operating point.** WB_local 20.626× against
+WB_cxl 20.620×, at 24.68 vs 24.67 GB/s; CAT8_local 9.954× against CAT8_cxl
+9.971×; the MBA192 cells 1.040× and 1.031×. Every pair is inside the other's
+interval. At matched bandwidth the source node is undetectable, which supports
+"the tax follows allocation, not the device" and withdraws support from any
+CXL-specific framing of *this* cell.
+
+
 ## 6. Consequences
 
 **Dead:** the OLTP-index headline as specified. The victim was chosen precisely
@@ -722,10 +817,13 @@ charge to neutralize.
   exists, and then mis-describes that tax as capacity. §5.6 sharpens this
   further: the tax is a *bandwidth* charge, so a capacity knob is the wrong
   instrument for it in both directions.
-- **A large CAT-irrecoverable co-run residual on shipping AMD silicon**, now
-  measured with the no-streamer control the earlier result lacked (§5.3) — but
-  read only as a statement about way-partitioning. It is 18.73× → 13.05× for
-  CAT alone, and that is what is alive.
+- **A large co-run residual that way-partitioning does not recover, on
+  shipping AMD silicon**, now measured with the no-streamer control the earlier
+  result lacked (§5.3) — but read only as a statement about way-partitioning,
+  and no longer as a statement about deployed mechanisms in general. It is
+  18.73× → 13.05× for CAT alone at §5.6's point, and 20.62× → 9.97× at the
+  paper's own point (§5.8). Those are what is alive; the word
+  "CAT-irrecoverable" is not, because MBA recovers both.
 - The measurement apparatus, now with D1/D2 fixed (`patches/`).
 - **A bandwidth-matched control for free.** An 8-thread streamer delivers
   ~24 GB/s from local DRAM and ~24 GB/s from CXL on mos182, and ~24.7 GB/s
@@ -738,8 +836,9 @@ charge to neutralize.
   two arms are bandwidth-matched at 8 threads) is measured; the mechanism
   behind the local number is not.
 
-**Newly dead (§5.6, §5.7):** the L5 "no deployed alternative occupies this
-corner" claim, on both hosts and by two different routes. On moscxl CAT+MBA
+**Newly dead (§5.6, §5.7, §5.8):** the L5 "no deployed alternative occupies
+this corner" claim, on both hosts, by two different routes, and — as of §5.8 —
+at the exact operating point page 1 cites for it. On moscxl CAT+MBA
 reaches 1.07× at a 4% cost to the streamer. On mos182 CAT alone reaches 0.997×
 of its own no-streamer control — there is no residual there at all, at any MBA
 setting, so the Intel leg never had a corner to occupy. The MBA arm was run
@@ -755,6 +854,16 @@ mos182 tax at any working set. The matrix it rested on stopped at a 16 MiB
 victim; at an LLC-sized victim mos182 reads 1.60× (§5.7). The kill switch is
 unaffected, the scope sentence was wrong.
 
+**Newly found, and the most urgent item in this document (§5.8):** the paper
+prints **6.92×** for the AMD way-partitioned residual, and
+`experiments/phase1/e1_residual_decomp/RESULTS.md` has carried a dated
+supersession since **2026-08-08** setting the campaign's standard number for
+that arm to **9.87×**. An independent runner reproduced 9.97× [9.88, 10.06]
+today. The derived "recovers only 69%" is 54.3%. Both figures are on page 1.
+This is a correctness defect in a live submission and is independent of
+everything else here — it needs fixing even if no other conclusion in this
+document is accepted.
+
 **Cost:** 17 days to deadline, and roughly one day spent. The probe did exactly
 what it was built to do — this is a cheap negative, not an expensive one, and
 §5.2 was not on the menu when it was designed.
@@ -762,6 +871,15 @@ what it was built to do — this is a cheap negative, not an expensive one, and
 ## 7. For the lead (§9)
 
 These are decisions, not recommendations I should take myself.
+
+0. **NOT a decision — a correction the paper needs regardless (§5.8).** Sec5
+   and page-1 contribution (2) print **6.92$\times$** and "recovers only 69\%".
+   The repo's own provenance record superseded that on 2026-08-08 (9.87×), and
+   an independent runner read 9.97× [9.88, 10.06] today; recovery is 54.3%.
+   Listed here only because it is on page 1 and someone has to actually do it.
+   It is not contingent on any other item below. **I have not touched the
+   paper's numbers** — changing a page-1 figure is a lead call even when the
+   direction is not in doubt.
 
 1. **The gem5 SF geometry disclosure.** §4.1 is the sharpest item here. If any
    paper text presents the 2.501× as a quantity expected on a current server
@@ -783,9 +901,15 @@ These are decisions, not recommendations I should take myself.
    capacity. **The L5 "unoccupied corner" sentence cannot be written from the
    AMD number and should be struck wherever it appears.** No further
    experimental work is queued on this line. The residual figure that survives
-   for the paper is the CAT-alone one, 18.73× → 13.05×, and it must be labelled
-   as being about way-partitioning specifically, not about interference
-   control. **And per §5.7 it must also carry its vendor**: on mos182 the same
+   for the paper is the CAT-alone one — 18.73× → 13.05× at §5.6's point, and
+   20.62× → 9.97× at the paper's own point (§5.8) — and it must be labelled as
+   being about way-partitioning specifically, not about interference control.
+   **§5.8 closes the last escape route**: the recovery is no longer at a
+   nearby operating point, it is at the published one, with the non-binding
+   controls clean and the recovered victim statistically indistinguishable from
+   its own no-streamer control (0.985× [0.961, 1.008]) at 95.7% of streamer
+   bandwidth. CAT is still necessary (MBA alone 3.805×), so the deployed answer
+   is the pair — that much is still available to the paper. **And per §5.7 it must also carry its vendor**: on mos182 the same
    partition recovers 100% of the tax and MBA is inert, so "CAT recovers almost
    nothing" is a Bergamo sentence, not a server-CPU sentence.
 6. **Whether the paper's harm claim relocates rather than dies.** §5.5 is
@@ -795,7 +919,7 @@ These are decisions, not recommendations I should take myself.
    better-evidenced claim than the one being replaced, and it is also a
    different paper section. Whether to make that move is a structural call.
 
-With 5 resolved, **item 6 is now the one that should not wait**, and it is a
+With 5 resolved and 0 pending, **item 6 is now the one that should not wait**, and it is a
 narrower question than it was this morning: the relocated harm claim can no
 longer be "shipping hardware cannot fix this," only "way-partitioning cannot
 fix this, and the thing that can needs per-workload-pair tuning at core
@@ -819,12 +943,15 @@ granularity." Item 2 follows from it.
   same check, found two hosts later. Now `=\s*(\d+)`, compared numerically.
   The lesson both times: a readback assertion written against one vendor's
   string formatting is an apparatus bug waiting for the second vendor.
-- **§1's premise sentence is wrong on Intel silicon.** "CAT cannot defend a
-  private cache" — mos182 exposes L2 CAT (`/sys/fs/resctrl/info/L2/`,
-  `cbm_mask ffff`, 8 CLOSIDs, per-core domains). The argument survives, because
-  back-invalidation is not allocation and no L2 way mask prevents it, but the
-  sentence as written is false and a reviewer with an SPR box would say so.
-  See §5.7. Whether the interface enforces was not tested.
+- **§1's premise sentence was wrong on Intel silicon; fixed 2026-08-23.** It
+  read "CAT cannot defend a private cache" — but mos182 exposes L2 CAT
+  (`/sys/fs/resctrl/info/L2/`, `cbm_mask ffff`, 8 CLOSIDs, per-core domains),
+  so as written a reviewer with an SPR box would have refuted it. The argument
+  survives unchanged, because back-invalidation is not allocation and no way
+  mask at any level is consulted for one. §1 here and the paper's two
+  statements of the same claim (`Sec5_Evaluation.tex` H3 paragraph,
+  `Appendix.tex` tab:h3sf caption) now say that instead. See §5.7. Whether the
+  L2 interface actually enforces was not tested.
 - **An unexplained sub-quiescent effect on mos182 at large working sets.** A
   12-way-granted victim is repeatedly *faster* than the same victim with all 15
   ways and no co-runner, and holds more LLC while doing it (§5.7). Consistent
