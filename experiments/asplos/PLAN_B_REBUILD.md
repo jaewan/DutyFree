@@ -89,8 +89,18 @@ recovers the charge silicon actually levies, and (b) a cost argument.
 > WB/infinite-SF charge.** The pre-registered prediction (1.00-1.10x) is
 > confirmed near the bottom of its band. The aggressor is not throttled: its
 > L2-miss rate per cycle falls 3.9%, and under H2 the LLC is accessed 16% *more*
-> per cycle while going off-chip 16% *less*. H2+H3/infinite is still running;
-> W1.2's consistency prediction for it is registered and not yet evaluable.
+> per cycle while going off-chip 16% *less*.
+>
+> **W1.2's consistency prediction for H2+H3/infinite is now resolved --
+> `W1.5_H3_INFINITE_SF_OUTCOME_2026-08-24.md`.** (H2+H3)/inf = 1.0694x, i.e.
+> **1.0345x relative to H2/inf** -- 3.45% worse, inside the registered +/-5%
+> "same" band and in the predicted direction. Neither escape clause fires:
+> `tab:h3sf`'s H3 attribution is **not** withdrawn, and the no-retention traffic
+> penalty is **not** large. With an infinite SF there is no enrolment charge to
+> remove and H3 delivers no benefit at all, which is the control separating
+> "H3 = SF-enrolment relief" from "H3 = something else." One number is owed to
+> the text: H3 is not free; it costs 3.45% over H2 alone at an infinite SF.
+> **No W1 prediction remains unevaluated.**
 >
 > **Re-scoped, same day: this is the third measurement of the cell, not the
 > first** -- see the banner and the appended correction. What W1 alone supplies
