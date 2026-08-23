@@ -5,12 +5,12 @@ write there publishes to the co-authors, so the whole queue is held behind one
 S9 lead decision — *co-author communication* — not behind sixteen separate
 ones.
 
-This document exists so that decision can be made in one pass. Every row names
+This document exists so that decision can be made in one pass. 19 rows. Every row names
 the site, quotes the current text, states the replacement, and cites the
 evidence. Line numbers were verified against the working tree on 2026-08-23;
 re-check them if the tree has moved.
 
-**Two rows are deletions, eleven are corrections, three are additions.** None
+**Two rows are deletions, twelve are corrections, four are additions.** None
 requires a new experiment. Three are wrong-as-written on page 1 or in the
 headline table.
 
@@ -40,6 +40,7 @@ headline table.
 | 13 | `tab:appplat` CXL capacity | unit inconsistency | F7.2 |
 | 14 | `tab:h1bw` | **add** a cycles column | F3 |
 | 15 | `tab:gem5` | **name** the estimator | F5 |
+| 19 | anywhere `tab:h3sf`'s 2.501x (or the finite-SF charge generally) is presented as an expectable silicon quantity | qualify it as a mechanism study at 1.0x SF:L2 coverage. Shipping parts provision snoop filters at a multiple of aggregate private capacity; mos182 cannot be made to thrash even at 62 MiB of streaming private footprint (tax 1.020x, bounded at 1.0998x). | W3.1 closure + `GPROBE_OUTCOME.md` S3.2/S4.1, which states the requirement in as many words. |
 
 ## Tier 3 — restructure, larger than a line edit
 
