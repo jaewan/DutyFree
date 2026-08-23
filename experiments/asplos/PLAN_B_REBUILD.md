@@ -601,6 +601,21 @@ because that would buy a benefit result by destroying the necessity result.
 > an F12, not an F10. Filed as **edit-queue row 36** (ninth amendment). Optional
 > clean re-run: associativity over the exact set {5, 10, 20, 40}, 9 cells.
 
+> **W4.6 addendum, same day: the sweep is closed.** Every cache geometry
+> reachable from a committed launcher was enumerated. **Exactly three cells in
+> the repository are affected, all LLC, all now documented** -- `tab:sens` 8-way
+> (5 MiB -> 4), `tab:sens` 12-way (-> 3) and W7's A1 (32 -> 20 MiB). Every L1d,
+> L1i and L2 in use is exact, as are 5 MiB/20-way, 2 MiB/16-way and 16 MiB/16-way
+> LLCs and both snoop-filter geometries. The SF **cannot** be affected by
+> construction: `CHI_config_8592.py` sets `size = sf_sets*sf_ways*64` with
+> `assoc = sf_ways`, so `num_sets` is identically `sf_sets` -- set directly, not
+> derived from a byte size. And the LLC is the only structure whose size *and*
+> associativity are both swept, which is why one bad cell hid from each sweep.
+> `--num-l3caches` is unaffected (it moves `start_index_bit`, not the set count),
+> so W8's multi-slice restore arms are exact. Out of scope: the classic non-Ruby
+> hierarchy used by W8's atomic boot. **No further campaign is at risk from this
+> defect**; what remains is the paper edit already filed as row 36.
+
 ## W8 -- gem5 FS capability demonstration. Stretch, not critical path.
 
 `GEM5_FS_OS_CONTRACT_PREREGISTRATION.md` is written and has never been run.
