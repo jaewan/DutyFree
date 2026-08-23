@@ -7,6 +7,17 @@ pre-registered ones in PLAN_B_REBUILD.md and are not arguments -- editing them
 after the fact would be visible in git.
 
 Usage: python3 analyze_sf_inf.py            (reads /tmp/sf_*_inf_s*/stats.txt)
+
+PROVENANCE NOTE added 2026-08-24, output deliberately unchanged (this script
+printed a result that is now quoted in W1, W1.4, W1.5 and W3.4, so its stdout is
+left byte-for-byte as it was).  It reads four arms; only two of them came from a
+committed launcher.  sf_h2_inf and sf_h3_inf are from sf_inf_cells.sh
+(2026-08-22/23); sf_qui_inf and sf_wb_inf are from the uncommitted 2026-08-20
+batch and are F10 artifacts, and the qui arm is the denominator of every ratio
+below.  W4.5_SF_CAMPAIGN_PROVENANCE_2026-08-24.md pins the apparatus for all
+four from config.ini and records what stays gone (the seed values).  The sibling
+analyze_sf_fin.py derives this distinction at run time from the DONE_ sentinels;
+it is stated here rather than printed, for the reason above.
 """
 import glob, os, re, statistics, sys
 
