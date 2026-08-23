@@ -1,0 +1,136 @@
+diff --git a/Makefile b/Makefile
+index 81abb0a..55021bf 100644
+--- a/Makefile
++++ b/Makefile
+@@ -2,6 +2,18 @@ CC       = gcc
+ CFLAGS   = -O2 -march=native -mavx2 -msse4.1 -Wall -Wextra -pthread
+ LDFLAGS  = -lnuma -lm -lpthread
+ 
++# --- D1/D2, 2026-08-23: PMU vendor and L2 size are read off the host. ---
++# Both were previously compile-time constants baked to AMD/1 MiB, and both
++# fail silently rather than loudly when wrong. common.h #errors if either
++# is missing, so these may not be quietly dropped.
++PMU_VENDOR := $(shell grep -qm1 GenuineIntel /proc/cpuinfo && echo PMU_INTEL || echo PMU_AMD)
++L2_BYTES   := $(shell awk '/^[0-9]+K$$/{printf "%d", $$0*1024} /^[0-9]+M$$/{printf "%d", $$0*1048576} /^[0-9]+$$/{printf "%d", $$0}' /sys/devices/system/cpu/cpu0/cache/index2/size 2>/dev/null)
++ifeq ($(strip $(L2_BYTES)),)
++$(error could not read L2 size from sysfs -- pass L2_BYTES=<bytes> explicitly)
++endif
++CFLAGS   += -D$(PMU_VENDOR) -DL2_SIZE_BYTES=$(L2_BYTES)
++$(info [build] PMU_VENDOR=$(PMU_VENDOR)  L2_SIZE_BYTES=$(L2_BYTES))
++
+ SRCDIR   = src
+ BINDIR   = bin
+ 
+diff --git a/src/common.h b/src/common.h
+index 99757c3..e75839a 100644
+--- a/src/common.h
++++ b/src/common.h
+@@ -56,8 +56,13 @@
+  *
+  * FILL THIS IN after Step 0 (scripts/step0_characterize.sh).
+  */
++/* D2 fix, 2026-08-23. This used to default to 1 MiB under #ifndef with no
++ * -D from the Makefile, so VICTIM_ARRAY_KB was 256 KB on every host
++ * regardless of its actual L2 -- including the 2 MiB Intel parts. The
++ * Makefile now reads it from sysfs and passes it. A default is no longer
++ * offered, because a wrong working set is silent. Always pass -w anyway. */
+ #ifndef L2_SIZE_BYTES
+-#define L2_SIZE_BYTES  1048576  /* Default only; override per host after step0 characterization. */
++#  error "No L2_SIZE_BYTES. Build via the Makefile, which reads it from /sys/devices/system/cpu/cpu0/cache/index2/size (D2)."
+ #endif
+ 
+ /*
+@@ -93,8 +98,41 @@
+ #define RAW_L2_HIT_FROM_DC_MISS   0x7064   /* event=0x64, umask=0x70 */
+ #define RAW_L2_MISS_FROM_DC_MISS  0x0864   /* event=0x64, umask=0x08 */
+ 
+-#define RAW_L2_HIT    RAW_L2_HIT_FROM_DC_MISS
+-#define RAW_L2_MISS   RAW_L2_MISS_FROM_DC_MISS
++/* --------------------------------------------------------------------
++ * D1 fix, 2026-08-23. Until today these two macros were unconditionally
++ * the AMD codes above, on every host, with the Intel codes present only
++ * in a comment. perf_event_open() accepts an arbitrary PERF_TYPE_RAW
++ * config without erroring, so on the Intel hosts the victim reported an
++ * l2_miss_rate computed from events that do not exist. Every Intel L2
++ * hit/miss figure this binary has ever printed is void.
++ *
++ * The vendor is now detected by the Makefile from /proc/cpuinfo and
++ * passed as -DPMU_INTEL or -DPMU_AMD. Guessing is not an option here:
++ * a wrong choice is silent, so an unset vendor is a build error.
++ *
++ * Intel codes are MEM_LOAD_RETIRED.L2_HIT (event 0xD1, umask 0x02) and
++ * MEM_LOAD_RETIRED.L2_MISS (0xD1 / 0x10). Note these count RETIRED LOAD
++ * INSTRUCTIONS, not all L2 requests, so they exclude prefetches and
++ * stores. For the pointer chase that is exactly the right semantics;
++ * for the STREAM triad it is not, and the triad's miss rate must not be
++ * compared against an AMD triad number.
++ * ------------------------------------------------------------------ */
++#define RAW_L2_HIT_INTEL          0x02D1   /* MEM_LOAD_RETIRED.L2_HIT   */
++#define RAW_L2_MISS_INTEL         0x10D1   /* MEM_LOAD_RETIRED.L2_MISS  */
++
++#if defined(PMU_INTEL) && defined(PMU_AMD)
++#  error "Define exactly one of PMU_INTEL / PMU_AMD, not both."
++#elif defined(PMU_INTEL)
++#  define RAW_L2_HIT    RAW_L2_HIT_INTEL
++#  define RAW_L2_MISS   RAW_L2_MISS_INTEL
++#  define PMU_VENDOR_STR "intel"
++#elif defined(PMU_AMD)
++#  define RAW_L2_HIT    RAW_L2_HIT_FROM_DC_MISS
++#  define RAW_L2_MISS   RAW_L2_MISS_FROM_DC_MISS
++#  define PMU_VENDOR_STR "amd"
++#else
++#  error "No PMU vendor. Build via the Makefile, which detects it, or pass -DPMU_INTEL / -DPMU_AMD. This used to default to AMD codes silently on Intel hosts (D1)."
++#endif
+ 
+ /* ------------------------------------------------------------------ */
+ /*  Access modes                                                      */
+diff --git a/src/victim.c b/src/victim.c
+index 956da12..5ad1894 100644
+--- a/src/victim.c
++++ b/src/victim.c
+@@ -107,8 +107,10 @@ int main(int argc, char **argv)
+     signal(SIGINT,  sighandler);
+     signal(SIGTERM, sighandler);
+ 
+-    fprintf(stderr, "[victim] core=%d node=%d ws=%zu KB duration=%d warmup=%d chase=%d\n",
+-            core, local_node, ws_kb, duration, warmup, use_chase);
++    fprintf(stderr, "[victim] core=%d node=%d ws=%zu KB duration=%d warmup=%d chase=%d "
++            "pmu=%s l2_compiled=%d KB\n",
++            core, local_node, ws_kb, duration, warmup, use_chase,
++            PMU_VENDOR_STR, L2_SIZE_BYTES / 1024);
+ 
+     /* ---- Allocate working set on LOCAL DRAM ---------------------- */
+     size_t ws_bytes = ws_kb * 1024;
+@@ -217,9 +219,30 @@ int main(int argc, char **argv)
+     double ipc      = (cyc > 0) ? (double)ins / (double)cyc : 0;
+     double miss_rate= (l2h + l2m > 0) ? 100.0 * l2m / (l2h + l2m) : 0;
+ 
++    /* D1 self-check. A wrong raw event code does not fail perf_event_open;
++     * it just counts nothing. Any run that touches memory for seconds and
++     * reports almost no L2 events has bad codes, not a perfect cache. */
++    uint64_t l2_tot = l2h + l2m;
++    const char *l2_status = "ok";
++    if (l2_tot < 1000) {
++        l2_status = "SUSPECT";
++        fprintf(stderr, "[victim] WARNING: L2 counters total %lu events over "
++                "%.2f s. The raw codes are almost certainly wrong for this CPU "
++                "(D1). Treat l2_hit / l2_miss / l2_miss_rate as MEANINGLESS.\n",
++                (unsigned long)l2_tot, meas_sec);
++    }
++
++    /* Accesses, so a latency-bound arm can be reported in cycles per access
++     * rather than only as IPC. For the chase this is one dependent load. */
++    double accesses = use_chase ? (double)iters * (double)chase_steps
++                                : (double)iters * (double)arr_n;
++    double cyc_per_access = (accesses > 0) ? (double)cyc / accesses : 0.0;
++
+     printf("VICTIM core=%d ipc=%.4f l2_miss_rate=%.2f cycles=%lu insns=%lu "
+-           "l2_hit=%lu l2_miss=%lu iters=%lu sec=%.2f\n",
+-           core, ipc, miss_rate, cyc, ins, l2h, l2m, iters, meas_sec);
++           "l2_hit=%lu l2_miss=%lu iters=%lu sec=%.2f "
++           "cyc_per_access=%.4f accesses=%.0f l2_counters=%s pmu=%s ws_kb=%zu\n",
++           core, ipc, miss_rate, cyc, ins, l2h, l2m, iters, meas_sec,
++           cyc_per_access, accesses, l2_status, PMU_VENDOR_STR, ws_kb);
+     fprintf(stderr, "[victim] DONE: IPC=%.4f  L2_miss=%.2f%%\n",
+             ipc, miss_rate);
+ 
