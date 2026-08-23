@@ -6,7 +6,7 @@ echo "W8-RCS-START w8_wb"
 /sbin/m5 resetstats
 /root/cxl_join_bench.gem5fs --mode morsel --policy wb  \
   --fact-bytes 16777216 --hot-bytes 4194304 --reps 1 --warmups 0 \
-  --probe-batch 0 --threads 1 --cpu-list 0 --json
+  --probe-batch 0 --json
 echo "W8-RCS-BENCH-EXIT $?"
 /sbin/m5 dumpstats
 echo "W8-RCS-DONE w8_wb"

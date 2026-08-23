@@ -1,0 +1,126 @@
+From a02a1ac713a4d50c16320bfd845358aa36350f2e Mon Sep 17 00:00:00 2001
+From: Jaewan Hong <dominico1004@hanmail.net>
+Date: Mon, 24 Aug 2026 01:30:17 +0900
+Subject: [PATCH] x86: count STREAMING classifications and STREAMING-tagged
+ accesses
+
+Two stats, deliberately separate:
+
+  system...walker.streamingTranslations -- incremented once per completed page
+  table walk that installs a Streaming translation. It sits at the doTLBInsert
+  point, so a translation that is walked once and then hit in the TLB a million
+  times counts once. This is the OS->hardware classification event.
+
+  system...tlb.stats.streamingAccesses -- incremented per translated access
+  that leaves the TLB carrying Request::STREAMING_BIT. This is the hardware
+  consumption event.
+
+The first is what the full-system contract test needs: it is the only counter
+that can distinguish "the kernel installed a slot-6 PTE and the walker read it"
+from "the workload touched a lot of memory". Reporting only the second would
+conflate a declaration with its traffic.
+
+Also commits two runner scripts that were sitting untracked in scripts/ --
+intel_8592_4cpu_dirtax_streaming_{prefix,supervised}.sh. An uncommitted script
+that produced a published row is the F10 defect in the provenance ledger.
+---
+ src/arch/x86/pagetable_walker.cc |  7 +++++++
+ src/arch/x86/pagetable_walker.hh | 13 +++++++++++++
+ src/arch/x86/tlb.cc              |  5 ++++-
+ src/arch/x86/tlb.hh              |  1 +
+ 4 files changed, 25 insertions(+), 1 deletion(-)
+
+diff --git a/src/arch/x86/pagetable_walker.cc b/src/arch/x86/pagetable_walker.cc
+index 34a163d0a2..1b2e875ee2 100644
+--- a/src/arch/x86/pagetable_walker.cc
++++ b/src/arch/x86/pagetable_walker.cc
+@@ -520,6 +520,13 @@ Walker::WalkerState::stepWalk(PacketPtr &write)
+         panic("Unknown page table walker state %d!\n");
+     }
+     if (doEndWalk) {
++        // Count the classification at the only point where the walker has
++        // validated a terminal PTE and is about to install the translation.
++        // This is intentionally distinct from a TLB access counter: repeated
++        // accesses to one cached translation must not masquerade as multiple
++        // OS->PTE classifications.
++        if (doTLBInsert && entry.streaming)
++            walker->stats.streamingTranslations++;
+         if (doTLBInsert)
+             if (!functional) {
+ 
+diff --git a/src/arch/x86/pagetable_walker.hh b/src/arch/x86/pagetable_walker.hh
+index 14e7c9976f..9ffbbf871d 100644
+--- a/src/arch/x86/pagetable_walker.hh
++++ b/src/arch/x86/pagetable_walker.hh
+@@ -48,6 +48,7 @@
+ #include "params/X86PagetableWalker.hh"
+ #include "sim/clocked_object.hh"
+ #include "sim/faults.hh"
++#include "sim/stats.hh"
+ #include "sim/system.hh"
+ 
+ namespace gem5
+@@ -178,6 +179,17 @@ namespace X86ISA
+         // The number of outstanding walks that can be squashed per cycle.
+         unsigned numSquashable;
+ 
++        struct WalkerStats : public statistics::Group
++        {
++            WalkerStats(statistics::Group *parent)
++                : statistics::Group(parent),
++                  ADD_STAT(streamingTranslations, statistics::units::Count::get(),
++                           "Completed page-table walks classified as STREAMING")
++            {}
++
++            statistics::Scalar streamingTranslations;
++        } stats;
++
+         // Wrapper for checking for squashes before starting a translation.
+         void startWalkWrapper();
+ 
+@@ -205,6 +217,7 @@ namespace X86ISA
+             funcState(this, NULL, NULL, true), tlb(NULL), sys(params.system),
+             requestorId(sys->getRequestorId(this)),
+             numSquashable(params.num_squash_per_cycle),
++            stats(this),
+             startWalkWrapperEvent([this]{ startWalkWrapper(); }, name())
+         {
+         }
+diff --git a/src/arch/x86/tlb.cc b/src/arch/x86/tlb.cc
+index 5477066203..e35731d66c 100644
+--- a/src/arch/x86/tlb.cc
++++ b/src/arch/x86/tlb.cc
+@@ -509,6 +509,7 @@ TLB::translate(const RequestPtr &req,
+                 req->setFlags(Request::UNCACHEABLE | Request::STRICT_ORDER);
+             if (entry->streaming) {
+                 req->setCacheCoherenceFlags(Request::STREAMING_BIT);
++                stats.streamingAccesses++;
+                 DPRINTF(TLB, "STREAMING_BIT set for vaddr %#x -> paddr %#x\n",
+                         vaddr, paddr);
+             }
+@@ -614,7 +615,9 @@ TLB::TlbStats::TlbStats(statistics::Group *parent)
+       ADD_STAT(wrMisses, statistics::units::Count::get(),
+                "TLB misses on write requests"),
+       ADD_STAT(exMisses, statistics::units::Count::get(),
+-               "TLB misses on execute (instr) requests")
++               "TLB misses on execute (instr) requests"),
++      ADD_STAT(streamingAccesses, statistics::units::Count::get(),
++               "Translated accesses carrying the STREAMING request bit")
+ {
+ }
+ 
+diff --git a/src/arch/x86/tlb.hh b/src/arch/x86/tlb.hh
+index efdf5c7140..c87af8d89d 100644
+--- a/src/arch/x86/tlb.hh
++++ b/src/arch/x86/tlb.hh
+@@ -119,6 +119,7 @@ namespace X86ISA
+             statistics::Scalar rdMisses;
+             statistics::Scalar wrMisses;
+             statistics::Scalar exMisses;
++            statistics::Scalar streamingAccesses;
+         } stats;
+ 
+         Fault translateInt(bool read, RequestPtr req, ThreadContext *tc);
+-- 
+2.53.0
+
