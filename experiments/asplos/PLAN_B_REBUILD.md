@@ -1159,3 +1159,20 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > Diagnosis, registered rather than offered later as an excuse: **A1 over-relieved
 > O2** — an 8 MiB hot table 97.6%-resident in a 20 MiB LLC leaves an admission
 > policy almost nothing to protect, the obvious candidate for H2's 0.63% there.
+
+> **2026-08-24 04:55, correcting my own framing an hour after committing it.**
+> Correction appended to `W7.4`. I called the prefetchers "undisclosed"; they are
+> not. `CHI_config_8592.py:660` documents them as a deliberate Intel-SPR model —
+> DCU Streamer + DCU IP at L1D, MLC Streamer + MLC Spatial at L2, "all 4
+> default-ON", `PF_DEGREE=4`, 4 KiB page annotated "faithful". I read the
+> instantiated `config.json` and the stats but not the config source. The real
+> gap survives and is narrower: the choice was never propagated into W7's
+> pre-registration, memos, or P2's calibration — a gap in the analysis, not the
+> apparatus — and the §5.1 line is still owed. Every measurement and both
+> readings stand unchanged. Two things gained: **`PF_OFF_CORES` / `PF_DEGREE` /
+> `PF_PAGE` are environment knobs**, so a prefetcher-off arm costs one env var
+> and would decompose P2's shortfall into "cannot express MLP" vs "cannot be
+> prefetched" — recorded as the cheapest follow-up, *not* run, W7's arms are
+> fixed. And the disclosure is **repo-wide** for Ruby/CHI figures
+> (`intel_8592_4cpu_dirtax_streaming` shows 17.6–20.9 M prefetch transactions),
+> though not for the W8 FS boot, which measures 0.
