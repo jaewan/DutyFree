@@ -148,9 +148,15 @@ The obvious counter-candidate: **an inclusive-LLC Xeon back-invalidates private
 caches by construction** (Broadwell-EP / Haswell-EP era, pre-Skylake-SP).
 That is exactly H3's charge, in silicon, findable.
 
-- **W3.1** Try harder to make the SF thrash on mos182 -- vary victim WSS and
-  aggressor footprint against the SF, not the LLC. If it cannot be made to
-  thrash, that is a publishable negative and H3 should be cut or tightly bounded.
+- ~~**W3.1** Try harder to make the SF thrash on mos182~~ -- **CLOSED
+  2026-08-23, negative.** The experiment was already run and committed
+  (`run_sfpressure.py`, `probe_mos182_sfpressure.jsonl`, `574f9fa`, analysed as
+  `GPROBE_OUTCOME.md` S3.2). 62 MiB of streaming private footprint -- the whole
+  socket's L2 -- leaves the victim at 1.020x, bounded at 1.0998x, with
+  bandwidth flat across the ladder. The structural reason is S4.1: gem5's SF
+  sits at 1.0x coverage of aggregate private L2, shipping parts at a multiple.
+  Per this item's own stated consequence, **H3 is bounded to a capability
+  claim.** See `W3.1_CLOSED_2026-08-23.md`.
 - **W3.2** Acquire an inclusive-LLC machine (Broadwell/Haswell Xeon) and repeat
   the L2-residency test. A positive here grounds H3 in silicon and repairs the
   gem5/hardware mismatch outright.
