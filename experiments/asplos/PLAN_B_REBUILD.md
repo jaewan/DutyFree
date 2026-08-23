@@ -744,6 +744,30 @@ workload in it. Gate 1 and the image extractor were both exercised against the
 in-flight boot. One arm per invocation, serially, so each arm's gate is read
 before the next starts.
 
+**W8.1, found while writing that launcher: the m5op is SE-only, and that is a
+gift.** `W8.1_M5OP_IS_SE_ONLY_2026-08-24.md`. `pseudo_inst::setstreaming`
+marks pages in `process->pTable`, the SE `EmulationPageTable`; in FS
+`tc->getProcessPtr()` is null, so it warns and returns. **No FS branch exists.**
+Every gem5 STREAMING number this project owns was declared through that
+instruction -- which is fine, they are SE runs, but it is exactly the gap W8 was
+opened to close. `t5_analyze.py` inferred each arm's expectation by substring
+(`"stream" in arm`), so it would have scored the FS m5op arm **G1 FAIL, G3 FAIL**
+for behaving exactly as the simulator is built to behave. Its own docstring
+never claimed that -- G1 and G3 named only `wb` and `mprotect` -- and the
+pre-registration mentions the m5op only for the T2 **SE** sweep. F12 again,
+caught before the data existed. Corrected, the arm is a control that cannot be
+faked: same guest, kernel, binary, flags and checkpoint, one different
+`--declare`, and the harness path yields **zero** classifications while the OS
+path yields them through a page table a real kernel wrote. Fixes: an explicit
+`ARMS` table replacing substring inference (unknown dirs report `UNKNOWN ARM`
+rather than being guessed at); a new **G5** requiring gem5's own
+`"called outside SE mode"` warning in the m5op arm, so a documented no-op is
+never confused with an unexplained zero; and `run_t5.sh` tees gem5's stderr to
+`<outdir>/gem5.log`, since that warning goes nowhere else. **No published claim
+changes** -- the SE results were produced in SE mode, where the m5op is the
+intended mechanism. What changes is what the FS arm demonstrates, and it now
+demonstrates more.
+
 ---
 
 # Stop-work list

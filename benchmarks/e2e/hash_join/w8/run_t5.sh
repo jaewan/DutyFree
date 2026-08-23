@@ -71,4 +71,18 @@ fi
 
 echo "== T5 arm=$ARM ckpt=$CKPT image=$(basename "$DISK") out=$RUN"
 echo "== checkpoint ${CPTS[0]##*/}, m5.cpt $(stat -c %s "${CPTS[0]}/m5.cpt") bytes"
-exec "$G/scripts/fs_restore_chi_8592.sh" "$CKPT" "$RUN" "$RCS"
+
+# gem5's own stdout/stderr is teed into the outdir because t5_analyze.py's G5
+# reads it. The m5op arm's expected result is zero classifications, and gem5's
+# "setstreaming called outside SE mode, ignored" warning is what separates that
+# documented no-op from an unexplained zero. It goes to stderr and nowhere else;
+# without this it would be lost the moment the terminal scrolled.
+mkdir -p "$ODIR"
+set +e
+"$G/scripts/fs_restore_chi_8592.sh" "$CKPT" "$RUN" "$RCS" 2>&1 | tee "$ODIR/gem5.log"
+rc=${PIPESTATUS[0]}
+set -e
+echo "== T5 arm=$ARM gem5 exit $rc"
+grep -c "setstreaming called outside SE mode" "$ODIR/gem5.log" \
+  | xargs -I{} echo "== T5 arm=$ARM SE-only setstreaming warnings: {}"
+exit $rc

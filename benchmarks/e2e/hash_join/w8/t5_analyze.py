@@ -10,9 +10,33 @@ every line printed carries it -- Sec5.1 applies to full-system rows too.
 
 THE GATES, fixed here in advance
 --------------------------------
-G1 (primary, the reason W8 exists). Walker classifications:
-      wb arm        streamingTranslations == 0
-      mprotect arm  streamingTranslations >  0
+G0 (the arm table, fixed here because inferring it from the directory name
+    is how the first version of this file got the m5op arm backwards).
+
+      arm             declares via          expected streamingTranslations
+      wb              nothing               == 0
+      stream_mprot    PROT_STREAMING        >  0
+      stream_m5op     m5op 0x55             == 0   <-- NOT a typo
+
+    The m5op arm expects ZERO in full system, and this is the single most
+    useful fact W8 has. `pseudo_inst::setstreaming` (src/sim/pseudo_inst.cc:622)
+    marks pages in `process->pTable`, the SE-mode EmulationPageTable. In FS
+    `tc->getProcessPtr()` is null, so it warns "called outside SE mode,
+    ignored" and returns. There is no FS branch.
+
+    Every gem5 STREAMING number this project owns was produced by that
+    pseudo-instruction. The m5op arm is therefore a negative control that
+    cannot be faked: identical binary, identical flags, one different
+    --declare, and it produces no classifications at all, while the mprotect
+    arm produces them through a real kernel and a real page table. That is the
+    cleanest evidence available that the OS path is doing the work rather than
+    the simulator harness.
+
+    If this arm ever comes back non-zero, the gate FAILS and must not be waved
+    through as good news -- it would mean setstreaming grew an FS path, and
+    every reading below would need redoing.
+
+G1 (primary, the reason W8 exists). Walker classifications, per G0's table.
     This is the only counter that separates "the guest kernel installed a
     slot-6 PTE and the x86 walker read it off an ordinary translation" from
     "the workload touched a lot of memory". A non-zero count in the wb arm
@@ -24,9 +48,15 @@ G2 (independent corroboration, from inside the guest). The benchmark's own
     GATE=PASS(slot6=Streaming) in the mprotect arm. G1 is the simulator's
     view of the PTE; G2 is the kernel's. Both or neither.
 
-G3 (consumption, not declaration). tlb streamingAccesses > 0 in the mprotect
-    arm and == 0 in the wb arm. Expected to follow G1, and reported separately
-    precisely so it cannot be quietly substituted for it.
+G3 (consumption, not declaration). tlb streamingAccesses follows G0's table:
+    > 0 in the mprotect arm, == 0 in the wb and m5op arms. Expected to track
+    G1, and reported separately precisely so it cannot be quietly substituted
+    for it.
+
+G5 (the negative control is the known no-op, not an unexplained zero).
+    m5op arm only: gem5's own "called outside SE mode, ignored" warning must
+    appear in the run log. A zero with the warning is a demonstration; a zero
+    without it is an unexplained zero, and the two must not be confused.
 
 G4 (the run is real). W8-RCS-BENCH-EXIT 0, and a parsed JSON record.
 
@@ -42,6 +72,32 @@ from pathlib import Path
 
 STAT_TRANS = "streamingTranslations"
 STAT_ACC = "streamingAccesses"
+
+# gem5 emits this on every setstreaming call in FS mode; see G0.
+M5OP_SE_ONLY_WARN = "setstreaming called outside SE mode"
+
+# Expectation per arm, matched as a suffix of the run directory name. Explicit
+# because the substring test this replaced ("stream" in arm) scored the m5op
+# arm as expecting a non-zero count, which is the opposite of what the
+# simulator is built to do. Suffix rather than substring so a run directory may
+# be prefixed freely (w8_t5_wb, rerun_w8_t5_wb) without changing its gate.
+ARMS = {
+    "wb":            dict(expect_stream=False, m5op=False),
+    "stream_mprot":  dict(expect_stream=True,  m5op=False),
+    "stream_m5op":   dict(expect_stream=False, m5op=True),
+}
+
+
+def arm_spec(name):
+    """Return (key, spec) for a run directory name, or (None, None)."""
+    hits = sorted((k for k in ARMS if name.endswith(k)), key=len, reverse=True)
+    return (hits[0], ARMS[hits[0]]) if hits else (None, None)
+
+
+def gem5_log(outdir):
+    """gem5's own stdout/stderr, where warn() lands. run_t5.sh tees it here."""
+    p = outdir / "gem5.log"
+    return p.read_text(errors="replace") if p.exists() else ""
 
 
 def stat_sum(outdir, needle):
@@ -121,18 +177,29 @@ def main(argv):
         else:
             print("  record: no JSON line on the console")
 
-        expect_stream = "mprot" in arm or "stream" in arm
+        key, spec = arm_spec(arm)
+        if spec is None:
+            print(f"  UNKNOWN ARM -- '{arm}' matches no entry in ARMS; not gated.")
+            verdicts.append((arm, "UNKNOWN ARM"))
+            print()
+            continue
+        expect_stream = spec["expect_stream"]
         g1 = (trans > 0) if expect_stream else (trans == 0)
-        g2 = any("GATE=PASS" in l for l in readback) if "mprot" in arm else None
+        g2 = any("GATE=PASS" in l for l in readback) if key == "stream_mprot" else None
         g3 = ((acc or 0) > 0) if expect_stream else ((acc or 0) == 0)
         g4 = exits == ["0"] and rec is not None and rec.get("status") == "ok"
+        # G5: the m5op arm's zero must be the documented no-op, not silence.
+        g5 = (M5OP_SE_ONLY_WARN in gem5_log(out)) if spec["m5op"] else None
         def mark(v):
             return "n/a " if v is None else ("PASS" if v else "FAIL")
-        print(f"  G1 walker classification  {mark(g1)}   (expected {'>0' if expect_stream else '==0'})")
+        note = "  <-- negative control, SE-only m5op" if spec["m5op"] else ""
+        print(f"  G1 walker classification  {mark(g1)}   "
+              f"(expected {'>0' if expect_stream else '==0'}){note}")
         print(f"  G2 in-guest PTE readback  {mark(g2)}")
         print(f"  G3 tagged accesses        {mark(g3)}")
         print(f"  G4 run completed          {mark(g4)}")
-        allg = [g for g in (g1, g2, g3, g4) if g is not None]
+        print(f"  G5 SE-only warning seen   {mark(g5)}")
+        allg = [g for g in (g1, g2, g3, g4, g5) if g is not None]
         verdicts.append((arm, "PASS" if all(allg) else "FAIL"))
         print()
 
