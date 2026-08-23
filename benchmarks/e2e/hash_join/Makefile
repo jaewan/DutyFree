@@ -5,7 +5,7 @@ LDFLAGS ?= -pthread
 BUILD := build
 SRC := src/cxl_join_bench.cpp
 
-.PHONY: all native gem5 w7 test clean
+.PHONY: all native gem5 gem5fs w7 test clean
 
 # W7 (W7_PREREGISTRATION_2026-08-23.md) builds to SEPARATE names. The pre-W7
 # binaries are the provenance of every published hash_join number and are not
@@ -45,5 +45,16 @@ $(BUILD)/cxl_join_bench_w7: $(SRC)
 	$(CXX) $(CXXFLAGS) -o $@ $< $(LDFLAGS)
 
 $(BUILD)/cxl_join_bench_w7.gem5: $(SRC)
+	mkdir -p $(BUILD)
+	$(CXX) -O3 -std=c++17 -Wall -Wextra -Wpedantic -DGEM5 -static -pthread -o $@ $<
+
+# W8 (GEM5_FS_OS_CONTRACT_*): the full-system binary. Separate name again --
+# this one carries the --declare mprotect path (PROT_READ|PROT_STREAMING),
+# which the W7 binaries do not have, and it must be possible to say which of
+# the two produced any given row. Static, no -march=native: it runs inside a
+# gem5 FS guest, not on this host.
+gem5fs: $(BUILD)/cxl_join_bench.gem5fs
+
+$(BUILD)/cxl_join_bench.gem5fs: $(SRC)
 	mkdir -p $(BUILD)
 	$(CXX) -O3 -std=c++17 -Wall -Wextra -Wpedantic -DGEM5 -static -pthread -o $@ $<

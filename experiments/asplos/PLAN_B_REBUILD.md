@@ -533,6 +533,44 @@ KASLR off because gem5 loads the ELF `vmlinux` at its link address. The builder
 gates on all three symbols surviving `olddefconfig` before it spends a minute
 compiling. `CC=gcc-13`: the host default is gcc 15.2, newer than 6.8 accepts.
 
+**T5(b) done and gated: the workload can now declare through the kernel.**
+`cxl_join_bench` had no Streaming path at all -- every SE arm got its
+declaration from the m5op, which is the whole reason W8 exists. `--declare
+{m5op,mprotect}` now selects the channel; `mprotect` issues
+`mprotect(base, len, PROT_READ|PROT_STREAMING)` (0x10, from the custom kernel's
+`mman-common.h:14`) at all six declaration sites, page-aligned outward so no
+part of the object is left unlabelled. Three gates, all shown:
+
+1. On this host (kernel 7.0.0-28, no `CONFIG_PAT_STREAMING`) the run exits
+   **12** with the reason printed. A silently-ignored `EINVAL` here would
+   reproduce the T3 failure mode exactly -- a null that looks like a result.
+2. An independent 20-line probe confirms `mprotect` **rejects** the unknown
+   0x10 bit (`errno=22`) rather than ignoring it. This is what makes a
+   *successful* mprotect in the guest evidence that the guest kernel accepted
+   the declaration, instead of evidence that nothing checks.
+3. The default arm is untouched: `--policy stream` with no `--declare` still
+   aliases to wb natively and still calls the m5op under `-DGEM5`.
+
+Ordering is contract, not detail, and holds at all six sites: allocate,
+`build_table`, `fill_fact` (the writes), `prefault_region`, *then* declare.
+Nothing writes `fact` after any declaration point -- checked, not assumed --
+so dropping `PROT_WRITE` cannot turn a live path into a `SIGSEGV`. `declare` is
+emitted into the JSON record, because an m5op row and an mprotect row are
+different arms (Sec5.1). Built as a **new** binary,
+`build/cxl_join_bench.gem5fs` (`make gem5fs`, sha256 `7a02cfc0`), so the W7
+binaries and their recorded hashes stay untouched.
+
+**Apparatus defect found, not yet fixed.** `w7_campaign.sh` writes its
+completion marker after `wait` *unconditionally* -- including under `W7_DRY=1`,
+which returns from `launch` before starting anything. The 01:03 dry run
+therefore left a `w7.done` in the real output directory, and at 01:18 that
+marker said the campaign was finished while all 28 cells were provably still
+burning CPU. F12 again: an artifact that is read and believed and does not do
+what it says. The marker was removed and the wait re-armed on the driver pid.
+The script is **not** being edited while bash is still executing it -- an
+in-place edit shifts the byte offsets of a running script. It gets a
+`[ "$DRY" = 1 ] && exit 0` before the marker once the driver exits.
+
 ---
 
 # Stop-work list

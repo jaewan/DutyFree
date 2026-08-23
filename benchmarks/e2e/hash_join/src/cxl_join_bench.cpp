@@ -215,6 +215,47 @@ static inline void gem5_bind_pool(void *addr, uint64_t size, uint64_t pool) {
 static inline void gem5_set_streaming(void *, long) {}
 #endif
 
+// W8: how the Streaming declaration reaches the simulator.
+//
+// Every gem5 STREAMING number this project owns arrived through the m5op
+// above -- a backdoor the OS knows nothing about. It validates H2/H3 and says
+// nothing about I0/I1. `--declare mprotect` routes the same declaration
+// through the guest kernel instead: mprotect(PROT_READ | PROT_STREAMING)
+// rewrites the PTEs to PAT slot 6, and gem5's page-table walker reads the
+// declaration off the ordinary translation. That path only exists under a
+// kernel built with CONFIG_PAT_STREAMING=y, which is why it is a flag and not
+// the default.
+//
+// PROT_STREAMING is 0x10, from the custom kernel's
+// include/uapi/asm-generic/mman-common.h:14. A kernel without the feature
+// returns EINVAL for the unknown bit, so a silent no-op is not possible --
+// but only because the return value is checked below. It is checked below.
+#ifndef PROT_STREAMING
+#define PROT_STREAMING 0x10
+#endif
+enum class DeclareVia { M5OP, MPROTECT };
+static DeclareVia g_declare = DeclareVia::M5OP;
+
+static void declare_streaming(void *addr, uint64_t bytes) {
+  if (g_declare == DeclareVia::M5OP) { gem5_set_streaming(addr, (long)bytes); return; }
+  // Page-align outward: mprotect refuses an unaligned base, and declaring a
+  // partial page would leave part of the object unlabelled -- an
+  // object-scoped contract that covers most of the object is not the claim.
+  const uintptr_t pg = 4096;
+  uintptr_t base = reinterpret_cast<uintptr_t>(addr) & ~(pg - 1);
+  uintptr_t end = (reinterpret_cast<uintptr_t>(addr) + bytes + pg - 1) & ~(pg - 1);
+  if (mprotect(reinterpret_cast<void *>(base), (size_t)(end - base),
+               PROT_READ | PROT_STREAMING) != 0) {
+    std::cerr << "FATAL: mprotect(PROT_READ|PROT_STREAMING) failed: " << std::strerror(errno)
+              << " -- base=0x" << std::hex << base << " len=0x" << (end - base) << std::dec
+              << ". A kernel without CONFIG_PAT_STREAMING returns EINVAL here; "
+                 "an ignored failure would produce a null that looks like a real result.\n";
+    std::exit(12);
+  }
+  std::cerr << "DECLARE_STREAMING via=mprotect base=0x" << std::hex << base
+            << " len=0x" << (end - base) << std::dec << " rc=0\n";
+}
+
 void *alloc_bytes(uint64_t bytes, int node, bool huge2m, const char *name) {
   void *p = nullptr;
 #ifdef GEM5
@@ -838,6 +879,9 @@ void emit_json_prefix(const Config &c, void *fact, uint64_t fact_bytes, const st
   // and a serial run are different arms and must never be compared without it.
   std::cout << "\"probe_batch\":" << c.probe_batch << ",";
   std::cout << "\"policy\":\"" << json_escape(c.policy) << "\",";
+  // W8: which channel carried the declaration. An m5op row and an mprotect row
+  // are different arms -- the second one exercises I0/I1, the first does not.
+  std::cout << "\"declare\":\"" << (g_declare == DeclareVia::MPROTECT ? "mprotect" : "m5op") << "\",";
   std::cout << "\"fact_bytes\":" << fact_bytes << ",";
   std::cout << "\"hot_bytes\":" << c.hot_bytes << ",";
   std::cout << "\"fact_node\":" << c.fact_node << ",";
@@ -865,7 +909,7 @@ void run_stream(Config c) {
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   auto pf0 = std::chrono::steady_clock::now();
   prefault_region(fact, c.fact_bytes);
-  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
+  if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
   double prefault_sec = seconds_since(pf0);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
@@ -963,8 +1007,15 @@ void run_single(Config c) {
   }
   if (c.policy == "stream") {
 #ifndef GEM5
-    std::cerr << "warning: native --policy stream aliases wb; gem5-only tag is unavailable\n";
-    c.policy = "wb";
+    // W8: the alias exists because natively the m5op tag is unavailable -- not
+    // because a Streaming declaration is impossible off the simulator. With
+    // --declare mprotect the declaration goes through the kernel, which is a
+    // real syscall on a real host; aliasing it to wb would turn an explicitly
+    // requested arm into a silently different one (F12).
+    if (g_declare == DeclareVia::M5OP) {
+      std::cerr << "warning: native --policy stream aliases wb; gem5-only tag is unavailable\n";
+      c.policy = "wb";
+    }
 #else
     std::cerr << "warning: GEM5 --policy stream is a simulator-facing tag; C++ loads remain normal\n";
 #endif
@@ -979,7 +1030,7 @@ void run_single(Config c) {
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   prefault_region(fact, c.fact_bytes);
-  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
+  if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
   if (!placed) {
@@ -1051,7 +1102,7 @@ void run_breakdown(Config c) {
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   prefault_region(fact, c.fact_bytes);
-  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
+  if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
   if (!placed) {
@@ -1105,7 +1156,7 @@ void run_probe_workload(Config c) {
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   prefault_region(fact, c.fact_bytes);
-  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
+  if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
   if (!placed) {
@@ -1247,7 +1298,7 @@ void run_split(Config c) {
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
   prefault_region(fact, c.fact_bytes);
-  if (c.policy == "stream") gem5_set_streaming(fact, (long)c.fact_bytes);
+  if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
   if (!placed) {
@@ -1435,7 +1486,7 @@ void run_morsel(Config c) {
             << "\n";
   fill_fact(fact, local_n, keys, c.hit_rate, c.seed);
   prefault_region(fact, phys_bytes);
-  if (c.policy == "stream") gem5_set_streaming(fact, (long)phys_bytes);
+  if (c.policy == "stream") declare_streaming(fact, phys_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, phys_bytes, alloc_node, &placement);
   if (!placed) {
@@ -1670,6 +1721,12 @@ Config parse(int argc, char **argv) {
     else if (a == "--result-hash") c.result_hash = true;
     else if (a == "--scan-memcpy") c.scan_memcpy = true;
     else if (a == "--no-stream") c.no_stream = true;
+    else if (a == "--declare") {
+      std::string v = need("--declare");
+      if (v == "m5op") g_declare = DeclareVia::M5OP;
+      else if (v == "mprotect") g_declare = DeclareVia::MPROTECT;
+      else { std::cerr << "FATAL: --declare takes m5op or mprotect, got " << v << "\n"; std::exit(2); }
+    }
     else if (a == "--pre-measure-sleep-s") c.pre_measure_sleep_s = std::stod(need("--pre-measure-sleep-s"));
     else {
       std::cerr << "unknown argument: " << a << "\n";
