@@ -37,6 +37,16 @@ GEOMETRIES = {
         "l2_assoc": "8",
         "l3_size": "5MiB",
         "l3_assoc": "20",
+        # F9.4 (W4.3 ledger, 2026-08-23): this arithmetic intends 53% of the
+        # 5 MiB modelled LLC = 2,778,726 B, but cxl_join_bench.cpp:369
+        # `table_capacity` rounds 173,670 entries up to 2^18 = 262,144 and
+        # `build_table` instantiates them all, so the RESIDENT hot table is
+        # 4 MiB = 80.0% of the LLC and 16.0x the 256 KiB L2 -- not 53% / 10.6x.
+        # No published number depends on this: the T1 campaign it configures
+        # was stopped after 1:11:28 with zero-byte stats for all three arms
+        # (GEM5_FUSED_NULL_OUTCOME.md). Left as written rather than "fixed",
+        # because 53% of 5 MiB is unreachable by this kernel: the achievable
+        # neighbours are 2 MiB (40%) and 4 MiB (80%). Any re-run must choose.
         "hot_bytes": 5 * 1024 * 1024 * 53 // 100,
         "fact_bytes": "16m",
         "threads": 1,

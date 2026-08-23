@@ -25,9 +25,21 @@ RESULTS_DIR = REPO_ROOT / "results" / "mechanism_decomp"
 RAW_DIR = RESULTS_DIR / "raw"
 HOT_BYTES = "177838489"
 
+# F9 (W4.3 provenance ledger, 2026-08-23): this request is 169.6 MiB, but
+# cxl_join_bench.cpp:369 `table_capacity` rounds the entry count up to a power
+# of two and `build_table` instantiates it in full, so the RESIDENT hot table
+# is 2^24 entries * 16 B = 256 MiB -- 80.0% of the 8592+'s 320 MiB LLC, not the
+# 53% every document claimed. Ratio 1.5094. No measured number changes; the
+# geometry attached to them does.
+#
+# The "170M" key below is deliberately NOT renamed. It is the record
+# identifier baked into 1650 committed raw records under
+# results/mechanism_decomp/raw/ and results/clos_split/raw/; renaming it would
+# silently orphan the corpus. Read it as a request label, not a size.
+
 SIZES = {
     "256K": "256k", "512K": "512k", "1M": "1m", "2M": "2m",
-    "4M": "4m", "16M": "16m", "64M": "64m", "170M": HOT_BYTES,
+    "4M": "4m", "16M": "16m", "64M": "64m", "170M": HOT_BYTES,  # resident: 256 MiB
 }
 
 CORE_CONFIGS = {
