@@ -40,6 +40,7 @@ headline table.
 | 13 | `tab:appplat` CXL capacity | unit inconsistency | F7.2 |
 | 14 | `tab:h1bw` | **add** a cycles column | F3 |
 | 15 | `tab:gem5` | **name** the estimator | F5 |
+| 20 | every gem5 table (`tab:gem5`, `tab:sens`, `tab:h1bw`, `tab:h3sf`) | **add** a variance statement, and make it the honest one. `tab:h3sf`'s infinite-SF cells now carry one — WB/inf tax **1.3689 ± 0.0015 (1 sd)**, from three repeated identical runs (CoV 0.042% quiescent, 0.100% WB). The other three tables have **none**, and the paper should say so rather than imply single-run numbers are exact. Do not describe the `_s1/_s2/_s3` spread as seed sensitivity: `SEED` enables divergence but does not control it, so these are repeated runs, not a seed sweep. | W1.3, closing the gap `GATE1_FUSED_NULL_CORRECTION` §6 named; estimator per its §6.1 amendment. |
 | 19 | anywhere `tab:h3sf`'s 2.501x (or the finite-SF charge generally) is presented as an expectable silicon quantity | qualify it as a mechanism study at 1.0x SF:L2 coverage. Shipping parts provision snoop filters at a multiple of aggregate private capacity; mos182 cannot be made to thrash even at 62 MiB of streaming private footprint (tax 1.020x, bounded at 1.0998x). | W3.1 closure + `GPROBE_OUTCOME.md` S3.2/S4.1, which states the requirement in as many words. |
 
 ## Tier 3 — restructure, larger than a line edit
