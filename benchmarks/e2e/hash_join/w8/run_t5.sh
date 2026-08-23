@@ -78,8 +78,16 @@ SEL=$(ls -1 "$CDIR" | sed -n 's/^cpt\.\([0-9]\+\)$/\1/p' | sort -n | head -1)
   echo "FAIL gem5 -r 1 would restore cpt.$SEL, but the only complete checkpoint is ${CPTS[0]##*/}" >&2
   echo "     (a stale lower-tick checkpoint dir is present; remove it or point CKPT elsewhere)" >&2
   exit 2; }
-# A non-empty m5.cpt does NOT mean the checkpoint is finished: m5.cpt is written
-# before the physmem stores (observed at T4 -- m5.cpt at 03:02, store1 at 03:03).
+# A non-empty m5.cpt does NOT mean the checkpoint is finished, and the reason is
+# stronger than first recorded. Measured across the whole of T4's checkpoint
+# write (2026-08-24), m5.cpt appears EARLY and is finalized LAST:
+#     03:02  m5.cpt   344,082 B   store0 14.2 MB complete, cow complete
+#     03:15                       store1 254.1 MB complete
+#     03:27  m5.cpt 20,339,682 B  store2 255.1 MB complete   <- gem5 exits
+# So m5.cpt is not merely written before the stores; it grows by a factor of 59
+# after it first becomes non-empty, and its final write is the last thing that
+# happens. A gate that samples m5.cpt's existence, or even its size, at any
+# point before gem5 exits can see a plausible-looking partial checkpoint.
 # The process-ownership check below is what actually establishes completeness.
 # NOTE: pgrep -f matches ANY process whose argv contains the pattern, including
 # an ancestor shell -- observed 2026-08-24, where a `bash -c '... pgrep -f
@@ -136,6 +144,14 @@ echo "== checkpoint ${CPTS[0]##*/}, m5.cpt $(stat -c %s "${CPTS[0]}/m5.cpt") byt
 # "setstreaming called outside SE mode, ignored" warning is what separates that
 # documented no-op from an unexplained zero. It goes to stderr and nowhere else;
 # without this it would be lost the moment the terminal scrolled.
+# DRYRUN=1 runs every gate and stops before launching gem5. The gates exist to
+# protect a resource that is expensive to produce -- T4's checkpoint took ~2 h --
+# and are restored three times by T5, so being able to exercise them against the
+# real artifact without spending a run is worth the four lines. Deliberately
+# placed AFTER every gate and BEFORE the first side effect: no outdir is created,
+# so a dry run leaves nothing behind and can be repeated.
+[ "${DRYRUN:-0}" = 1 ] && { echo "== DRYRUN: all gates passed for arm=$ARM; not launching gem5"; exit 0; }
+
 mkdir -p "$ODIR"
 set +e
 "$G/scripts/fs_restore_chi_8592.sh" "$CKPT" "$RUN" "$RCS" 2>&1 | tee "$ODIR/gem5.log"

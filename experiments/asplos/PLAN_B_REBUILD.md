@@ -1016,3 +1016,24 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > three run `--probe-batch 0 --reps 1 --warmups 0`, so O1 is off and every arm is
 > single-rep cold — a second, independent reason no performance comparison is
 > licensed here.
+
+> **2026-08-24 03:29, T4's gate PASSES; T5 is unblocked.** gem5 exited at 03:27
+> after 1 h 59 m. Checkpoint complete (~524 MB: `m5.cpt` 20,339,682 B plus three
+> physmem stores), sibling `cpt.%d` empty as predicted, directory released —
+> verified by process *name*, because a `pgrep -f` on the outdir string matched
+> my own shell wrapper, the ancestor-argv trap seen live a second time. Two
+> things to carry forward. (1) `m5.cpt` is finalized **last**, growing 59× after
+> it first becomes non-empty (344 KB at 03:02 → 20.3 MB at 03:27, after all three
+> stores), so no sample of its existence or size before gem5 exits can tell a
+> finished checkpoint from a partial one — the process-ownership check is the
+> only thing in gate 1 that establishes completeness, not a belt-and-braces
+> extra. The `run_t5.sh` comment, which had this backwards, is corrected with the
+> measured timeline. (2) **G-T4-6 is not evaluable as written**: T4 was
+> backgrounded and its exit status was never captured anywhere, so the number is
+> gone and is reported as gone (§6.6). Clean termination is established by other
+> means (`Exiting @ tick ... m5_exit`, 0 fatal/0 panic, final `stats.txt`
+> written, guest at its designed terminal state, 0 kernel faults) and is
+> explicitly weaker — this must not be cited as "gem5 exited 0". The gap does not
+> recur: `run_t5.sh` already captures `PIPESTATUS[0]` and propagates it. Added
+> `DRYRUN=1` to `run_t5.sh` so the gates can be exercised against the real
+> checkpoint without spending a run; all three arms pass, no side effects.
