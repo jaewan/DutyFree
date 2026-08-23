@@ -768,6 +768,23 @@ changes** -- the SE results were produced in SE mode, where the m5op is the
 intended mechanism. What changes is what the FS arm demonstrates, and it now
 demonstrates more.
 
+> **W8.1 addendum: SE and FS declare differently and then converge on one line.**
+> `TLB::translate` has a single TLB-miss handler branching SE (`tlb.cc:477`,
+> the m5op's `EmulationPageTable::Streaming` flag) against FS
+> (`pagetable_walker.cc:364/:389`, PAT slot 6 decoded off a real PTE). Both fall
+> through to the same tail, where streaming has exactly one consumer:
+> `req->setCacheCoherenceFlags(Request::STREAMING_BIT); stats.streamingAccesses++`.
+> **Everything downstream of the TLB is byte-identical between the SE corpus and
+> the FS arms** -- the modes differ only in who writes the bit into the TLB
+> entry. That is the substitution W8 exists to demonstrate, and it is a
+> substitution of the declaration only. Two cautions fall out:
+> `streamingTranslations` is **structurally zero in SE** (no walker), so an SE
+> zero is not a failed declaration -- `streamingAccesses` is the cross-mode
+> counter; and `streamingTranslations` also counts **functional** walks (the
+> increment sits above the `if (!functional)` guard), which cannot affect a gate
+> that asks only zero-versus-nonzero but means the magnitude may not be quoted as
+> demand classifications.
+
 ---
 
 # Stop-work list
