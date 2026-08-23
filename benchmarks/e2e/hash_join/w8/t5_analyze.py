@@ -110,7 +110,10 @@ def stat_sum(outdir, needle):
     if not f.exists() or f.stat().st_size == 0:
         return None, []
     total, rows = 0.0, []
-    for line in f.read_text().splitlines():
+    # errors="replace": gem5 has been observed emitting non-UTF-8 into its own
+    # output files (T4's console is ISO-8859), so a strict decode here is a
+    # crash mode in the analyzer, on the artifact it exists to read.
+    for line in f.read_text(errors="replace").splitlines():
         if needle not in line:
             continue
         m = re.match(r"^(\S+)\s+([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?)(?:\s|$)", line)

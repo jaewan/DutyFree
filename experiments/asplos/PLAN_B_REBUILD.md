@@ -858,6 +858,25 @@ should wait for T5, which is what T5 produces.
 > first) caught that the finding was already recorded, and the work became
 > carrying it to the point of use rather than restating it.
 
+> **W8.2: the kernel's streaming kunit suite ran and passed inside the simulated
+> machine** -- `pat_streaming`, 8 cases, `pass:8 fail:0 skip:0`, at guest t=4.82 s
+> of T4's boot, free evidence produced on the way to the checkpoint. W6 counted
+> these tests as 830 lines in the cost argument; nothing recorded that they had
+> ever been *executed*. `pat_streaming_msr_test` reads `MSR_IA32_CR_PAT` on the
+> live CPU and asserts slot 6 holds `PAT_WB_ENCODING`, and its `kunit_skip` for
+> non-full-PAT layouts was not taken, so the assertion really ran -- which makes
+> the fallback property concrete: the signal is the *slot index*, the byte in it
+> is ordinary write-back, so a Streaming page is a WB page on silicon that does
+> not implement the contract. Filed as **edit-queue row 38**, with a caution that
+> must travel with it: the suite covers the encoding half only and never asserts
+> that `PROT_STREAMING|PROT_WRITE` is refused. That is I1's immutability rule; it
+> lives in `mm/mprotect.c` and is covered by userspace selftests **T4 did not
+> run**, so immutability remains the one part of I1 with no live evidence.
+> Also recorded: T4's console is ISO-8859, so plain `grep` calls it binary and
+> prints nothing -- a search for a marker silently looks like an absent marker.
+> Use `grep -a`. `t5_analyze.py`'s `stats.txt` reader hardened to match its
+> console reader.
+
 ---
 
 # Stop-work list

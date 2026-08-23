@@ -352,3 +352,40 @@ that is exactly what W8's T5 arms produce, and the row should wait for them.
 Filing it now so the claim is not invented after the numbers land (§6.6).
 
 Source: `W8.1_M5OP_IS_SE_ONLY_2026-08-24.md` and its addendum.
+
+---
+
+**Row 38 — Tier 2, site: §4 (the OS mechanism), wherever I0/I1 are first stated
+as implemented.**
+
+The paper argues the OS half of the contract from source. It can now cite an
+execution. The kernel's in-tree kunit suite `pat_streaming` ran during W8's
+full-system boot and reported `pass:8 fail:0 skip:0 total:8` at guest t=4.82 s
+(W8.2). Two things make this worth a sentence rather than a footnote:
+
+1. `pat_streaming_msr_test` reads `MSR_IA32_CR_PAT` on the live simulated CPU
+   and asserts slot 6 holds `PAT_WB_ENCODING`. It carries a `kunit_skip` for
+   non-full-PAT layouts and did not take it — `skip:0` — so the assertion
+   genuinely ran against the machine.
+2. It makes the fallback property concrete: **slot 6 encodes plain WB.** The
+   signal is the slot index, not a new memory-type encoding, so on silicon that
+   does not implement the contract a Streaming page *is* a WB page. The paper
+   currently argues this; here it is checked at the MSR.
+
+Proposed sentence, for §4:
+
+> The mechanism is exercised, not only compiled: the kernel's `pat_streaming`
+> kunit suite passes all eight cases during full-system boot on the simulated
+> machine, including a live `MSR_IA32_CR_PAT` read confirming that slot 6 holds
+> the ordinary write-back encoding — so a Streaming page degrades to a
+> write-back page, unchanged, on hardware that does not implement the contract.
+
+**Caution, and it must travel with the row.** The suite covers the *encoding*
+half of the OS contract only. It does **not** assert that
+`PROT_STREAMING|PROT_WRITE` is refused, which is I1's immutability rule; that
+check exists in `mm/mprotect.c` and is covered by the userspace selftests
+`streaming_{reject,basic,hugetlb,memfd}.c`, **none of which T4 ran**. Do not
+write "the OS contract is verified"; write what the eight cases cover. The
+immutability guarantee remains the one part of I1 with no live evidence.
+
+Dependency: none. Licensed by T4's console, which is already on disk.
