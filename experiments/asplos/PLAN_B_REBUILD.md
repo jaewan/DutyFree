@@ -725,6 +725,25 @@ are single-rep and cold, and W8 is a capability demonstration. A speedup here
 would not be evidence for L3, and the script says so where a reader will hit
 it before the numbers.
 
+**T5's launcher, written while T4 boots, refuses a trap the committed one does
+not see.** `w8/run_t5.sh` is a wrapper on `gem5/scripts/fs_restore_chi_8592.sh`
+-- same principle as `boot_t4.sh`, the committed script is not edited. The
+difference that matters is `DISK`: the restore launcher defaults to
+`x86-ubuntu-18.04-img-hashjoin-v2`, and T4's checkpoint was taken on the
+reconstructed busybox image. Restoring across that mismatch **does not
+necessarily fail loudly** -- the guest's restored in-memory ext2 state would
+simply address blocks belonging to a different filesystem -- so the wrapper
+reads the boot image straight out of the checkpoint's own `config.json` and
+refuses unless it is the image being attached. Three further gates: exactly one
+`cpt.*` with a non-empty `m5.cpt`; no gem5 process still owning the checkpoint
+directory (`m5.cpt` is written *after* the directory appears, which is the parse
+race the committed script warns about in prose and does not enforce); and a
+non-empty arm script, since an empty readfile is precisely how the boot pass
+tells init "no benchmark" and would here produce a clean stats file with no
+workload in it. Gate 1 and the image extractor were both exercised against the
+in-flight boot. One arm per invocation, serially, so each arm's gate is read
+before the next starts.
+
 ---
 
 # Stop-work list
