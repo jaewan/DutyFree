@@ -60,6 +60,12 @@ for c in "${ALLCPT[@]}"; do [ -s "$c/m5.cpt" ] && CPTS+=("$c"); done
 # A non-empty m5.cpt does NOT mean the checkpoint is finished: m5.cpt is written
 # before the physmem stores (observed at T4 -- m5.cpt at 03:02, store1 at 03:03).
 # The process-ownership check below is what actually establishes completeness.
+# NOTE: pgrep -f matches ANY process whose argv contains the pattern, including
+# an ancestor shell -- observed 2026-08-24, where a `bash -c '... pgrep -f
+# "outdir=/tmp/w7" ...'` wrapper matched itself. pgrep excludes only its own pid.
+# The pattern below includes the "--outdir=" prefix, which nothing but gem5's own
+# command line carries, so do not invoke this script from a command line that
+# spells that string out.
 if pgrep -a -f -- "--outdir=$CDIR" >/dev/null 2>&1; then
   echo "FAIL a gem5 process still owns $CDIR; m5.cpt is written after the dir appears (parse race)" >&2
   exit 2
