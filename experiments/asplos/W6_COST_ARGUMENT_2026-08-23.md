@@ -1,271 +1,151 @@
-# W6 — the cost argument, with the implementation as the evidence
+# W6 — the cost argument, sourced to the two diffs
 
-Per `PLAN_B_REBUILD.md` W6: *"Nobody adds hardware for 6%. People do add a PAT
-encoding for 6%."* That sentence is the paper's load-bearing rebuttal to the
-reviewer who reads a modest benefit number and stops. It is currently absent
-from the paper, and where the surrounding text gestures at it, it asserts.
+Written 2026-08-23. `PLAN_B_REBUILD.md` W6: *"Nobody adds hardware for 6%.
+People do add a PAT encoding for 6%."* That sentence is currently unsupported
+in the paper. This document supplies the support, and it is deliberately built
+out of **diffstats and measured numbers**, not architectural assertion, because
+the referee's named reject reason (W4) is unsourced claims.
 
-This document replaces the assertion with counts a referee can reproduce with
-`git show`. Nothing here is new measurement; it is an audit of what building
-`Streaming` actually cost, in the two trees where it was built.
-
-Written 2026-08-23. Not applied to the paper — W5/W6 text edits are held with
-W4.1/W4.2 pending the lead's decision on co-author communication.
+Nothing here is a new experiment. The hardware side is `~/DutyFree-Gem5`; the
+OS side is `~/DutyFree/linux`; the CAT comparison is W5.3's measured table.
 
 ---
 
 ## W6.1 — hardware cost
 
-### The claim, stated precisely
+Full derivation in `W1.2_H3_ATTRIBUTION_2026-08-23.md` §"Consequence for W6".
+Summary, across `5bdfcd8e19` (H2), `44b7eb7470` + `0102eee441` (H3) and
+`b49615b3c7` (prefetch propagation):
 
-Three claims are worth separating, because they have different strengths:
+| | cost |
+|---|---|
+| new coherence states | **0** |
+| new protocol events | **0** |
+| new CHI request types | **0** |
+| new structures | **0** |
+| state added per line | **1 bit** (private `CacheEntry`), = 0.20% of a 64 B line's storage |
+| state added per in-flight request | 1 bit on `CHIRequestMsg` and on the TBE |
+| fill-path logic | 2 predicate edits: one disjunct in `needCacheEntry`, one conjunct in `CheckCacheFill`'s `need_fill` |
+| H3 additional | 3 guards on HNF directory operations (allocate, final-state update, dir state machine) |
+| x86 side | 1 PTE flag, 1 `TlbEntry::streaming` field, 1 `Request::STREAMING_BIT` |
 
-1. **No new coherence states.** Strong, and now verified.
-2. **No new structures.** Strong for H2. For H3 it needs the qualifier below.
-3. **The request-side datapath already exists.** Strong, and verifiable from
-   what the flag joins rather than from what it adds.
+The claim that carries the most weight is the last row of the x86 side:
+`STREAMING_BIT` rides the **existing** `cacheCoherenceFlags` word, the same
+path that already carries `GLC`/`SLC`. There is no new datapath from the page
+walker to the cache controller — the wire exists and is already used by
+shipped GPU bypass semantics. This is checkable in minutes against the diff,
+which is the point.
 
-### 1. Zero new coherence states
+**Three things W6.1 must not overclaim, and the paper currently would:**
 
-Counted directly out of the SLICC protocol definition, from the last commit
-before this project's work (`6386a580d1`, upstream, 2025-11-25) to HEAD
-(`356e7b7d0e`):
-
-| enumeration | before | after | added |
-|---|---|---|---|
-| `state_declaration(State, ...)` in `CHI-cache.sm` | 33 | 33 | **none** |
-| `enumeration(Event)` in `CHI-cache.sm` | 209 | 211 | `CheckSFFill`, `SF_Eviction` |
-
-The state space is untouched. That is the expensive thing to add to a coherence
-protocol and the thing a reviewer will look for first, and the answer is zero.
-
-The two added *events* are worth being honest about rather than hiding: neither
-belongs to the contract.
-
-```
-CheckSFFill, desc="Ensure the finite SF has room for this dir entry;
-                   evict an SF victim if full";
-SF_Eviction, in_trans="yes",
-             desc="Finite-SF capacity eviction: back-invalidate all upstream
-                   sharers of a directory-tracked victim";
-```
-
-Both model a **finite snoop filter** — a property of the baseline machine we
-are simulating, which stock gem5 does not model (its directory is a
-`PerfectCacheMemory`). They exist so the model can exhibit the back-invalidation
-charge H3 addresses; they would be present in any faithful model of a modern
-non-inclusive LLC whether or not `Streaming` existed. H2 and H3 themselves add
-**zero events**.
-
-Reproduce:
-
-```
-git -C ~/DutyFree-Gem5 show 6386a580d1:src/mem/ruby/protocol/chi/CHI-cache.sm
-git -C ~/DutyFree-Gem5 show HEAD:src/mem/ruby/protocol/chi/CHI-cache.sm
-```
-
-### 2. The fill-path change is one disjunct
-
-The entire H2 + H3 admission decision, in
-`src/mem/ruby/protocol/chi/CHI-cache-funcs.sm:823`:
-
-```slicc
-bool needCacheEntry(CHIRequestType req_type,
-                    CacheEntry cache_entry, DirEntry dir_entry,
-                    bool is_prefetch, bool is_streaming) {
-  if (is_valid(cache_entry) ||
-      ((is_HN || enable_H3_streaming_bypass) && is_streaming) ||   // <-- all of it
-      (enable_DMT && is_invalid(dir_entry) && ...)) {
-    return false;
-```
-
-One added disjunct in an early-return that already existed, inside a predicate
-that already existed and already took `is_prefetch` for the same *kind* of
-reason. `is_HN && is_streaming` is H2 (the HNF never fills the LLC for a
-Streaming line). `enable_H3_streaming_bypass && is_streaming` is H3 (private
-levels do not retain it either, so the read goes out as `ReadOnce` and no
-sharer is ever recorded, hence nothing to back-invalidate).
-
-This is the whole mechanism in the fill path. It is a predicate, evaluated at a
-point where a predicate is already evaluated.
-
-### 3. The carry from OS to protocol rides an existing channel
-
-The end-to-end path added by `5bdfcd8e19`, hop by hop:
-
-| hop | what was added | file |
-|---|---|---|
-| page table | `Streaming = 16`, one flag value | `mem/page_table.hh` |
-| TLB entry | `bool streaming` | `arch/x86/pagetable.hh` |
-| translate | one `if (entry->streaming) req->setCacheCoherenceFlags(...)` | `arch/x86/tlb.cc:510` |
-| request | `STREAMING_BIT = 0x00002000` | `mem/request.hh` |
-| ruby | `bool m_isStreaming` | `slicc_interface/RubyRequest.hh` |
-| CHI msg / TBE / entry | `bool isStreaming, default="false"` | `CHI-msg.sm`, `CHI-cache.sm` |
-
-Six hops, one boolean each. The point is not that six is small — it is **what
-the flag joins**. `STREAMING_BIT` is added to `_cacheCoherenceFlags`, whose
-existing members are
-
-```
-CACHED = 0x400, READ_WRITE = 0x800, SHARED = 0x1000, STREAMING_BIT = 0x2000
-```
-
-The group `STREAMING_BIT` joins is literally commented `/** mtype flags */`
-— memory-type flags — and its neighbours `GLC_BIT` / `SLC_BIT` / `DLC_BIT`
-arrived upstream in `66d4a15820` (2022-12-26), whose title is **"gpu-compute,
-mem-ruby: Add support for GPU cache bypassing"**. `CACHED` / `SHARED` /
-`READ_WRITE` are set from a *per-mapping* memory type: `gpu_compute_driver.cc`
-builds a `CacheCoherenceFlags mtype` and hands it to `allocateGpuVma()`, from
-where it rides every request into Ruby and is consumed as allocation policy.
-
-So the shape — *a memory type attached to a mapping, carried per-request into
-the coherence protocol, and read there as a cache-allocation decision* — is not
-something this work invents. It is a datapath gem5 already had, for exactly the
-purpose of bypassing a cache level. Be precise about what `Streaming` does add:
-the **TLB → `Request` hop**. The GPU flags are attached at VMA allocation time,
-not read out of a PTE by a page walker; `arch/x86/tlb.cc:510` is the one genuinely
-new link, and it is three lines.
-
-That is the concrete form of the "argue against datapaths that already exist"
-instruction, and it is stronger than the WC / `MOVNTDQA` analogy, because it is
-the same field and the same consumer rather than an analogous one.
-
-### 4. Where the cost is *not* zero — state this, do not hide it
-
-H3 is not free and the paper should not imply it is. H3's obligation is that a
-Streaming line is not enrolled in the snoop filter. In the model that is a
-skipped allocation, which costs nothing. In silicon it means the fill path must
-distinguish enrolling from not-enrolling per request, and the *coherence
-argument* for why that is safe rests entirely on the read being issued as
-`ReadOnce` — no upstream copy is retained, so there is nothing to
-back-invalidate and nothing to go stale. The implementation history says this
-plainly: `0102eee441` exists precisely because the first H3 attempt retained
-lines upstream and tripped a staleness assert.
-
-Two further items on the honest side of the ledger:
-
-- `00fca787bd` is titled **"H3 review fixes (UNBUILT/UNVALIDATED)"** and fixes a
-  *silent dirty-data-loss* on the `UD_RU` SF-eviction path. Its own message says
-  it "needs rebuild + writer-victim + combined-state validation before trusting
-  non-pure-R paths". The validated envelope for H3 is read-only sharers. Any
-  cost claim for H3 must be scoped to that envelope, and the paper should say
-  so rather than let the reader assume generality.
-- H3 forfeits DCT forwarding for multi-reader Streaming lines
-  (`CHI-cache.sm`, the `enable_H3_streaming_bypass` comment says so). That is a
-  real functional cost, not just an implementation one.
-
-None of this touches H2, whose envelope is clean.
-
----
+1. **The gem5 implementation does not use PAT slot 6.** It uses a bespoke
+   `EmulationPageTable::Streaming` flag in SE mode. The PAT encoding is
+   demonstrated in the *Linux* tree (§W6.2), not in the simulator. Nothing has
+   run both halves end to end; that is exactly what W8 is for.
+2. **`5bdfcd8e19` bundles a baseline change** — it removed `is_prefetch ||`
+   from `needCacheEntry` ("Intel NINE accurate"). Within-campaign arm
+   comparisons are unaffected (both arms share the binary), but no number we
+   report is "STREAMING vs. stock gem5."
+3. **The measured H3 arm is not the described H3** (W1.2). The 1.061x is an
+   upper bound until the separable arm runs.
 
 ## W6.2 — OS cost
 
-Measured against the mainline base the series was developed on, Linux 6.8
-(`e8f897f4afef`), through `b9f60fafda72`:
+`~/DutyFree/linux`, feature branch `037af838cf7a^..HEAD`, 14 commits,
+24 files, **2,073 insertions, 2 deletions**. Split:
 
-| scope | files | insertions | deletions |
-|---|---|---|---|
-| **modifications to pre-existing kernel code** | 18 | **409** | 13 |
-| new kernel files (`mm/streaming.c`, `mm/streaming_kunit.c`) | 2 | 730 | — |
-| kernel proper, total | 20 | 1,139 | 13 |
-| selftests + KUnit configs + documentation | 10 | 885 | 1 |
-| **everything** | 30 | 2,024 | 14 |
+| | lines |
+|---|---|
+| mechanism | **787** |
+| tests (kunit + 4 selftests) | 830 |
+| documentation (`Documentation/arch/x86/pat-streaming.rst`, 208 of it) | 412 |
+| Kconfig / Makefile | 44 |
 
-Reproduce: `git -C ~/DutyFree/linux diff --stat e8f897f4afef..HEAD`.
+The mechanism, in full:
 
-The 409-line figure is the one to quote. It is the amount of *existing kernel*
-that had to change; the rest is a new self-contained file plus its tests. For
-comparison of order-of-magnitude only, this is a small-feature-sized change, not
-a subsystem-sized one, and 44% of the whole series by line count is tests and
-documentation.
-
-### The PAT slot is nearly free, and it is inert on shipping silicon
-
-`eb342571ead0` — the entire claim on the x86 memory-type architecture — is
-**42 insertions and 4 deletions across 6 files.** The substantive line is one
-field in the PAT MSR initialiser:
-
-```c
-- pat_msr_val = PAT(WB, WC, UC_MINUS, UC, WB, WP, UC_MINUS, WT);
-+ pat_msr_val = PAT(WB, WC, UC_MINUS, UC, WB, WP, WB,       WT);
+```
+mm/streaming.c                    575
+mm/mprotect.c                      97   <- the entry/exit transition
+arch/x86/lib/cache-smp.c           41
+mm/internal.h                      30
+mm/mmap.c                          13   <- pgprot_streaming() on VMA setup
+include/linux/mm.h                 12
+arch/x86/include/asm/pgtable.h      9
+arch/x86/include/asm/smp.h          5
+include/linux/pgtable.h             4
+arch/x86/include/asm/mman.h         1   <- the PROT_ bit
 ```
 
-Two properties of this that the paper should be making much more of than it
-does:
+787 lines is the honest number for "an OS-declared, page-granular memory type,
+with enforcement." It is small, and more importantly its shape is the argument:
+the PAT plumbing is ~30 lines (`mman.h` 1 + x86 `pgtable.h` 9 + generic
+`pgtable.h` 4 + `mmap.c` 13). **Almost all of the 787 is enforcement, not
+declaration.**
 
-1. **Slot 6 was already redundant.** In Linux's full-PAT layout it held a
-   *duplicate* `UC-`, present only for errata recovery; the errata and pre-PAT
-   layouts use slots 0–3 and are untouched. Nothing is displaced.
-2. **The encoding is architecturally inert on every deployed x86 CPU.** Slot 6
-   is programmed to `WB`, so a Streaming-marked page is bit-for-bit a WB page to
-   current silicon. The mark is visible to a page walker that looks for it and
-   invisible to one that does not.
+`mm/streaming.c`'s own structure shows where the cost actually is:
 
-Property 2 is a deployment argument, not just a cost argument, and it is
-strictly stronger than "cheap to add": **the OS half can ship first, alone, and
-correctly.** A kernel that sets `PROT_STREAMING` runs at exactly WB performance
-on today's machines and gains the benefit on a machine that implements H2 —
-with no `#ifdef`, no feature negotiation at the page level, and no correctness
-divergence. The contract degrades to a no-op instead of degrading to a bug.
-That is the property `MOVNTDQA` and `WC` do **not** have: they change the memory
-model, so software written for them is written differently and cannot be
-un-adopted.
+- **I0/I1 enforcement — the largest single block.** `streaming_validate_entry`
+  (:203) gates entry on `streaming_single_mapper` (:163) or
+  `streaming_sealed_memfd_ok` (:187). A region may become STREAMING only if
+  nothing else can write it. This is the contract the paper's I0/I1 name, and
+  it is the reason the hardware side is allowed to be as cheap as W6.1 says.
+- **The transition — `streaming_apply_cache_bits` (:256)** plus the 97 lines in
+  `mprotect.c` that detect `entering_streaming` / `leaving_streaming`.
+- **The exit drain — `streaming_drain_range` (:363) and
+  `streaming_writeback_all` (:386)**, with `arch/x86/lib/cache-smp.c`'s 41
+  lines behind them. `eccecc49e0ff` replaced a machine-wide entry writeback
+  with a ranged drain, which is itself a cost-reduction commit.
+- A debugfs PTE-query path (:416-:566) that is diagnostic, not mechanism.
 
-### Where the OS cost actually sits
+**The one OS cost that is not free, and is not measured.** The drain is a real
+flush of a real range on real cores. Its cost scales with region size and is
+paid at `mprotect`-out and at exit. No number for it exists anywhere in the
+repo, and it cannot be produced on this host — mos181 runs `7.0.0-28-generic`,
+a distro kernel, not the streaming tree. Measuring the streamer-side cost of
+flush-behind is **not** covered by the §3 δ embargo, so this is a permitted and
+cheap experiment the moment the kernel is booted somewhere: `mprotect` entry
+latency and exit-drain latency as a function of region size, against a
+`PROT_READ` control. Until it exists, W6 must say the OS cost is 787 lines
+**and one unmeasured runtime cost**, not that the OS cost is free.
 
-Not in the PAT slot. It sits in I0/I1 — enforcing that a Streaming region is
-immutable and single-mapper — and the commit history shows that is where the
-iteration went: `f2f3a8b7bca3` (admit single-mapper sealed memfds),
-`eccecc49e0ff` (ranged exit drain, *replacing* a machine-wide writeback),
-`7836f7b123ce` (hugetlb), `8d947c88c8db` (broadcast `WBNOINVD` to one CPU per
-core). `mm/mprotect.c` is the most-modified pre-existing file at 99 insertions.
-The transition in and out of the type is the hard part, and the honest framing
-is "the enforcement is the cost, the encoding is free," not "it's all free."
+## W6.3 — the comparison, stated with our own measurements
 
----
+The plan's phrasing was "CAT shipped for less benefit than this," which is a
+literature claim we cannot source. The stronger version is a claim about *our
+own data*, from `W5.3_L5_EVIDENCE_2026-08-23.md`:
 
-## W6.3 — the honest comparison
+- CAT is a shipped, silicon-resident partitioning mechanism with per-way masks,
+  per-CLOS registers, and an MSR interface — far more hardware than one PTE
+  bit and two predicates.
+- On mos182 it recovers the Intel co-run tax **completely** (co-run residual
+  1.00x under CAT12), and it charges **1.222x** for the privilege with no
+  co-runner present. That partitioning price is intrinsic: a way mask makes
+  the victim's own capacity smaller.
+- On moscxl it leaves a **12.4x** residual, because AMD's harm is rate-class
+  and a capacity knob cannot reach it. The same silicon investment buys nothing
+  on the other vendor's machine.
+- Neither knob can name a region. Both are core- or class-scoped. `tab:fused`
+  is the experiment that makes this bite: fuse the streamer into the victim's
+  own thread and CAT recovers **nothing** (214.6 -> 215.0 Mtuple/s).
 
-The plan's phrasing is *"CAT shipped for less benefit than this."* As a claim
-about Intel's internal justification that is unsourceable and should not be
-written. There is a version of it this paper can actually support, from its own
-measurements, and it is a better argument:
+So the comparison to make is not "CAT shipped for less benefit." It is:
 
-**The deployed mechanisms were considered worth their silicon, and on the
-workloads measured here each of them is inert on the other vendor's machine.**
+> A way-mask partitioner is a substantially larger hardware investment than a
+> PAT encoding, it charges 22% of the victim's own performance to use, it is
+> vendor-specific in what class of harm it can reach, and it cannot be aimed at
+> an object at all. One PTE bit and two fill-path predicates can be.
 
-From `tab:catmba`, the AMD MBA campaign, and the SPR CAT work (W5.3's table):
+That sentence is entirely composed of measured, in-repo numbers, and it does
+not require the benefit magnitude to be large. It is the argument the evidence
+actually supports.
 
-| | dominant charge | CAT | MBA |
-|---|---|---|---|
-| Intel SPR | capacity | recovers | inert, costs 47% of streamer BW |
-| AMD Bergamo | rate | ~10× residual remains | recovers, costs 4% of streamer BW |
+## What W6 still needs
 
-Neither knob is aimable at an object; each is core- or class-scoped, and each is
-the wrong instrument on the other machine. Both shipped. Both consume MSR
-space, resctrl surface, and validation effort well beyond one PAT slot and one
-fill-path predicate.
-
-So the comparison to make is not about benefit magnitude at all. It is:
-
-> The mechanisms already in silicon for exactly this problem cost more, are not
-> portable across the two vendors that ship them, and cannot be pointed at the
-> object that is causing the harm. The contract costs 42 lines of memory-type
-> plumbing and one predicate, is inert where unimplemented, and is aimable by
-> construction.
-
-That argument survives a small benefit number. "6% is worth it" does not.
-
----
-
-## What this does not do
-
-- It does not measure area, power, or timing. gem5 line counts are a proxy for
-  design complexity, not for silicon cost, and the document should say so
-  wherever it is cited. The defensible claim is *no new coherence states and no
-  new structures on the H2 path*, which is a complexity statement.
-- It does not establish that H3 is cheap. It establishes that H3 is cheap
-  **within a read-only-sharer envelope that has been validated**, and flags the
-  unvalidated paths explicitly (`00fca787bd`).
-- W6.3's table depends on the AMD/Intel knob results being final. If the δ
-  embargo moves, the table moves with it.
+1. **The drain measurement** (W6.2). Blocked on a booted streaming kernel; not
+   embargoed; cheap once unblocked.
+2. **The separable H3 arm** (W1.2), because W6.1's cost table describes a
+   mechanism whose measured benefit is currently an upper bound.
+3. A decision on whether to state the PAT/SE-mode gap in the text or close it
+   with W8. Stating it costs two sentences; closing it costs a campaign.
+   Recommend stating it — the OS tree already demonstrates the PAT half, and
+   claiming an unrun end-to-end demonstration is precisely the W4 failure mode.
