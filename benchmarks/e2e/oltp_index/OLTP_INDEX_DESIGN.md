@@ -198,7 +198,63 @@ effect on the pages that matter.
 
 ## 4. Gates. Each has a falsifiable prediction fixed here, before any run.
 
-Run in order. Do not proceed past a failed gate without a written decision.
+Do not proceed past a failed gate without a written decision.
+
+**Ordering, corrected.** An earlier draft said "run in order", which is wrong:
+G1 and G2 *measure the built victim* and are therefore downstream of building
+it, not prerequisites for it. Only G0 and the probe below precede the build,
+and neither needs new code.
+
+| step | new code | can kill the design |
+|---|---|---|
+| D1, D2 harness defects below | no, ~10 min | -- |
+| G0 + G-probe | **no** | **yes** |
+| build Masstree | yes | -- |
+| G1, G2 | no (uses the build) | yes |
+| G3 control, G4, G6 | streamer harness only | yes |
+
+### D1, D2 -- Two harness defects that must be fixed before anything is believed
+
+**D1. The victim's L2 counters are AMD-only and silently wrong on Intel.**
+`~/tmp_dutyfree_exp/src/common.h:96-97` hardcodes `RAW_L2_HIT = 0x7064` and
+`RAW_L2_MISS = 0x0864`, which are Zen 4 event 0x64. The Intel SPR/EMR codes
+`0x02D1` / `0x10D1` appear only in a **comment** at line 85, and there is no
+vendor conditional anywhere in the file. `perf_event_open` accepts an arbitrary
+`PERF_TYPE_RAW` config without erroring, so on `mos181` and `mos182` every L2
+hit/miss figure this binary has ever printed is meaningless. This is exactly
+the instrument G1 and G2 depend on, and it is a plausible contributor to why
+"check the private L2, not the LLC" has been hard to act on for Intel nulls.
+Fix with a vendor conditional, and **verify the codes count** by checking that
+L2 hits fall and misses rise as `-w` is swept past L2, rather than by trusting
+the constant.
+
+**D2. `L2_SIZE_BYTES` defaults to 1 MiB on every host.** `common.h:60` sets it
+under `#ifndef` and the Makefile passes no `-D`, so `VICTIM_ARRAY_KB` is 256 KB
+regardless of the machine. Always pass `-w` explicitly; never take the default.
+
+### G-probe -- The zero-code test of the whole thesis, before any build
+
+`victim -P` is already a random pointer chase over 64 B nodes on a Fisher-Yates
+Hamiltonian cycle (`src/victim.c:40`) -- **the exact victim shape §1 specifies**.
+Sized L2-resident and run against a CXL streamer with and without CAT, it tests
+the design's central claim with no new code:
+
+- `victim -P -w 512` (Intel, 0.5 of a 2 MiB L2) / `-w 256` (`moscxl`, 1 MiB L2)
+- against `aggressor -m wb_load -N 2 -t 8`, placement per §3
+- arms: quiescent / WB / WB+CAT (G4 grant) / WB+CAT (G6 iso-absolute grant)
+
+**This has not already been run.** `exp41_llcgeom_intel` resized its victims to
+**4x private L2** -- deliberately *out* of L2 -- and `exp40`'s ptr 2.04x has no
+CAT-isolation arm. The L2-resident-plus-CAT cell is empty on both Intel hosts.
+
+**Prediction:** a large CAT-isolated residual, because this victim has no LLC
+hot set for CAT to protect.
+
+**If the residual is small**, the design's central claim is false on silicon and
+**this document is abandoned before Masstree is written.** That is the point of
+running it first. If it is large, the remaining work is to show a *real
+application* has the same shape -- which is what Masstree is for, and which the
+probe cannot establish on its own.
 
 ### G0 -- Establish the platform numbers the firmware will not give you
 
