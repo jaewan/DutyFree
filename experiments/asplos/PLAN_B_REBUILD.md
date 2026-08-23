@@ -10,6 +10,17 @@
 > verbatim, struck where wrong, because the reasoning that produced Plan B has to
 > stay legible.** See `W1_OUTCOME_2026-08-24.md`.
 >
+> **Second amendment, same day: premise 1 was already falsified in writing before
+> Plan B was written, and W1 is a replication rather than a first measurement.**
+> `tab:sens` (`Appendix.tex:126-135`) has carried H2/infinite-SF at **1.041x /
+> 88.8% recovered** across six cells on two axes since task #25's re-run, and
+> `TAX_INCONSISTENCY_2026-08-20.md` states those numbers in this repo on
+> **2026-08-20**, three days before Plan B. Nothing about the verdict changes --
+> three measurements across two harnesses and two gem5 commits agree, WB to four
+> digits and H2 to 0.7% -- but the overturn is not W1's to claim, and the reason
+> premise 1 was ever written is a process failure worth more than the datapoint.
+> See the appended correction in `W1_OUTCOME_2026-08-24.md`.
+>
 > Plan B's *conclusion* is unchanged. The rebuilt argument in the next section
 > already said what was missing — "(a) evidence that H2 recovers the charge
 > silicon actually levies, and (b) a cost argument" — and both now exist. The
@@ -27,9 +38,16 @@ a reject:
    observation is correct and its generalisation was not. `tab:h3sf` re-measured
    2026-08-20: WB/finite-SF 2.501x, H2/finite-SF 2.512x ("indistinguishable at
    +/-0.07"), H2+H3 1.061x — all true, and all in the finite-SF row. At an
-   infinite SF, H2 reads **1.034x against WB's 1.369x**. The clause "the only
-   configuration it is reported in" was the actual defect: the load-bearing cell
-   was empty, which is why W1 existed. The entire gem5 benefit is **not** H3.
+   infinite SF, H2 reads **1.034x against WB's 1.369x**. The entire gem5 benefit
+   is **not** H3.
+
+   The clause "the only configuration it is reported in" was itself false, and
+   checkable at the time: `tab:sens` reports the same arm at **1.041x / 88.8%**
+   across six cells, and `TAX_INCONSISTENCY_2026-08-20.md` recorded it here
+   2026-08-20. The defect was not a missing measurement. It was reading
+   `tab:h3sf`'s finite-SF row as the mechanism's behaviour without consulting
+   the adjacent table that measures the other arm -- Sec5.1's rule applied to
+   figures but not to the diagnosis built from them.
 2. **H3's charge is absent on shipping silicon.** Private-L2-resident victims
    read 1.000x on SPR and Bergamo; mos182's forced SF turnover reads 1.00x.
 3. ~~**So the two instruments do not meet.**~~ **OVERTURNED 2026-08-24.** They
@@ -73,6 +91,12 @@ recovers the charge silicon actually levies, and (b) a cost argument.
 > L2-miss rate per cycle falls 3.9%, and under H2 the LLC is accessed 16% *more*
 > per cycle while going off-chip 16% *less*. H2+H3/infinite is still running;
 > W1.2's consistency prediction for it is registered and not yet evaluable.
+>
+> **Re-scoped, same day: this is the third measurement of the cell, not the
+> first** -- see the banner and the appended correction. What W1 alone supplies
+> is the variance estimate (`tab:sens` is single runs per cell), agreement
+> across the `b2c6499` -> `356e7b7d0e` commit change, and the mechanism counters
+> and aggressor de-confound.
 >
 > Per the rule as written: proceed to W2, and H3 demotes to a bounded capability
 > claim — which W3.1 had already forced independently.
@@ -162,14 +186,19 @@ worth starting until this lands.**
 - **W2.1 P0-1 bandwidth-matched de-confound.** Already designed. Show H2's
   recovery is not "the aggressor got slower." Without this, the first reviewer
   kills the result.
-- **W2.2 Working-set sensitivity.** The whole benefit claim currently sits at
-  one point (2650 KiB victim = 53% of a 5 MiB LLC). Sweep victim WSS so it is a
-  curve. Establishes where H2 helps and where it does not -- which is a
-  scope result, not a weakness.
-- **W2.3 LLC size / associativity sensitivity.** `tab:sens` exists; extend to
-  the H2 arm.
+- ~~**W2.2 Working-set sensitivity.**~~ **Largely already done** -- see the
+  2026-08-24 correction. `tab:sens` sweeps WSS/LLC {24%, 53%, 97%} on the H2 arm
+  and reads {--, 88.8%, 90.5%} recovered. The curve exists. What is still owed is
+  repetition for variance and the de-confound at more than the 53% point.
+- ~~**W2.3 LLC size / associativity sensitivity.**~~ **Largely already done.**
+  `tab:sens` already covers the H2 arm at assoc {8, 12, 20} -> {90.8%, 91.9%,
+  88.8%}. Recovery is 88.8-91.9% across both axes, so the result is not
+  knife-edge and the paper can say so. Same residual owing: variance, and the
+  de-confound at a second point.
 
-Effort: ~1 week compute + analysis.
+Effort: **revised down from ~1 week to ~2 days** -- three repetitions at two
+existing points plus counter extraction, not a new sweep. W2.1 is the only item
+here that is genuinely unbuilt, and W1 answered part of it in place.
 
 ## W3 -- Does *any* shipping machine levy H3's charge? New work, valuable either way.
 
