@@ -87,21 +87,58 @@ secondary, reported as a locality sensitivity, never as the headline.
 Masstree interior nodes are ~256 B with fanout ~15. For an interior set of
 size `I` bytes the key count is roughly `N ~= 15 * (I / 256) * 15`.
 
-| host | private L2 | shared | target interior set | approx keys | approx leaf bytes |
-|---|---:|---:|---:|---:|---:|
-| `mos181` (8592+) | 2 MiB | 320 MiB LLC, 20 ways | <= 1.2 MiB | ~1M | ~30 MiB |
-| `moscxl` (EPYC 9754) | 1 MiB | 16 MiB CCX, 16 ways | <= 0.6 MiB | ~500K | ~15 MiB |
+### Verified topology, 2026-08-23, all three hosts
 
-These are **starting points for G1's sweep, not the configuration.** G1
-measures the interior set directly (§4) rather than trusting this arithmetic.
+Every value below was read from `/sys` and `numactl -H` on the host, not from
+the §2 table in `../E2E_SESSION_PROMPT.md`, **which is wrong** -- it records
+`mos182` as having no CXL, and `mos182` has a cpuless 256 GiB node 2.
 
-Note the two hosts land in different regimes and that is deliberate, not a
-defect: on `moscxl` the leaf set alone (~15 MiB) is comparable to the entire
-16 MiB CCX, so the streamer contests leaves *and* SF entries. On `mos181` the
-whole index fits inside a 320 MiB LLC, so a CAT arm can protect the leaves
-completely -- which makes `mos181` the cleaner host for isolating the private-
-cache charge, and `moscxl` the one more likely to produce a large headline tax.
-**Report both; do not average them and do not pick the better one.**
+| host | CPU | private L2 | shared, per core | ways | MiB/way | node 2 | CXL near socket |
+|---|---|---|---:|---:|---:|---:|---:|
+| `mos181` | Xeon 8592+ (EMR), 2x64 | 2 MiB, 16-way | 320 MiB LLC | 20 | 16.0 | 258033 MB | **0** (d=14; 1->2 = 24) |
+| `mos182` | Xeon 8462Y+ (SPR), 2x32 | 2 MiB, 16-way | 60 MiB LLC | 15 | 4.0 | 262144 MB | **1** (d=14; 0->2 = 24) |
+| `moscxl` | EPYC 9754, 2x128 | 1 MiB, 8-way | 16 MiB CCX (8 cores) | 16 | 1.0 | 258020 MB | SLIT says *unreachable* |
+
+Two facts here are load-bearing and both are easy to get wrong.
+
+**The CXL socket affinity is mirrored between the Intel hosts.** `mos181` runs
+on socket 0, `mos182` must run on **socket 1** (cpus 32--63, 96--127). Running
+`mos182` on socket 0 puts every streamer access across UPI *and* CXL while its
+LLC footprint lands in the victim's socket -- a different experiment, silently.
+
+**Firmware distance and HMAT tables may not be cited as evidence.** `moscxl`
+declares node 2 at SLIT distance **255** (unreachable) with HMAT bandwidth
+5 GB/s, while this project has repeatedly measured ~24 GB/s from it. The two
+Intel hosts declare node-2 read latency 150 and 100 ns respectively, which
+almost certainly reflects firmware convention rather than a real 1.5x. Node-2
+bandwidth and latency are **measured per host in G0** and the firmware numbers
+are recorded only as the discrepancy they are.
+
+### Sizing
+
+| host | target interior set | approx keys | approx leaf bytes | index total |
+|---|---:|---:|---:|---:|
+| `mos181` | <= 1.2 MiB | ~800K | ~24 MiB | <= 32 MiB |
+| `mos182` | <= 1.2 MiB | ~800K | ~24 MiB | <= 32 MiB |
+| `moscxl` | <= 0.6 MiB | ~350K | ~10 MiB | <= 12 MiB |
+
+Starting points for G1's sweep, **not the configuration.** G1 measures the
+interior set directly rather than trusting this arithmetic.
+
+The three hosts form a ladder in shared-cache size at nearly fixed private
+geometry, and that is the point of running all three:
+
+| host | private L2 | shared per core | shared / private |
+|---|---:|---:|---:|
+| `mos181` | 2 MiB | 320 MiB | 160x |
+| `mos182` | 2 MiB | 60 MiB | 30x |
+| `moscxl` | 1 MiB | 16 MiB | 16x |
+
+**`mos181` and `mos182` have identical private L2 -- 2 MiB, 16-way -- and a
+5.3x difference in LLC.** That is a controlled LLC-size sweep at constant
+private-cache geometry, on one vendor, and G6 turns it into a discriminator
+that does not depend on CAT working. Report all three separately; do not
+average across them and do not pick the best one.
 
 ### 2.3 The role of the hand-rolled kernel: gem5, not silicon
 
@@ -141,16 +178,35 @@ microbenchmark bandwidth ratio.
 Per `E2E_SESSION_PROMPT.md` §4.4: **a missing row is fine; an unmeasured row
 silently replaced by a synthetic number is not.**
 
-All streamer memory is node 2 (CXL). All victim memory is node 0 (local DRAM).
-The victim is latency-critical; placing it on CXL would swamp every effect
-under study. `mos182` has no CXL and therefore cannot host this campaign --
-cross-vendor here means `mos181` and `moscxl`, one host per vendor.
+All streamer memory is node 2 (CXL). All victim memory is the **local** DRAM
+node of the socket both processes run on. The victim is latency-critical;
+placing it on CXL would swamp every effect under study.
+
+Placement per host, following the mirrored CXL affinity in §2.2:
+
+| host | socket | victim mem | victim/streamer cpus | streamer mem |
+|---|---:|---|---|---|
+| `mos181` | 0 | node 0 | 0--63, 128--191 | node 2 |
+| `mos182` | **1** | **node 1** | **32--63, 96--127** | node 2 |
+| `moscxl` | 0, one CCX | node 0 | one 8-core CCX (e.g. 0--7) | node 2 |
+
+Verify placement per repetition from `/proc/<pid>/numa_maps`; do not infer it
+from the `numactl` command line, which succeeds whether or not the policy took
+effect on the pages that matter.
 
 ---
 
 ## 4. Gates. Each has a falsifiable prediction fixed here, before any run.
 
 Run in order. Do not proceed past a failed gate without a written decision.
+
+### G0 -- Establish the platform numbers the firmware will not give you
+
+Per host: measured node-2 read bandwidth at the streamer's thread count, and
+measured node-2 vs local load-to-use latency, from the existing `aggressor` and
+pointer-chase harness in `~/tmp_dutyfree_exp/bin/`. Record the firmware SLIT
+and HMAT values alongside as the discrepancy they are (§2.2). Confirm resctrl
+CAT and CMT are functional on the socket the campaign will actually use.
 
 ### G1 -- Hot-set residency. *Verifies the victim is the type claimed.*
 
@@ -226,6 +282,52 @@ rises with streamer intensity, the charge is not LLC capacity.** This needs no
 exotic PMU event and works on both vendors. On AMD it is cleaner still, because
 Zen's L3 is a victim cache and victim L2 and L3 contents are disjoint.
 
+### G6 -- Iso-absolute capacity neutralization across the two Intel hosts
+
+*The discriminator that does not depend on CAT enforcement being believed.*
+
+G4 asks whether CAT saves the victim. G6 asks the harder question -- **is the
+residual capacity or is it private-cache?** -- and answers it using the 5.3x
+LLC difference between two hosts with identical 2 MiB 16-way private L2.
+
+The naive version does not work and is recorded so it is not attempted: simply
+comparing total tax on `mos182` against `mos181` discriminates nothing, because
+a smaller LLC *and* a smaller snoop filter both make the tax larger. The two
+candidate mechanisms predict the same sign.
+
+What does work is equalising the capacity term by construction. Way
+granularity happens to make this exact at integer way counts:
+
+| host | MiB/way | victim ways | victim LLC | streamer ways | streamer LLC |
+|---|---:|---:|---:|---:|---:|
+| `mos181` | 16.0 | **2 of 20** | **32 MiB** | 18 | 288 MiB |
+| `mos182` | 4.0 | **8 of 15** | **32 MiB** | 7 | 28 MiB |
+
+Both victims get **the same 32 MiB in absolute bytes**, sized (§2.2) to hold
+the *entire* index -- interior, leaves and values. Capacity pressure on the
+victim is therefore neutralised identically on both hosts, whatever the LLC
+around it is. Note this is the opposite configuration from G4's generous grant,
+and deliberately so: G4 gives CAT every advantage, G6 gives both hosts the
+*same* advantage.
+
+**Prediction.** If the residual is a capacity charge, it is now near zero on
+both hosts and the two agree at ~1.0x. If it is a private-cache and lookup-path
+charge, it survives on both -- and should be **larger on `mos182`**, whose
+snoop filter is provisioned for 32 cores and 60 MiB rather than 64 cores and
+320 MiB, so each streamer line displaces a larger fraction of it.
+
+**A directional result here is worth more than G4's magnitude**, because it
+needs no assumption that resctrl did what it was told beyond a CMT readback,
+and because it is a *within-vendor, within-microarchitecture-family* contrast
+where the private caches are literally the same structure.
+
+**If the two hosts disagree in a way neither mechanism predicts**, say so and
+do not proceed to the campaign on the strength of the host that behaved.
+
+`moscxl` cannot join G6: its entire 16 MiB CCX is smaller than the 32 MiB
+grant, so the victim's index cannot be capacity-protected there at all. It
+supplies the cross-vendor total-tax check and G4, not G6.
+
 ### G5 -- Kernel validation (gem5 prerequisite only)
 
 The §2.3 B+tree kernel must reproduce Masstree's cycles/lookup and L2
@@ -239,8 +341,10 @@ misses/lookup within a tolerance fixed **before** the comparison is run
 
 Only after G1, G2, G4 pass, and with G3's control recorded.
 
-Hosts: `mos181` and `moscxl`. Victim one core, node 0. Streamer 8 threads,
-node 2, on cores sharing the victim's L3 domain (`moscxl`: the victim's CCX).
+Hosts: `mos181`, `mos182`, `moscxl`. Victim one core; streamer 8 threads on
+cores sharing the victim's L3 domain (`moscxl`: the victim's CCX). Socket,
+memory node and cpu ranges per the §3 placement table -- **`mos182` runs on
+socket 1**.
 
 | arm | streamer | family | purpose |
 |---|---|---|---|
@@ -371,9 +475,14 @@ single largest schedule risk on this page.
 5. **Tuning toward the number.** Every gate's prediction is recorded above,
    before any run. If a gate fails, report the failure; do not re-size until it
    passes (§6.6).
-6. **Quoting a cross-host average.** `mos181` and `moscxl` sit in deliberately
-   different regimes (§2.2). Report separately.
-7. **Letting the kernel stand in silently for the application.** G5, and the
+6. **Quoting a cross-host average.** The three hosts sit in deliberately
+   different regimes (§2.2) and G6 depends on the difference. Report separately.
+7. **Running `mos182` on the wrong socket.** Its CXL is near socket 1, the
+   mirror of `mos181`. Socket 0 would add a UPI hop to every streamer access
+   and put the streamer's LLC footprint in the victim's socket, silently.
+8. **Citing SLIT or HMAT as measurement.** `moscxl` declares node 2 unreachable
+   at 5 GB/s and delivers ~24 GB/s. Measure it (G0).
+9. **Letting the kernel stand in silently for the application.** G5, and the
    disclosure in §2.3.
 
 ---

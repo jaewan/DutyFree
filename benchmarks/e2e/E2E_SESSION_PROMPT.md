@@ -62,14 +62,35 @@ the data.
 
 ## 2. Machines
 
-| alias | hostname | CPU | shared cache | CXL | notes |
-|---|---|---|---|---|---|
-| *local* | `mos181` | Intel Xeon 8592+ (Emerald Rapids), 2×64 | 320 MiB LLC, 20 ways | node 2, cpuless | resctrl ✔. **Also the gem5 testbed.** |
-| `ssh broker` | `moscxl` | AMD EPYC 9754, 2×128 | **16 MiB L3 per CCX** | node 2, cpuless | resctrl ✔ (CAT + SMBA) |
-| `ssh c4` | `mos182` | Intel Xeon 8462Y+, 2×32 | 60 MB LLC | — | resctrl ✔ |
+Re-read from `/sys` and `numactl -H` on each host, 2026-08-23. The previous
+version of this table recorded `mos182` as having no CXL. It has 256 GiB of it,
+and that error propagated into a design document before it was caught.
 
-Private L2: **EMR 2 MiB/core**, **Zen 4 1 MiB/core**. Memorize this. It
+| alias | hostname | CPU | private L2 | shared cache | ways | MiB/way | CXL | notes |
+|---|---|---|---|---|---:|---:|---|---|
+| *local* | `mos181` | Intel Xeon 8592+ (Emerald Rapids), 2×64 | 2 MiB, 16-way | 320 MiB LLC | 20 | 16.0 | node 2, cpuless, 258033 MB, **near socket 0** | resctrl ✔. **Also the gem5 testbed.** |
+| `ssh broker` | `moscxl` | AMD EPYC 9754 (Bergamo), 2×128 | 1 MiB, 8-way | **16 MiB L3 per CCX** (8 cores) | 16 | 1.0 | node 2, cpuless, 258020 MB | resctrl ✔ (CAT + SMBA) |
+| `ssh c4` | `mos182` | Intel Xeon 8462Y+ (Sapphire Rapids), 2×32 | 2 MiB, 16-way | 60 MiB LLC | 15 | 4.0 | **node 2, cpuless, 262144 MB, near socket 1** | resctrl ✔ |
+
+Private L2: **EMR/SPR 2 MiB/core**, **Zen 4c 1 MiB/core**. Memorize this. It
 has caused three separate nulls in this project (§6).
+
+**All three hosts have a cpuless CXL node 2.** Two things about it are traps:
+
+1. **The Intel hosts are mirrored.** `mos181`'s CXL is near socket 0
+   (0→2 = 14, 1→2 = 24); **`mos182`'s is near socket 1** (1→2 = 14,
+   0→2 = 24), so work there belongs on cpus 32–63, 96–127 with memory on
+   node 1. Socket 0 adds a UPI hop to every CXL access and puts the
+   streamer's LLC footprint in the wrong socket, silently.
+2. **SLIT and HMAT are not measurements and may not be cited as any.**
+   `moscxl` declares node 2 at distance **255** (unreachable) with HMAT
+   bandwidth 5 GB/s; this project has repeatedly measured ~24 GB/s from it.
+   The Intel hosts declare node-2 read latency 150 and 100 ns, a difference
+   that is almost certainly firmware convention. Measure per host.
+
+`mos181` and `mos182` have **identical private L2** (2 MiB, 16-way) and a
+**5.3× difference in LLC**, which makes them a controlled LLC-size sweep at
+constant private-cache geometry — see `oltp_index/OLTP_INDEX_DESIGN.md` G6.
 
 Existing harness on both silicon hosts: `~/tmp_dutyfree_exp/bin/`
 - `aggressor -m <wb_load|wc_ntdqa|uc_load|wb_ntdqa|wb_prefetchnta|wb_local> -t N -c <corelist> [-s MB] [-d sec] [-N node] [-R MBps]`

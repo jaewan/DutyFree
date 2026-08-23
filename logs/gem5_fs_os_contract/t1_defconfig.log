@@ -1,0 +1,46 @@
+scons: Reading SConscript files ...
+Mkdir("/home/domin/DutyFree/gem5/build_Intel_8592/gem5.build")
+Checking for linker -Wl,--as-needed support... yes
+Warning: Detected GCC version 15.2.0 is not officially supported.
+         gem5 supports GCC v11 up to v14.2.
+Checking for compiler -gz support... yes
+Checking for linker -gz support... yes
+Info: Using Python config: python3-config
+Checking for C header file Python.h... yes
+Checking Python version... 3.14.4
+Checking for accept(0,0,0) in C++ library None... yes
+Checking for zlibVersion() in C++ library z... yes
+Checking for C library tcmalloc_minimal... no
+Checking for C library tcmalloc... no
+Warning: You can get a 12% performance improvement by installing tcmalloc
+         (libgoogle-perftools-dev package on Ubuntu or RedHat).
+Building in /home/domin/DutyFree/gem5/build_Intel_8592
+"build_tools/kconfig_base.py" "/home/domin/DutyFree/gem5/build_Intel_8592/gem5.build/Kconfig" "/home/domin/DutyFree/gem5/src/Kconfig"
+Checking for C header file capstone/capstone.h... no
+Warning: Header file <capstone/capstone.h> not found.
+         This host has no capstone library installed.
+Checking for C header file linux/kvm.h... yes
+Checking for timer_create(CLOCK_MONOTONIC, NULL, NULL) in C library None... yes
+Checking for member exclude_host in struct perf_event_attr...yes
+Checking for shm_open("/test", 0, 0) in C library None... yes
+Checking for C header file fenv.h... yes
+Checking for C header file png.h... no
+Warning: Header file <png.h> not found.
+         This host has no libpng library.
+         Disabling support for PNG framebuffers.
+Checking for clock_nanosleep(0,0,NULL,NULL) in C library None... yes
+Checking for C header file valgrind/valgrind.h... no
+Checking for pkg-config package hdf5-serial... no
+Checking for pkg-config package hdf5... no
+Checking for H5Fcreate("", 0, 0, 0) in C library hdf5... no
+Warning: Couldn't find HDF5 C++ libraries. Disabling HDF5 support.
+Checking for C header file linux/if_tun.h... yes
+Checking size of struct kvm_xsave ... yes
+Warning: While checking protoc version: [Errno 2] No such file or directory:
+         'protoc'
+Warning: Protocol buffer compiler (protoc) not found.
+         Please install protobuf-compiler for tracing support.
+Checking for backtrace_symbols_fd((void *)1, 0, 0) in C library None... yes
+"ext/Kconfiglib/defconfig.py" --kconfig "/home/domin/DutyFree/gem5/build_Intel_8592/gem5.build/Kconfig" "/home/domin/DutyFree/gem5/build_opts/Intel_8592"
+Loaded configuration '/home/domin/DutyFree/gem5/build_opts/Intel_8592'
+Configuration saved to '/home/domin/DutyFree/gem5/build_Intel_8592/gem5.build/config'

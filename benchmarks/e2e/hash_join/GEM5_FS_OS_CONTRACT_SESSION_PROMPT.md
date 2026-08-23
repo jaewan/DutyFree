@@ -143,8 +143,10 @@ two is wrong. Try the form above first, and if `defconfig` rejects it, use the
 
 **Gate T1.** All three must hold, and you must show the output of each:
 
-1. `build_Intel_8592/gem5.opt --version` runs.
-2. `grep -c 'enable_H3_streaming_bypass' build_Intel_8592/mem/ruby/protocol/CHI_Cache_Controller.hh` (or wherever SLICC emitted it) is non-zero — i.e. **H3 survived the build**, it is not merely in the `.sm` source.
+1. `build_Intel_8592/gem5.opt --build-info` runs.  (gem5 25.1 exposes
+   build version information through `--build-info`; it does not support the
+   older `--version` spelling.)
+2. `grep -c 'enable_H3_streaming_bypass' build_Intel_8592/params/CHI_Cache_Controller.hh` (or wherever SLICC emitted it) is non-zero — i.e. **H3 survived the build**, it is not merely in the `.sm` source.
 3. The resolved config actually matches `build_opts/Intel_8592`: `PROTOCOL="CHI"`, `NUMBER_BITS_PER_SET=256`, `USE_X86_ISA=y`. Diff `build_Intel_8592/gem5.build/*/config` against the checked-in defconfig and paste the diff, even if empty.
 
 Per `REPO_DISCIPLINE.md` §2, a comment asserting the build is correct is a
