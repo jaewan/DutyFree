@@ -783,7 +783,11 @@ demonstrates more.
 > counter; and `streamingTranslations` also counts **functional** walks (the
 > increment sits above the `if (!functional)` guard), which cannot affect a gate
 > that asks only zero-versus-nonzero but means the magnitude may not be quoted as
-> demand classifications.
+> demand classifications. Filed as **edit-queue row 37** (tenth amendment): the
+paper never answers "is a pseudo-instruction the same as an OS declaration?",
+and now it can, in one sentence. The row is licensed by source reading alone,
+but if the claim is to be stated as *demonstrated* rather than *argued* it
+should wait for T5, which is what T5 produces.
 
 ---
 

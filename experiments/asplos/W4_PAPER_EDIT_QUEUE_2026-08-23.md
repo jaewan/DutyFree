@@ -301,3 +301,54 @@ effective geometry agree.
 Source: `W4.6_TAB_SENS_ASSOC_AXIS_2026-08-24.md`. Needs no re-run; a clean
 associativity sweep over the exact set **{5, 10, 20, 40}** at a genuinely fixed
 5 MiB is 9 new cells and is optional.
+
+---
+
+## Tenth amendment, 2026-08-24: row 37, the SE/FS declaration equivalence
+
+**Row 37 — Tier 2, site: wherever §5 or the appendix first says the gem5 arms
+declare STREAMING via a pseudo-instruction.**
+
+Every gem5 STREAMING number in the paper is declared with gem5 m5op 0x55
+(`aggressor.c:24`). A reviewer will ask the obvious question — *is a simulator
+pseudo-instruction the same thing as an OS declaration?* — and the paper does
+not currently answer it. It can, in one sentence, and the answer is favourable.
+
+`pseudo_inst::setstreaming` marks pages in `process->pTable`, the SE-mode
+`EmulationPageTable`; in full system `tc->getProcessPtr()` is null and the m5op
+**warns and returns**. So the two modes set the same TLB field by different
+routes:
+
+| mode | who sets `TlbEntry::streaming` |
+|---|---|
+| SE | `tlb.cc:477`, from the m5op's `EmulationPageTable::Streaming` flag |
+| FS | `pagetable_walker.cc:364` / `:389`, from PAT slot 6 in a real PTE written by Linux `mprotect(PROT_STREAMING)` |
+
+and then converge on a **single consumer** in the shared tail of
+`TLB::translate` (`tlb.cc:510-513`):
+`req->setCacheCoherenceFlags(Request::STREAMING_BIT)`.
+
+**Everything downstream of the TLB is byte-identical between the two.** The
+proposed sentence:
+
+> The SE arms declare through a gem5 pseudo-instruction and the full-system arm
+> through `mprotect(PROT_STREAMING)`. The two differ only in what writes the
+> streaming bit into the TLB entry; from that entry onward — the request flag,
+> the CHI transactions, H2 and H3, and every cache counter reported here — the
+> paths are identical.
+
+**Two cautions to carry with any counter that is quoted:**
+
+1. `streamingTranslations` is **structurally zero in SE mode** (SE never runs
+   the walker). It may only be reported for full-system runs.
+2. `streamingTranslations` also counts **functional** walks — the increment at
+   `pagetable_walker.cc:528` sits above the `if (!functional)` guard. Fine for a
+   zero-versus-nonzero gate; not a count of demand classifications, and must not
+   be described as one.
+
+**Dependency.** The sentence is licensed by source reading alone and needs no
+run. But if the paper wants to state it as *demonstrated* rather than *argued*,
+that is exactly what W8's T5 arms produce, and the row should wait for them.
+Filing it now so the claim is not invented after the numbers land (§6.6).
+
+Source: `W8.1_M5OP_IS_SE_ONLY_2026-08-24.md` and its addendum.
