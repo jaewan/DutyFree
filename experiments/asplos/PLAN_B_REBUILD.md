@@ -1287,3 +1287,34 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > Options 2 (serial at 14 h/arm) and 3 (drop 53%, since T2 gates neither T3 nor
 > T4) are in the memo. **No published number moves**; the supervised trio's
 > numbers have never been reported and this is their only appearance.
+
+> **2026-08-24 — the watchdog sweep W8.5 §8 asked for is done; the F12 was
+> confined to one runner.** Seven of our own runners carry a kill/timeout
+> construct. `cat_mba.py` and `wss_sweep.py` check returncode and let
+> `TimeoutExpired` propagate — clean. `exp35_smba_pareto.sh` and
+> `exp36_localdram_ccx.sh` have no such construct. The three
+> `e1_residual_decomp/run_e1_*` runners share a *different*, latent defect —
+> the victim's `returncode` is never checked — but its failure mode is a
+> **visible null** (`victim_line=""` → `parse_victim("")` → `{}` →
+> `cyc_per_iter: None`), not a success report. Scanned all twelve e1 data
+> files: **684 nested-schema records, 0 empty**; the other 96 use a flat schema
+> and are all populated. It never fired. No fix applied — frozen phase-1
+> runners, campaigns complete, and changing apparatus to guard a fault that did
+> not occur buys nothing.
+>
+> **The structural reason the F12 was gem5-only, now named:** gem5 dumps a
+> complete, plausible `stats.txt` and exits 0 on SIGINT, so a killed arm is
+> indistinguishable from a finished one by exit status or file size. A killed
+> silicon victim emits nothing, and nothing is loud. **F12 requires a child that
+> lies convincingly.** That is the property to look for in future runners, not
+> the presence of a watchdog.
+>
+> **Recorded against interest:** my first scan reported 96 bad records and was
+> itself wrong — the condition `not r.get("victim")` fires on every record of a
+> schema with no `victim` key. Caught by opening one flagged record. **Read one
+> flagged record before believing a count**; an analyzer that invents a defect is
+> F12 pointing the other way.
+>
+> Addendum appended to `W8.5_T2_SUPERVISED_TRIO_WAS_TRUNCATED_2026-08-24.md`,
+> original text verbatim (A6.19). No published number moves. T5's `wb` arm was
+> not touched during any of this (apparatus rule).
