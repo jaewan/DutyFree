@@ -1,5 +1,21 @@
 # Plan B: skip Sep 9, rebuild the paper the evidence supports
 
+> **AMENDED 2026-08-24 — W1 PASSED and two of the four founding premises below
+> are overturned.** H2/infinite-SF = **1.0337x ± 0.0005**, removing **90.9%** of
+> the capacity charge. Premise 1 ("H2 is inert in our own simulator") is false as
+> stated: H2 is inert against the *finite-SF back-invalidation* charge and
+> removes 90.9% of the *capacity* charge. Premise 3 ("the two instruments do not
+> meet") is false: silicon's Intel charge is capacity-class and so is the one H2
+> removes here. Premises 2 and 4 stand. **The `Why` section below is left
+> verbatim, struck where wrong, because the reasoning that produced Plan B has to
+> stay legible.** See `W1_OUTCOME_2026-08-24.md`.
+>
+> Plan B's *conclusion* is unchanged. The rebuilt argument in the next section
+> already said what was missing — "(a) evidence that H2 recovers the charge
+> silicon actually levies, and (b) a cost argument" — and both now exist. The
+> case for skipping Sep 9 rested on the seventeen-day runway, not only on the
+> nulls; it is now a stronger paper to finish, not a weaker one to abandon.
+
 Written 2026-08-23. Supersedes the ASPLOS'27 Sep 9 push. Lead decision.
 
 ## Why
@@ -7,17 +23,22 @@ Written 2026-08-23. Supersedes the ASPLOS'27 Sep 9 push. Lead decision.
 Four facts, each measured in this repo, that jointly make the Sep 9 submission
 a reject:
 
-1. **H2 is inert in our own simulator.** `tab:h3sf` re-measured 2026-08-20 at a
-   documented geometry: WB/finite-SF 2.501x, H2/finite-SF 2.512x
-   ("indistinguishable at +/-0.07"), H2+H3 1.061x. The entire gem5 benefit is
-   H3. The mechanism in the paper's title recovers nothing in the only
-   configuration it is reported in.
+1. ~~**H2 is inert in our own simulator.**~~ **OVERTURNED 2026-08-24.** The
+   observation is correct and its generalisation was not. `tab:h3sf` re-measured
+   2026-08-20: WB/finite-SF 2.501x, H2/finite-SF 2.512x ("indistinguishable at
+   +/-0.07"), H2+H3 1.061x — all true, and all in the finite-SF row. At an
+   infinite SF, H2 reads **1.034x against WB's 1.369x**. The clause "the only
+   configuration it is reported in" was the actual defect: the load-bearing cell
+   was empty, which is why W1 existed. The entire gem5 benefit is **not** H3.
 2. **H3's charge is absent on shipping silicon.** Private-L2-resident victims
    read 1.000x on SPR and Bergamo; mos182's forced SF turnover reads 1.00x.
-3. **So the two instruments do not meet.** Silicon measures a *capacity*
-   charge. gem5's benefit removes a *back-invalidation* charge. The
-   gem5-shows-benefit / silicon-shows-harm division of labour requires them to
-   be the same charge at different fidelity. They are not.
+3. ~~**So the two instruments do not meet.**~~ **OVERTURNED 2026-08-24.** They
+   meet. Silicon measures a *capacity* charge (CAT recovers it on mos182). H2 at
+   an infinite SF removes a *capacity* charge — 90.9% of it — on a victim whose
+   private-L2 miss count is invariant to 0.02% across arms, so the charge is
+   levied entirely below L2. The back-invalidation charge is a *separate* charge
+   that H3 addresses and that shipping snoop filters do not levy (W3.1). The
+   division of labour the paper claimed is supported.
 4. **The realised magnitudes are small.** DuckDB co-run, matched bandwidth:
    1.112x vs 1.049x, allocation-attributable difference +0.058. Six e2e
    workloads, same shape: direction confirmed, magnitude small.
@@ -43,7 +64,20 @@ recovers the charge silicon actually levies, and (b) a cost argument.
 
 # Workstreams
 
-## W1 -- The decisive cell. Gates everything. Start immediately.
+## W1 -- The decisive cell. **PASSED 2026-08-24. Gate released.**
+
+> **Outcome: `W1_OUTCOME_2026-08-24.md`. H2/infinite-SF = 1.0337x ± 0.0005
+> (1 sd), inside the pre-registered PASS band by 136 sd, removing 90.9% of the
+> WB/infinite-SF charge.** The pre-registered prediction (1.00-1.10x) is
+> confirmed near the bottom of its band. The aggressor is not throttled: its
+> L2-miss rate per cycle falls 3.9%, and under H2 the LLC is accessed 16% *more*
+> per cycle while going off-chip 16% *less*. H2+H3/infinite is still running;
+> W1.2's consistency prediction for it is registered and not yet evaluable.
+>
+> Per the rule as written: proceed to W2, and H3 demotes to a bounded capability
+> claim — which W3.1 had already forced independently.
+
+### Original section, unchanged
 
 `tab:h3sf` is a 2x3 design (SF in {infinite, finite} x arm in {WB, H2, H2+H3})
 with **the load-bearing cell empty**. H2 has never been tested against the
@@ -285,7 +319,7 @@ Plan B fails if the existing campaign eats the runway. Stop:
 | 2 | 5-9 | W3 (H3 grounding), W7 (necessity+benefit convergence) |
 | 3 | 10-12 | W8 if it fits; full rewrite; 18pp -> target length |
 
-Phase 1 onward is conditional on W1 passing.
+Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is live.**
 
 ---
 
