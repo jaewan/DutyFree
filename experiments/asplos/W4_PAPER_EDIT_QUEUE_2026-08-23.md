@@ -156,3 +156,29 @@ forbids, so it is fixed here in writing before the campaign returns. Second,
 checking a new analysis script against a completed run whose numbers are
 already published is cheap and catches this class immediately; it also
 surfaced row 33, which reading the memo alone did not.
+
+**Sixth amendment, 2026-08-24: row 34, and H3 stops being free.**
+
+| # | site | change | evidence |
+|---|---|---|---|
+| 34 | wherever the paper describes H3 as costless, or prices H2+H3 as equal to H2 (audit `Sec4_Streaming.tex`, `Sec5_Evaluation.tex` around `tab:h3sf`, and `Appendix.tex:422-424`/`:461-465` before drafting) | **state H3's price.** At an **infinite** snoop filter — where H3 has no enrolment charge to remove — H2+H3 costs **1.0345x relative to H2 alone (+3.45%)**, n=3, sd 0.0117 cyc/access, ~3 sd of separation. Per S5.1 the sentence must carry its arm and operating point: *"H2+H3 costs 3.45% over H2 alone at an infinite snoop filter (2-core CHI, 5 MiB HNF, CXL-resident aggressor), where H3 has no enrolment charge to remove."* The mechanism is on the record too and is worth one clause: under H2+H3 the declared stream's L1D hit rate is **0.3%** and its private-L2 hit rate **11.7%** — no-retention observed, not inferred — so it puts **+61.7%** more traffic per cycle onto the shared fabric than under H2. **This is an addition, not a correction:** no current sentence is wrong, but the omission is the kind a referee reads as concealment once they notice the control exists. | `W1.5_H3_INFINITE_SF_OUTCOME_2026-08-24.md` |
+
+Row 34 also **strengthens row 6 rather than competing with it.** Row 6 asks
+Sec5 to name H3's realization as ReadOnce/no-retention at the point of use.
+W1.5 supplies the direct consequence of that realization as a measured number,
+so the two edits should be drafted together: the realization and its price in
+the same paragraph, or the reader gets the disclosure without the reason.
+
+And it retires a standing worry rather than adding one. W1.2 Correction 3
+argued on traffic grounds that the H3 confound runs *against* `tab:h3sf` — H3
+wins its finite-SF result while pushing more traffic, not less. That was an
+inference from finite-SF counters. The infinite-SF control now measures the same
+effect independently (+61.7% here against Correction 3's +58% there), and, more
+decisively, shows H3 delivering **no benefit at all** when there is no enrolment
+charge in play. `tab:h3sf`'s H3 attribution is confirmed by its own control, not
+merely left unfalsified. If a referee asks "how do you know H3's benefit is
+enrolment relief and not something else you happened to bundle with it," this
+is the answer, and it should be in the paper as one sentence with a pointer.
+
+**No row is withdrawn by W1.5.** The registered withdrawal trigger — H2+H3
+coming in >10% *better* than H2 at an infinite SF — did not fire.
