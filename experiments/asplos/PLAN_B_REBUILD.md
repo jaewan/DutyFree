@@ -1007,3 +1007,12 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > walker; `stream_m5op` runs last because its expected result is zero, which is
 > indistinguishable from a broken run until a positive arm has shown a non-zero
 > count is reachable. See W8.1 third addendum.
+
+> **2026-08-24, T5 arm scripts read directly.** Name→declaration mapping correct
+> in all three — the one mapping whose inversion would invert every gate rather
+> than fail visibly. Each arm brackets the benchmark with `m5 resetstats` /
+> `m5 dumpstats`, so the gate counters exclude boot: the `wb` control's expected
+> zero is a statement about the workload, not about when counting started. All
+> three run `--probe-batch 0 --reps 1 --warmups 0`, so O1 is off and every arm is
+> single-rep cold — a second, independent reason no performance comparison is
+> licensed here.
