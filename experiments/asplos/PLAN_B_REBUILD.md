@@ -240,6 +240,20 @@ That is exactly H3's charge, in silicon, findable.
   sits at 1.0x coverage of aggregate private L2, shipping parts at a multiple.
   Per this item's own stated consequence, **H3 is bounded to a capability
   claim.** See `W3.1_CLOSED_2026-08-23.md`.
+- **W3.4** (new, 2026-08-24, no experiment) --
+  `W3.4_H3_PERFORMANCE_CASE_2026-08-24.md` assembles H3's performance case from
+  the committed campaigns so that **lead decision 4 can be made on numbers**.
+  Headline: H3 is worth 2.512x -> 1.061x at a finite SF and **−3.45% at an
+  infinite one**; no reachable silicon is in the paying regime (W3.1, bounded
+  1.0998x); and, computed there for the first time, H2+H3 costs the *streamer*
+  **33.3% of its instruction throughput** while pulling **2.51x the CXL bytes
+  per retired instruction** (infinite SF, n=3). It also files an S5.1 defect:
+  `H3_MODELCHECK.md`'s streamer-bandwidth caveat names no arm and moves the
+  opposite direction to the labelled figure. **Three options are stated and
+  none is chosen**; option 3 -- rebuild H3 as sound variant (b)/(c), which
+  retains lines and so dissolves the entire measured cost -- is new to the plan
+  as a *decision* rather than a build, and is the only one that makes H3
+  stronger.
 - **W3.2** Acquire an inclusive-LLC machine (Broadwell/Haswell Xeon) and repeat
   the L2-residency test. A positive here grounds H3 in silicon and repairs the
   gem5/hardware mismatch outright.
@@ -649,7 +663,11 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
    restructure is visible immediately. Deciding to skip Sep 9 should reach the
    co-authors from the lead, before the text starts moving.
 4. **Does H3 survive?** Deferred pending W3, but flag it now -- it changes the
-   paper's shape.
+   paper's shape. **Equipped with numbers 2026-08-24:
+   `W3.4_H3_PERFORMANCE_CASE_2026-08-24.md` states the three options -- keep
+   variant (a) and disclose its price, cut H3, or rebuild it as sound variant
+   (b)/(c) -- with the measured cost of each. The decision is unchanged and
+   still the lead's; only the ignorance is removed.**
 5. `EUNJI_QUESTION_DRAFT.md` still must be sent by the lead personally.
 
 # Next 72 hours
