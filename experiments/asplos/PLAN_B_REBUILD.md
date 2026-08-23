@@ -972,3 +972,22 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > ~20 host-hours) and `/tmp/w8_boot.log` live in RAM only; both are now mirrored
 > to `~/tmpfs_backup/` on ext4. That is the F10 lesson applied before the loss
 > rather than after.
+
+> **2026-08-24, T5's liveness criterion, fixed before any arm runs.** W8's
+> 90-minute zero-byte-`stats.txt` tripwire fired on T4 at 02:55 and is still true
+> at 03:23. It does not apply: a boot-and-checkpoint pass dumps stats only at
+> `simulate()` exit and `empty.rcS` issues no `m5 dumpstats`, so zero bytes for
+> the whole boot is the expected state, not a symptom. T4 is demonstrably working
+> — pid 2069959 `R` at 99.9% CPU, console at `W8-GUEST checkpointing...`,
+> `store2.pmem` growing 13.0 → 85.7 MB between 03:16 and 03:22. T5's arms will
+> trip the same wire for the same structural reason, so the replacement is
+> registered now rather than chosen with a run in front of me (§6.6): process
+> alive with advancing CPU time; Ruby's own deadlock detector as the real hang
+> guard, since a CHI deadlock panics rather than spinning silently; and the
+> wall-clock timebox treated as an escalation to the lead, not a liveness test.
+> Stated in the memo as **weaker** than what it replaces — it cannot separate
+> "simulating correctly" from "simulating something wrong quickly". The stronger
+> fix (configure a periodic stats dump, restoring the original tripwire) is
+> declined only because it would change the apparatus mid-campaign.
+> Process note: this plan entry lands one commit after the memo it belongs to
+> (38ae985), which is the F11 fix-#4 pairing rule slipping by one commit.
