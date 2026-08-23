@@ -406,12 +406,29 @@ why the argument does not need the benefit magnitude to be large.
 > `--check` is inert in `--mode morsel` and the fused-null runner passes it
 > anyway.
 >
-> **Next, and it gates the campaign: a runtime calibration run.**
-> `GEM5_FUSED_NULL_OUTCOME.md` records T1 stopped at 1:11:28 with zero-byte
-> stats for all three arms at 16 MiB fact x (1 warmup + 3 reps). W7 is 24 runs.
-> One short run must establish cycles-per-hour before any of them launch -- a
-> campaign that does not finish produces nothing, and this one has already
-> failed that way once.
+> **No calibration run is needed -- the number already exists.** The completed
+> 4 MiB arm of `GATE1_FUSED_NULL_CORRECTION_2026-08-15.md` is on disk at
+> `/tmp/m22_mid_wb`: **hostSeconds 9,116.7 (2h32m)**, simInsts 178.6M,
+> hostInstRate 19,590/s, at exactly the A0 geometry and options W7 needs. The
+> T1 campaign that died at 1:11:28 was a *different* geometry (L2 256 KiB, not
+> 2 MiB) and is not evidence about A0. 28 runs, independent, on a 256-core host
+> at load 3.
+>
+> **Campaign script `w7_campaign.sh`, committed before it is run** -- W1's
+> launcher was typed at the shell and never committed, and reconstructing it
+> cost a session. A0 is reproduced exactly from `/tmp/m22_mid_wb/config.ini` and
+> its logged command line, including `enable_DMT=true`, which the W1/`tab:h3sf`
+> arms force off and this apparatus does not. Three deliberate differences are
+> recorded in the script header: gem5 356e7b7d0e vs 3d0d1ca2, the `_w7` binary,
+> and `RUBY_RANDOMIZATION` seeds 1-3 for variance. **A0/B0 is re-measured rather
+> than compared across campaigns**, which is what makes the gem5 drift harmless.
+>
+> **One pre-registered cell is deferred, with its reason.** The second A1 point
+> at 8 cores exists to vary aggregate-L2 : LLC. At `--threads 1` the seven extra
+> cores never fill their L2s, so 8 idle cores are indistinguishable from 2.
+> Making it meaningful needs `--threads 8`, which changes the workload and not
+> only the hierarchy -- a second knob, not a second A-point. Deferred, stated,
+> not silently dropped.
 
 Today the workload that proves necessity (fused) is explicitly *not* where H2
 pays off: it runs at 0.52 GB/s against 4.17 achievable, MLP-limited by its own
