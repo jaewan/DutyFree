@@ -1207,3 +1207,22 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > machine allows it; the kernel does not), and A-axis sizes that are exact powers
 > of two after (size/assoc)/block so F9.4 cannot silently re-inflate the hot-set
 > ratio. Sizing and spend are lead decisions.
+
+> **2026-08-24 04:55, recalibrating a tripwire I set, six minutes before it would
+> have fired on a healthy run.** `W8.4_T5_TRIPWIRE_RECALIBRATED_2026-08-24.md`.
+> T5's `wb` arm dumps stats exactly once, at the end of `w8_wb.rcS`, so a
+> zero-byte `stats.txt` and a static console are the *expected* state for the
+> whole measured region — the 90-minute threshold was testing elapsed time when
+> what it wanted was liveness. The run is live: state `R`, **99.9% CPU**, CPU time
+> 1:22:25 against elapsed 1:22:26. And it is on schedule: W7's `A0_B0_wb_s1` has
+> the identical workload shape (morsel, wb, 16 MiB fact, 4 MiB hot, probe-batch 0)
+> on the same 2-core O3 + CHI machine and cost 9,037 host-seconds for 4 passes,
+> so **~38 min/pass is the SE floor** for T5's single pass — and T5 additionally
+> pays for a real kernel, page table, ext2 and device models. Setup took 53 min;
+> the measured region is 30 min in; the earliest possible dump is ~05:05. Firing
+> the tripwire would have killed a run with 53 minutes of restore already sunk.
+> Replaced by liveness (CPU time advancing), a 4 h ceiling (~6× the derived
+> estimate), and a console-regression check (`W8-RCS-BENCH-EXIT` must precede a
+> non-zero `stats.txt`). **G0–G5 and `t5_analyze.py` untouched**, and the rule
+> that `stream_mprot` waits for `wb`'s gate to be read *and stated in writing*
+> stands unchanged.
