@@ -423,6 +423,17 @@ why the argument does not need the benefit magnitude to be large.
 > and `RUBY_RANDOMIZATION` seeds 1-3 for variance. **A0/B0 is re-measured rather
 > than compared across campaigns**, which is what makes the gem5 drift harmless.
 >
+> **Status: campaign launched 2026-08-24 01:04 KST**, 28 cells in parallel,
+> driver pid 2029938, outdir `/tmp/w7`. Gated on two A0 smoke runs that came
+> back clean: `matches_last_rep` 32,641 and `sum_last_rep` -700 identical
+> across `--probe-batch 0` and `16`, so the batched path is bit-identical under
+> O3CPU + CHI and not only on the host; and cycles per access 77.45 -> 55.44
+> (-28.4%), so Knob B takes in simulation, which is P2's precondition. The
+> smoke also says, directionally, that -28.4% may not be enough: lines in
+> flight go 1.24 -> 1.72 against a P2 threshold of >= 6, and the campaign cells
+> are colder than the smoke. A P2 falsification is a pre-registered outcome and
+> gets reported as one. See `W7.1_KNOB_B_2026-08-24.md`, addendum.
+>
 > **Analysis script `w7_analyze.py`, committed before the data exists** and
 > self-checked against the completed 2026-08-15 runs, whose numbers are already
 > published. Every stat key it reads is verified to reproduce a published
