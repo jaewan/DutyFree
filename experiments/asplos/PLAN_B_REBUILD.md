@@ -1176,3 +1176,34 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > fixed. And the disclosure is **repo-wide** for Ruby/CHI figures
 > (`intel_8592_4cpu_dirtax_streaming` shows 17.6–20.9 M prefetch transactions),
 > though not for the W8 FS boot, which measures 0.
+
+> **2026-08-24 05:15, W7 COMPLETE — 28/28, and the designed corner does not
+> exist.** `W7_OUTCOME_2026-08-24.md`. 66.2 host-hours, 3 h 42 m wall. **P1's
+> hit-rate half: NOT EVALUABLE** — R5's registered ≥85% condition fires at a
+> measured 97.685% WB hit rate, so the +15 points asked for exceed the metric's
+> 2.315 points of headroom. **P1's DRAM half: 14.1% of achievable** against ≥50
+> (falsified <25.8); the metric *has* range (≥50 needed 12.560 MB, floor 8.389),
+> so this half is genuinely missed — but W7.2's rule holds, it is **a null at
+> 20 MiB / 40× / 40%, and P1 as registered stays open**. **P3: +0.63%**, same
+> protection, and doubly confounded (R1: B reached 1.77 of ≥6 lines; R5's
+> diagnosis: A1 over-relieved O2 to 97.6% residency). **P5: dominance FAILS** as
+> pre-disclosed at 22/28 — A0/B1's +1.23% is ~2× A1/B1's +0.63% — and R3's
+> sufficiency clause is dead, no knob reaches 5%. P4 unevaluated, needs CAT.
+>
+> **New and unpredicted: H2 costs time at A1/B0, −1.00%, all three seeds
+> negative** (−0.902 / −1.634 / −0.464 against arm sds ≤0.271 cycles), with Ruby
+> LD latency +2.19% — *while reading fewer bytes from both pools and hitting the
+> LLC more often*. The W7.4 CXL anomaly in the time domain. Mechanism NOT
+> asserted: these are per-request means over a changed mix, and A1/B1 runs the
+> other way (latency +0.65%, time −0.63%). What is safe to say and belongs in the
+> paper: **H2 is not free, and at one measured point its cost exceeds its
+> benefit.**
+>
+> The campaign-level result is not "H2 gives no benefit" — it is that **every
+> cell W7 measured has at least one of the two obstacles still fully in place**,
+> so the corner the 2×2 was built to reach was never occupied. §4's strong
+> negative remains unavailable. Reaching it needs both axes fixed *together*: a
+> probe that can express ≥6 independent misses (the 14.62-line smoke says the
+> machine allows it; the kernel does not), and A-axis sizes that are exact powers
+> of two after (size/assoc)/block so F9.4 cannot silently re-inflate the hot-set
+> ratio. Sizing and spend are lead decisions.
