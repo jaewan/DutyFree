@@ -584,6 +584,23 @@ because that would buy a benefit result by destroying the necessity result.
 > data-array writes, not fills, and never claim inertness without naming the
 > counter. Nothing here rehabilitates A1 as a bandwidth point.
 
+> **W4.6, 2026-08-24, zero compute and zero dependence on surviving runs:
+> `W4.6_TAB_SENS_ASSOC_AXIS_2026-08-24.md`.** W7.2's `floorLog2` finding is not
+> confined to W7 -- it lands on a **published table**. `b4run2.sh` holds
+> `--l3_size=5MiB` while `p1batch.sh` sweeps `L3_ASSOC` over 8/12/20, so
+> `tab:sens`'s three associativity rows ran at an effective **4, 3 and 5 MiB**,
+> and its caption's "53% WSS" is right only for the 20-way row (the others are
+> 64.7% and 86.3%). Sorted by WSS over effective LLC, all five non-trivial cells
+> lie on **one monotonic curve** in both arms -- the published non-monotonicity
+> (12-way worse than both neighbours) is not an associativity mechanism, it is
+> the smallest cache. **The corrected table is stronger than the published one:**
+> recovery flat at 88.8-91.9% across a 3-5 MiB effective LLC, a 1250-5000 KiB
+> victim, 8-20 ways and a 52-98% WSS/LLC ratio. What must be dropped is the
+> "across associativity" claim as an *independent* axis -- confounded, not false.
+> Both launchers are committed, so the ledger's **VERIFIED** row stands; this is
+> an F12, not an F10. Filed as **edit-queue row 36** (ninth amendment). Optional
+> clean re-run: associativity over the exact set {5, 10, 20, 40}, 9 cells.
+
 ## W8 -- gem5 FS capability demonstration. Stretch, not critical path.
 
 `GEM5_FS_OS_CONTRACT_PREREGISTRATION.md` is written and has never been run.

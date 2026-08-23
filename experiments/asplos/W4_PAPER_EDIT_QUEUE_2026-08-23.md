@@ -255,3 +255,49 @@ that is **20 MiB, not the 32 MiB configured** — gem5's `CacheMemory` indexes o
 cited as a bandwidth result: 9.27 GB/s is on-chip.
 
 Source: `W7.2_A1_SIZING_2026-08-24.md` and its 2026-08-24 addendum.
+
+## Ninth amendment, 2026-08-24: row 36, and `tab:sens` gets better by being corrected
+
+**Row 36 — Tier 2, sites `Appendix.tex:126-135` (`tab:sens`) and its caption,
+plus `Sec5_Evaluation.tex:471`.**
+
+**The associativity axis varied capacity too.** gem5's `CacheMemory` indexes only
+`2^floorLog2(sets)`, and `b4run2.sh` holds `--l3_size=5MiB` while `p1batch.sh`
+sweeps `L3_ASSOC` over 8/12/20. Realized: **4 MiB (8-way), 3 MiB (12-way), 5 MiB
+(20-way, exact)**. The caption's "53% WSS" holds only for the 20-way row; the
+others ran at **64.7%** and **86.3%**.
+
+Sorted by WSS over *effective* LLC, all five non-trivial cells lie on one
+monotonic curve in both arms:
+
+| WSS/eff LLC | configured as | WB | H2 | recovered |
+|---:|---|---:|---:|---:|
+| 24.4% | "24%, L2-resident" | 1.000 | 1.000 | — |
+| 51.8% | "53%" and "20-way" | 1.369 | 1.041 | 88.8% |
+| 64.7% | "8-way" | 1.478 | 1.044 | 90.8% |
+| 86.3% | "12-way" | 1.586 | 1.047 | 91.9% |
+| 97.7% | "97%" | 1.941 | 1.089 | 90.5% |
+
+**The edit makes the table stronger.** The non-monotonic associativity axis —
+12-way worse than both neighbours — is not a mechanism, it is the smallest
+cache. Replacing two confounded axes with one clean one yields: *the recovery is
+flat at 88.8–91.9% across an effective LLC of 3–5 MiB, a victim footprint of
+1250–5000 KiB, an associativity of 8–20 ways, and a WSS/LLC ratio of 52–98%.*
+Four things varying at once, recovery flat through all of them.
+
+**What must be dropped:** any claim that the recovery holds across associativity
+*as an independent axis*. It is confounded, not false, and the table cannot
+separate the two. **What must not be added:** a claim that associativity does
+nothing. The assoc points sit 3–12% below a two-anchor linear interpolation of
+the WSS curve; with single runs per cell that residual settles nothing.
+
+**Knock-on:** `GATE1_SENS_RERUN_OUTCOME.md` argues the reproduction is genuine
+partly because the odd non-monotonic shape came back. The reproduction stands on
+its other evidence, but that argument is weaker than it reads — the shape is
+deterministic in the flags, so it was always going to come back. Row 22 is
+unaffected; it turns on the 20-way/53% cell, the one row whose configured and
+effective geometry agree.
+
+Source: `W4.6_TAB_SENS_ASSOC_AXIS_2026-08-24.md`. Needs no re-run; a clean
+associativity sweep over the exact set **{5, 10, 20, 40}** at a genuinely fixed
+5 MiB is 9 new cells and is optional.
