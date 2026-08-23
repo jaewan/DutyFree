@@ -57,6 +57,27 @@ for c in "${ALLCPT[@]}"; do [ -s "$c/m5.cpt" ] && CPTS+=("$c"); done
     echo "       ${c##*/}  m5.cpt $( [ -s "$c/m5.cpt" ] && stat -c %s "$c/m5.cpt" || echo "absent/empty" )" >&2
   done
   exit 2; }
+# gem5 does NOT select the checkpoint the way the test above does, and the two
+# rules can disagree. configs/common/Simulation.py:200-215 enumerates with
+# re.compile(r"cpt\.([0-9]+)").match(), sorts by int(tick), and `-r 1` takes
+# cpts[0] -- the LOWEST tick. Two consequences:
+#   * the empty cpt.%d that upstream leaves behind does not match the regex, so
+#     it is invisible to gem5 and -r 1 does land on the real checkpoint. That is
+#     why the two-dir situation above is safe rather than merely tolerated.
+#   * but a stale, interrupted cpt.<lower-tick> holding an EMPTY m5.cpt would be
+#     selected by gem5 while still passing the "exactly one non-empty m5.cpt"
+#     test above -- that test would see one complete checkpoint and wave it
+#     through, and gem5 would silently restore the broken one instead.
+# So the gate additionally requires that the directory gem5 will actually pick
+# is the directory this gate validated. Verified 2026-08-24 against T4's real
+# checkpoint: the parent holds cpt.%d and cpt.5548084949500, the regex matches
+# only the latter, and both rules agree on it.
+SEL=$(ls -1 "$CDIR" | sed -n 's/^cpt\.\([0-9]\+\)$/\1/p' | sort -n | head -1)
+[ -n "$SEL" ] || { echo "FAIL no cpt.<digits> in $CDIR; gem5 -r 1 would fatal here" >&2; exit 2; }
+[ "$CDIR/cpt.$SEL" = "${CPTS[0]}" ] || {
+  echo "FAIL gem5 -r 1 would restore cpt.$SEL, but the only complete checkpoint is ${CPTS[0]##*/}" >&2
+  echo "     (a stale lower-tick checkpoint dir is present; remove it or point CKPT elsewhere)" >&2
+  exit 2; }
 # A non-empty m5.cpt does NOT mean the checkpoint is finished: m5.cpt is written
 # before the physmem stores (observed at T4 -- m5.cpt at 03:02, store1 at 03:03).
 # The process-ownership check below is what actually establishes completeness.

@@ -951,3 +951,24 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 2. Start W4.1 and W4.2 -- both are pure deletions/corrections, needed under
    every outcome including a hypothetical return to Plan A.
 3. ~~Rebuild the D1/D2-fixed binary on mos181, now unblocked.~~ **Done 2026-08-23; all three hosts patched.**
+
+> **2026-08-24, T5 gate 1 hardened again — gem5 selects the checkpoint by a
+> different rule than the gate validated it by.** `-r 1` does not mean "the
+> checkpoint you just checked". `configs/common/Simulation.py:200-215` enumerates
+> `cpt.*` with `re.compile(r"cpt\.([0-9]+)").match()`, sorts by `int(tick)`, and
+> takes `cpts[0]` -- the **lowest** tick. Two findings. First, the reassuring one:
+> the empty `cpt.%d` upstream leaves behind fails that regex, so it is invisible
+> to gem5 and `-r 1` does land on the real checkpoint -- the two-dir situation is
+> genuinely safe, not merely tolerated, and `-r 1` `fatal()`s rather than guessing
+> if nothing matches. Second, the gap: a stale, interrupted `cpt.<lower-tick>`
+> with an empty `m5.cpt` would pass the "exactly one non-empty `m5.cpt`" test and
+> then be silently restored by gem5 in preference to the good one. The gate now
+> additionally requires that the directory gem5 will pick is the directory it
+> validated. Exercised over four synthetic shapes -- real T4 shape PASS, stale
+> lower-tick REFUSE, two genuine checkpoints REFUSE, no checkpoint REFUSE -- and
+> against the live T4 directory, read-only, PASS. No stale dir is present today;
+> the hardening is for the re-runs, since T5 restores this checkpoint three times.
+> Separately, `/tmp` on mos181 is **tmpfs**, so `/tmp/w7` (10 completed cells,
+> ~20 host-hours) and `/tmp/w8_boot.log` live in RAM only; both are now mirrored
+> to `~/tmpfs_backup/` on ext4. That is the F10 lesson applied before the loss
+> rather than after.
