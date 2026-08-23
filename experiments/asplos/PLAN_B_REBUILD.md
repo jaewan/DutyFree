@@ -1400,3 +1400,15 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > while silently dropping all but the first. A reader that truncates the quantity
 > it exists to report, or cries wolf loudly enough to hide a real duplicate, is
 > the failure the file warns about.
+
+> **2026-08-24 — arm 2's reading fixed before arm 2's data (W8.6 addendum).**
+> Committed mid-run. Three things it buys: G2 acquires no innocent failure mode
+> (the `pte_query` interface is verified present in the booted `vmlinux` by `nm`,
+> not assumed from `.config`, which is newer than the binary), so a G2 FAIL is a
+> real finding about the mprotect path; G1's `>0` gate is qualified by a
+> magnitude expectation (4,096 declared pages → O(10^3)–O(10^4), a single-digit
+> count is a stray page and must not be reported as the object being classified);
+> and G3 >> G1 is registered as the coherence check. Also: qualification B moved
+> from inferred to observed via a live `bindpool called outside SE mode` warning,
+> which simultaneously proves G5's mechanism works for runtime warnings before
+> arm 3 is spent on it.
