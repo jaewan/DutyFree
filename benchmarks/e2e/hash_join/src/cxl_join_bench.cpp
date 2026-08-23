@@ -93,6 +93,11 @@ struct Config {
   bool scan_memcpy = false;
   bool no_stream = false;
   double pre_measure_sleep_s = 0.0;
+  // W7 Knob B (W7_PREREGISTRATION_2026-08-23.md section 2). 0 = off, and off is
+  // bit-for-bit the pre-W7 code path: join_range is not touched and the batched
+  // variant is not called. k > 1 software-pipelines the probe so k independent
+  // hash-table loads are in flight at once.
+  int probe_batch = 0;
 };
 
 static inline uint64_t rdtsc() {
@@ -513,6 +518,86 @@ Result join_range_local(const std::vector<Entry> &table, const Fact *fact, size_
   return r;
 }
 
+// W7 Knob B -- batched (software-pipelined) probe. Identical results to
+// join_range by construction: the only change is WHEN the hash-table lines are
+// requested, not which ones or what is done with them.
+//
+// join_range's dependent chain per tuple is load fact[i] -> hash64 (5 dependent
+// ALU ops) -> load table[pos] -> compare. GATE1_FUSED_NULL_CORRECTION_2026-08-15
+// section 4 measures ~1.3 lines in flight against a 16-entry L1d TBE budget --
+// 8.1% occupancy -- so an efficiency gain at the HNF has nothing to convert
+// into. Here k tuples are hashed first, then their k table lines are loaded as
+// k INDEPENDENT loads, and only then are the k results consumed.
+//
+// Real loads, not _mm_prefetch: a prefetch is a hint that a model may drop, and
+// the whole point of the cell is to put a known number of lines in flight.
+// Loading the Entry itself also does double duty -- the common case (first slot
+// hits or is empty) is resolved without a second access.
+//
+// The finish loop reproduces probe() exactly, including linear-probe fallback
+// from pos+1 on collision, so `matches` and `sum` are equal to join_range's for
+// every input. --check compares them; that equality is the correctness gate.
+Result join_range_batched(const std::vector<Entry> &table, const Fact *fact, size_t begin,
+                          size_t end, const std::string &policy, int pf_distance, int k) {
+  Result r;
+  int pfd = std::max(0, pf_distance);
+  size_t mask = table.size() - 1;
+  // Stack arrays, not std::vector: the lane state must not sit behind a heap
+  // pointer the compiler has to reload. KMAX is the L1d TBE budget of the
+  // modelled core (16) doubled, which is past any k worth testing -- the point
+  // of the knob is to fill 16 entries, not to exceed them.
+  static const size_t KMAX = 32;
+  const size_t K = static_cast<size_t>(std::min<int>(std::max(1, k), (int)KMAX));
+  size_t pos[KMAX];
+  int64_t key[KMAX];
+  Entry ent[KMAX];
+  size_t i = begin;
+  for (; i + K <= end; i += K) {
+    // Stage 1: k independent hashes. No memory dependence between lanes.
+    for (size_t j = 0; j < K; ++j) {
+      if (policy == "nta" && i + j + static_cast<size_t>(pfd) < end) {
+        _mm_prefetch(reinterpret_cast<const char *>(&fact[i + j + pfd]), _MM_HINT_NTA);
+      }
+      key[j] = fact[i + j].fk;
+      pos[j] = hash64(static_cast<uint64_t>(key[j])) & mask;
+    }
+    // Stage 2: k independent hash-table loads. This is the stage that raises
+    // memory-level parallelism, and the only reason this function exists.
+    for (size_t j = 0; j < K; ++j) ent[j] = table[pos[j]];
+    // Stage 3: consume. Slow path only on a collision that is not resolved by
+    // the line already loaded.
+    for (size_t j = 0; j < K; ++j) {
+      if (ent[j].key == 0) continue;
+      if (ent[j].key == key[j]) {
+        r.matches++;
+        r.sum += fact[i + j].measure;
+        continue;
+      }
+      size_t p = (pos[j] + 1) & mask;
+      while (true) {
+        const Entry &e = table[p];
+        if (e.key == 0) break;
+        if (e.key == key[j]) {
+          r.matches++;
+          r.sum += fact[i + j].measure;
+          break;
+        }
+        p = (p + 1) & mask;
+      }
+    }
+  }
+  // Tail: fewer than K tuples remain. Serial, same as join_range.
+  for (; i < end; ++i) {
+    int64_t payload = 0;
+    if (probe(table, fact[i].fk, &payload)) {
+      (void)payload;
+      r.matches++;
+      r.sum += fact[i].measure;
+    }
+  }
+  return r;
+}
+
 uint64_t stream_tuple_loop(const Fact *fact, size_t n) {
   uint64_t s0 = 0, s1 = 0, s2 = 0, s3 = 0;
   for (size_t i = 0; i < n; i += 4) {
@@ -749,6 +834,9 @@ void emit_json_prefix(const Config &c, void *fact, uint64_t fact_bytes, const st
                       const std::vector<std::string> &roles = {}) {
   std::cout << "{";
   std::cout << "\"mode\":\"" << json_escape(c.mode) << "\",";
+  // W7: the arm identity travels with the record (Sec5.1 rule). A batched run
+  // and a serial run are different arms and must never be compared without it.
+  std::cout << "\"probe_batch\":" << c.probe_batch << ",";
   std::cout << "\"policy\":\"" << json_escape(c.policy) << "\",";
   std::cout << "\"fact_bytes\":" << fact_bytes << ",";
   std::cout << "\"hot_bytes\":" << c.hot_bytes << ",";
@@ -1370,6 +1458,18 @@ void run_morsel(Config c) {
   std::vector<uint64_t> thread_xhash(c.threads, 0);
   bool want_hash = c.result_hash;
   bool no_stream = c.no_stream;
+  int probe_batch = c.probe_batch;
+  // Silently ignoring one of two mutually exclusive flags is how an arm gets
+  // mislabelled. join_range_hashed has no batched twin, so refuse the pair.
+  if (want_hash && probe_batch > 1) {
+    std::cerr << "FATAL: --result-hash and --probe-batch>1 are mutually exclusive "
+                 "(join_range_hashed has no batched variant)\n";
+    std::exit(11);
+  }
+  if (no_stream && probe_batch > 1) {
+    std::cerr << "FATAL: --no-stream and --probe-batch>1 are mutually exclusive\n";
+    std::exit(11);
+  }
   auto worker = [&](int tid) {
     pin_cpu(cpus[tid]);
     while (true) {
@@ -1382,6 +1482,8 @@ void run_morsel(Config c) {
         rr = join_range_local(table, fact, local_n, begin, end, c.policy, c.pf_distance);
       } else if (want_hash) {
         rr = join_range_hashed(table, fact, begin, end, c.policy, c.pf_distance, &thread_xhash[tid]);
+      } else if (probe_batch > 1) {
+        rr = join_range_batched(table, fact, begin, end, c.policy, c.pf_distance, probe_batch);
       } else {
         rr = join_range(table, fact, begin, end, c.policy, c.pf_distance);
       }
@@ -1542,6 +1644,7 @@ Config parse(int argc, char **argv) {
       return argv[++i];
     };
     if (a == "--mode") c.mode = need("--mode");
+    else if (a == "--probe-batch") c.probe_batch = std::stoi(need("--probe-batch"));
     else if (a == "--policy") c.policy = need("--policy");
     else if (a == "--self-test") c.self_test = need("--self-test");
     else if (a == "--fact-bytes") c.fact_bytes = parse_size(need("--fact-bytes"));

@@ -1,5 +1,26 @@
 # W7 pre-registration — necessity and benefit at the same operating point
 
+> **Amendment 1, 2026-08-24 — Knob B's `k` is set to 16, not 8.** §2 says
+> "`k = 8`, tunable"; this is the tuning. It is recorded here, above the
+> original, per §6, and the original text below is unchanged. Justification is
+> a native measurement made **before any A1 or gem5 datum exists** and blind to
+> the outcome: against a 512 MiB hot table on mos181 (LLC 320 MiB, so the probe
+> misses for real) `active_cycles_per_access` falls 132.63 → 112.43 → 90.83 →
+> 77.49 for k = 0, 8, 16, 32. k=8 buys 1.18×, k=16 buys 1.46×, and the gain
+> saturates by 32. k=16 is also exactly the modelled core's L1d TBE budget, so
+> §2's target of "≥8 of the 16 TBEs occupied" is centred rather than at the
+> edge. **k=2 is worse than serial** and the knob must not be set below 4.
+> Full data and the correctness gate: `W7.1_KNOB_B_2026-08-24.md`.
+>
+> **Amendment 2, same day — the `--check` clause in §2 is withdrawn.** §2 says
+> the `matches_last_rep` equality check "remains a valid correctness gate across
+> arms." The equality gate is valid and is what W7 uses. The `--check` *flag* is
+> not: `c.check` is read only in `run_single`, and `run_morsel` ignores it
+> entirely, so the flag has been inert in every morsel run ever made — including
+> the ones `run_gem5_fused_null.py` passes it to. Ledger **F12**. The gate is
+> the cross-arm comparison, performed explicitly, not a flag.
+
+
 Written 2026-08-23, before any run. Design only; nothing here has been executed.
 Per §6.6 the predictions and their falsifiers are fixed now, not after.
 

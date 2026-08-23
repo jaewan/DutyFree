@@ -394,6 +394,25 @@ why the argument does not need the benefit magnitude to be large.
 
 ## W7 -- Necessity and benefit at the same operating point. The structural gap.
 
+> **W7.1 done 2026-08-24, zero gem5 hours: `W7.1_KNOB_B_2026-08-24.md`.** Knob B
+> (the batched probe) is built, correctness-gated on 30 configurations including
+> odd `k` and prime morsel sizes, and tuned. `--probe-batch k` is new; at 0 or 1
+> the binary takes the untouched `join_range` path. Against a 512 MiB hot table
+> on mos181 it cuts `active_cycles_per_access` **132.63 → 77.49 (1.71x)** at
+> k=32 and 1.46x at k=16 -- the MLP signature, confirmed before any gem5 time.
+> **`k` amended 8 → 16** in the pre-registration, above the original, with the
+> measurement that justifies it. Binaries build to `cxl_join_bench_w7{,.gem5}`;
+> the pre-W7 binaries are hash-verified unchanged (F10). Also found: **F12**,
+> `--check` is inert in `--mode morsel` and the fused-null runner passes it
+> anyway.
+>
+> **Next, and it gates the campaign: a runtime calibration run.**
+> `GEM5_FUSED_NULL_OUTCOME.md` records T1 stopped at 1:11:28 with zero-byte
+> stats for all three arms at 16 MiB fact x (1 warmup + 3 reps). W7 is 24 runs.
+> One short run must establish cycles-per-hour before any of them launch -- a
+> campaign that does not finish produces nothing, and this one has already
+> failed that way once.
+
 Today the workload that proves necessity (fused) is explicitly *not* where H2
 pays off: it runs at 0.52 GB/s against 4.17 achievable, MLP-limited by its own
 dependent probe chain, so there is nothing for an admission fix to relieve. No
