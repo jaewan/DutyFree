@@ -14,7 +14,15 @@ Pre-registration: W7_PREREGISTRATION_2026-08-23.md sections 3 (P1-P5) and its
                     Verified against the 2026-08-15 table: 1345828/(1345828+
                     1165875) = 53.58%, published as 53.6%.
   HNF fills         7th (HNF) column of Cache_Controller.DataArrayWriteOnFill.
-                    Verified: 1340360 at the 4 MiB WB arm, as published.
+                    Verified: 1340360 at the 4 MiB WB arm, as published.  The 7
+                    columns are the 7 Cache_Controller instances (2 cores x
+                    L1I/L1D/L2, plus the HNF), so the last one is the HNF.
+  HNF array writes  hnf.cntrl.cache.numDataArrayWrites -- ALL data-array writes
+                    at the HNF, not only fills.  Added 2026-08-24: at A1 the two
+                    diverge sharply (1,475,801 writes vs 321,818 fills) because a
+                    resident line is updated in place by the thrashing L2's clean
+                    evictions, and it is this counter, not fills, that shows H2
+                    is active at A1.  See W7.2_A1_SIZING_2026-08-24.md addendum.
   fused GB/s        the bench's own stream_bandwidth_gbps (morsel) or
                     bandwidth_gbps (stream-smoke), measured over the timed
                     region. NOT CXL bytes / simSeconds -- checked 2026-08-24
@@ -99,6 +107,7 @@ def row(name):
         cxl_read=cxl,
         llc_hit=(hits / (hits + miss) * 100) if (hits + miss) else 0.0,
         fills=s["_hnf_fills"],
+        hnfwr=s.get("system.ruby.hnf.cntrl.cache.numDataArrayWrites", 0.0),
         gbs=gbs,
         whole=whole,
         lif=gbs * 1e9 * CXL_LAT_S / LINE_B,
@@ -112,7 +121,8 @@ def agg(cells):
     if not rs:
         return None
     out = {"n": len(rs)}
-    for k in ("cyc", "dram_read", "cxl_read", "llc_hit", "fills", "gbs", "whole", "lif", "host"):
+    for k in ("cyc", "dram_read", "cxl_read", "llc_hit", "fills", "hnfwr",
+              "gbs", "whole", "lif", "host"):
         v = [r[k] for r in rs if r[k] is not None]
         if v:
             out[k] = st.mean(v)
@@ -134,14 +144,15 @@ def main():
 
     print("== cells (mean of completed seeds) ==")
     hdr = f"{'cell':<14}{'n':>2} {'cyc/acc':>9} {'sd':>7} {'LLChit%':>8} {'DRAMrd MB':>10} " \
-          f"{'CXLrd MB':>9} {'GB/s':>7} {'wholeBW':>8} {'lines':>6} {'fills':>10} {'host h':>7}"
+          f"{'CXLrd MB':>9} {'GB/s':>7} {'wholeBW':>8} {'lines':>6} {'fills':>10} {'hnfWr':>10} {'host h':>7}"
     print(hdr)
     for k in sorted(grid):
         a = grid[k]
         print(f"{'_'.join(k):<14}{a['n']:>2} {a.get('cyc',0):>9.3f} {a.get('cyc_sd',0):>7.3f} "
               f"{a.get('llc_hit',0):>8.2f} {a.get('dram_read',0)/1e6:>10.2f} "
               f"{a.get('cxl_read',0)/1e6:>9.2f} {a.get('gbs',0):>7.3f} {a.get('whole',0):>8.3f} {a.get('lif',0):>6.2f} "
-              f"{a.get('fills',0):>10.0f} {a.get('host',0)/3600:>7.2f}")
+              f"{a.get('fills',0):>10.0f} {a.get('hnfwr',0):>10.0f} "
+              f"{a.get('host',0)/3600:>7.2f}")
 
     print("\n== correctness gate (F12: --check is inert in morsel mode; this IS the gate) ==")
     print(f"distinct matches_last_rep across all completed cells: {sorted(allmatch)}")
@@ -223,6 +234,12 @@ def main():
                 print(f"{A}_SMOKE_{pol:<7} {r['gbs']:.3f} GB/s  lines {r['lif']:.2f}  "
                       f"CXL {r['cxl_read']/1e6:.2f} MB = {passes:.2f} passes over the fact array  "
                       f"host {r['host']/3600:.2f} h{flag}")
+                # hnfWr vs fills separates "H2 did nothing" from "H2 did something
+                # that did not reach memory".  At A1 the first is false and the
+                # second is true; fills alone cannot tell them apart.
+                print(f"{'':16} HNF data-array writes {r['hnfwr']:>10.0f}   "
+                      f"of which fills {r['fills']:>10.0f} "
+                      f"({100*r['fills']/r['hnfwr'] if r['hnfwr'] else 0:.1f}%)")
 
 
 if __name__ == "__main__":
