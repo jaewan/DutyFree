@@ -1050,3 +1050,44 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > T5 quantity must name "2 × 5 MiB HNF slices, 10 MiB aggregate" at its point of
 > use (§5.1). Third independent reason no performance comparison is licensed out
 > of T5, and a caution for any future FS↔SE calibration.
+
+> **2026-08-24 04:00, W7 P2 is FALSIFIED — the campaign's first hard negative.**
+> `W7.3_P2_FALSIFIED_2026-08-24.md`. Written with 22 of 28 cells complete and the
+> A0 2×2 done at n=3, deliberately *before* the campaign drained, so the
+> falsification cannot have been shaped by what the remaining cells say. At
+> A0/B1 H2 (k=16, 5 MiB/20 LLC, 2 MiB/16 private L2, 4 MiB hot table, 203 ns CXL)
+> the fused kernel holds **1.77 lines in flight** against a registered target of
+> ≥6 and an explicit floor of <3, and **0.558 GB/s** against ≥2.0. Not marginal
+> (seed sd ≤0.16%) and **not protected**: W7.2's asymmetric reading rule covers
+> only P1 and P3 at the mis-sized A1, and says in terms that "P2 is unaffected …
+> A0's reference is sound."
+>
+> The finding underneath the verdict is that the pre-registration's *explanation*
+> of a sub-3 result — "the batching did not take" — is itself false. Batching
+> took: **−20.7% cyc/access under H2 and −20.1% under WB** (so it is orthogonal
+> to admission), **+26% bandwidth**, at **unchanged traffic** (CXL 61.53 → 61.54
+> MB), which is the signature of a pure rescheduling knob that engaged. So the
+> verdict is the third reading the pre-registration did not enumerate: the knob
+> works and this kernel's expressible MLP is ~1.8 lines, not ≥6. The target was
+> not unreachable — the A0 stream-smoke sustains **14.62 lines** on the same
+> machine at 3.89 genuine CXL passes, so ≥6 was 41% of a measured ceiling and the
+> join reaches 12% of it. **The limit is the kernel, not the memory system.**
+> `k` is not retuned; W7.1's addendum pre-committed to that and its 1.72-line
+> smoke predicted the falsified quantity to within 3% before launch.
+>
+> Three things recorded against my own report. (1) The registered `lines` metric
+> is `GB/s × 3.1719` — a monotone rescaling — so **P2 is one test stated twice,
+> not two independent halves**, and must not be presented as doubly falsified.
+> (2) No MSHR-occupancy stat exists in this build and `lqAvgOccupancy` is
+> forbidden as a substitute; both limits were registered before the data, so per
+> §6.6 and row 35 the metric is not swapped after seeing the result. (3) The
+> pre-registration's strong-negative story required "P3 fails with P1 and P2 both
+> confirmed" — **that story is now unavailable**, and any W7 negative must be
+> reported in the weaker form.
+>
+> What A0/B1 still buys, reported as an observation and not as a P2 outcome:
+> H2 removes **59.8% of HNF fills** and **22.6% of DRAM reads** there while
+> moving time by **1.23%**. §5.2 applied before believing that null — the 4 MiB
+> hot table does not fit the 2 MiB private L2, so it is not an L2-residency
+> artifact. That is the L3 problem stated quantitatively. P1/P4/P5 stay open;
+> P3 completed at n=3 (+0.63%) and is not adjudicated in this memo.
