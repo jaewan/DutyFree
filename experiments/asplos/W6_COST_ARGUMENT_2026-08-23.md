@@ -46,8 +46,14 @@ which is the point.
    from `needCacheEntry` ("Intel NINE accurate"). Within-campaign arm
    comparisons are unaffected (both arms share the binary), but no number we
    report is "STREAMING vs. stock gem5."
-3. **The measured H3 arm is not the described H3** (W1.2). The 1.061x is an
-   upper bound until the separable arm runs.
+3. **The measured H3 arm is not the described H3** (W1.2). It is realization
+   (a) of `H3_MODELCHECK.md`'s taxonomy — ReadOnce, no retention in any cache
+   — not the retain-and-skip mechanism the text implies. Per W1.2's revision
+   this does *not* make 1.061x an upper bound (the streamer's traffic into the
+   shared level rises 58% per cycle under H3, so the confound runs the wrong
+   way), but the realization must be named where the number is used. The sound
+   retaining alternatives (b) and (c) are unbuilt and each costs an
+   epoch-boundary drain — the same unmeasured quantity as W6.2's.
 
 ## W6.2 — OS cost
 
