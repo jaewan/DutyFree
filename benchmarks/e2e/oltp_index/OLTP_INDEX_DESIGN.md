@@ -21,6 +21,11 @@
 > victim granted 12 of 16 ways — see `GPROBE_OUTCOME.md` §5.2–5.3. This design
 > aimed at the one victim population that turns out to be immune.
 >
+> That surviving tax is a bandwidth charge, not an unoccupied corner:
+> CAT+MBA together take it to **1.07×** while the streamer keeps **96%** of its
+> bandwidth (`GPROBE_OUTCOME.md` §5.6). What survives is only that
+> way-partitioning alone recovers almost none of it (18.73× → 13.05×).
+>
 > This document is kept unedited below as the pre-registration it was, so that
 > the prediction and the result can be read against each other. Do not resume
 > it without reading `GPROBE_OUTCOME.md` §6 first.

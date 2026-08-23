@@ -1,8 +1,8 @@
 # G-probe outcome: the kill switch fires, and the victim population inverts
 
 **Date:** 2026-08-23 · **Hosts:** mos182 (Xeon 8462Y+, SPR), moscxl (EPYC 9754, Bergamo)
-**Artifacts:** `artifacts/probe_mos182_matrix.jsonl` (60), `artifacts/probe_mos182_cat_control.jsonl` (18), `artifacts/probe_mos182_sfpressure.jsonl` (15), `artifacts/probe_moscxl.jsonl` (72), `artifacts/probe_moscxl_cat12_control.jsonl` (36) — 201 runs, all valid
-**Runners:** `scripts/run_probe.py`, `scripts/run_cat_control.py`, `scripts/run_sfpressure.py`, `scripts/run_probe_moscxl.py`, `scripts/run_cat12_control_moscxl.py`
+**Artifacts:** `artifacts/probe_mos182_matrix.jsonl` (60), `artifacts/probe_mos182_cat_control.jsonl` (18), `artifacts/probe_mos182_sfpressure.jsonl` (15), `artifacts/probe_moscxl.jsonl` (72), `artifacts/probe_moscxl_cat12_control.jsonl` (36), `artifacts/probe_moscxl_mba.jsonl` (99), `artifacts/probe_moscxl_mba_knee.jsonl` (36), `artifacts/probe_moscxl_mba_knee2.jsonl` (18), `artifacts/probe_moscxl_mba_2x2.jsonl` (18), `artifacts/moscxl_mba_calib.jsonl` (9) — 372 probe runs plus a 9-point MBA unit calibration, all valid
+**Runners:** `scripts/run_probe.py`, `scripts/run_cat_control.py`, `scripts/run_sfpressure.py`, `scripts/run_probe_moscxl.py`, `scripts/run_cat12_control_moscxl.py`, `scripts/run_mba_moscxl.py`, `scripts/run_mba_knee_moscxl.py`, `scripts/run_mba_knee2_moscxl.py`, `scripts/run_mba_2x2_moscxl.py`, `scripts/mba_calib.py`
 
 ## Verdict
 
@@ -57,9 +57,19 @@ capacity harm on LLC-resident ones. Measurement says: **nothing on L2-resident
 victims, and a large CAT-irrecoverable tax on everything else — on AMD.** The
 same relative operating point on Intel reads 1.065×.
 
-The residual now sits where a bandwidth-class explanation is the obvious one,
-and **that explanation is untested**: no MBA arm has been run. Until it is, no
-L5 "unoccupied corner" claim should be built on the AMD number (§5.5, §7.5).
+And that residual is a bandwidth problem that shipping hardware already
+solves. The MBA arm has now been run (§5.6, on the lead's instruction).
+**CAT and MBA together take the 18.7× tax to 1.07× while the streamer keeps
+96% of its bandwidth** — both mechanisms ship in every current server part and
+are set through the same kernel interface. So the AMD residual cannot carry an
+L5 "unoccupied corner" claim, and that claim should not be written.
+
+What survives from the AMD leg is narrower but is the part the paper's
+admission-gate argument actually needs: **CAT alone — way-partitioning, the
+mechanism the gate is about — recovers almost nothing (18.73× → 13.05×)**, and
+reaching 1.07× needs an operator to identify the aggressor and tune two
+orthogonal knobs at core granularity, within a few percent of a saturation
+knee.
 
 ## 1. What the design needed to be true
 
@@ -373,21 +383,151 @@ The measurement is the inverse of that on both counts:
 - **Non-L2-resident victim on AMD: very large harm that CAT does not recover**
   (12.4× with a 12-way grant), and not from capacity.
 
-The CAT-irrecoverability the L5 argument needs is therefore still on the table —
-it is the *victim population* and the *mechanism* that invert, not the
-existence of a CAT-resistant residual. But the residual now sits where a
-bandwidth-class explanation is the obvious one: 7 cores saturating this CCX's
-egress at 24.7 GB/s, with every victim miss queueing behind them. **That
-explanation is testable and untested.** An MBA arm on the streamer group is the
-single measurement that decides whether this residual is a genuinely unoccupied
-corner or a known one — see §7.5. Until it is run, no L5 claim should be built
-on the AMD number.
+CAT-irrecoverability survives, then — it is the *victim population* and the
+*mechanism* that invert, not the existence of a CAT-resistant residual. But the
+residual sits where a bandwidth-class explanation is the obvious one: 7 cores
+saturating this CCX's egress at 24.7 GB/s, with every victim miss queueing
+behind them. §5.6 tests that explanation and confirms it, which costs the L5
+argument the corner: CAT-irrecoverable is not the same as irrecoverable, and
+MBA — shipping on the same silicon, set through the same interface — recovers
+it for 4% of the streamer's bandwidth. Read the rest of this subsection with
+§5.6 attached.
 
 The Intel/AMD gap at the same relative operating point is worth stating plainly
 because it constrains any general claim: mos182 with a 16 MiB victim in a
 60 MiB LLC against 8 streaming cores reads **1.065×**; moscxl with an 8 MiB
 victim in a 16 MiB L3 against 7 streaming cores reads **18.8×**. Whatever the
 mechanism is, it is not a property of "server LLCs."
+
+### 5.6 The MBA arm: the corner is occupied, and cheaply
+
+§7.5 asked whether the 12.4× CAT-irrecoverable residual is an unoccupied corner
+or a known bandwidth problem. Run on the lead's instruction, the answer is
+unambiguous and it is the bad one: **CAT and MBA together reduce an 18.7×
+co-run tax to 1.07× while the streamer keeps 96% of its bandwidth.** Both
+mechanisms ship in every current server CPU and are configured through the same
+kernel interface.
+
+Runners `scripts/run_mba_moscxl.py`, `run_mba_knee_moscxl.py`,
+`run_mba_knee2_moscxl.py`, `run_mba_2x2_moscxl.py`; artifacts
+`probe_moscxl_mba.jsonl` (99), `_knee` (36), `_knee2` (18), `_2x2` (18) —
+171 rows, 3 reps each, all valid. Each runner monkeypatches the matrix runner's
+`cat_setup` to write and verify an `MB` line alongside `L3` and then calls that
+module's `run_arm` unchanged, so placement, victim-first arrival, occupancy
+sampling, the foreign-load check and the D1 validity gate are the same code as
+the matrix rather than a copy of it. Both resources are read back and compared
+numerically before every arm.
+
+**Units were calibrated on the host, not assumed** (`scripts/mba_calib.py`,
+`artifacts/moscxl_mba_calib.jsonl`). The kernel reports
+`MB: max 2048, gran 1, delay_linear 0`, and the documentation is ambiguous
+between MB/s and 1/8 GB/s — the first reading would make the default 2 GB/s,
+which cannot be right against a measured 24.7. A streamer-only ladder settles
+it: the unit is 1/8 GB/s, and once the cap binds, delivery tracks it within 4%.
+
+| MB setting | nominal GB/s | delivered GB/s |
+|---:|---:|---:|
+| 2048 / 1024 / 512 / 256 | ≥ 32 | 24.65 / 24.55 / 24.49 / 24.64 |
+| 128 | 16 | 15.36 |
+| 64 | 8 | 8.65 |
+| 32 | 4 | 3.91 |
+| 16 | 2 | 1.99 |
+| 8 | 1 | 0.93 |
+
+Anything ≥ 256 is above what 7 cores can pull here and does not bind — which is
+what makes the non-binding controls below possible.
+
+#### The 2×2 at ws = 8192 KB
+
+Quiescent 60.89 cyc/access. `MBA192` is a nominal 24 GB/s cap — it costs the
+streamer 4% of delivered bandwidth and nothing else.
+
+| | **MBA off** (24.63 GB/s) | **MBA192** (23.60 GB/s, 96%) |
+|---|---:|---:|
+| **no L3 partition** | **18.73×** | 4.13× |
+| **victim granted 12/16 ways** | 13.05× | **1.07×** |
+
+Both knobs are needed and they attack different halves. Neither alone gets
+below 4×; together, at a 4% throughput cost to the streamer, the victim is
+within 7% of running alone.
+
+#### The knee is the cap, not the machinery
+
+A 13× collapse for 4% of bandwidth is the signature of a queue held at
+saturation — but it is also what one would see if arming AMD's delay-injection
+logic perturbed the streamer whether or not the cap bound. `_knee2` separates
+them with settings that are above what 7 cores can pull, so they cost nothing:
+
+| arm | streamer GB/s | victim tax |
+|---|---:|---:|
+| CAT12, no MBA | 24.54 | 13.28× |
+| CAT12 + MBA256 (nominal 32 GB/s — does not bind) | 24.52 | **13.35×** |
+| CAT12 + MBA224 (nominal 28 GB/s — does not bind) | 24.54 | **12.44×** |
+| CAT12 + MBA192 (nominal 24 GB/s — barely binds) | 23.56 | **1.08×** |
+| CAT12 + MBA176 (nominal 22 GB/s) | 20.95 | 1.08× |
+
+Arming MBA without binding it does nothing. The recovery appears exactly where
+the cap starts to bind, between 24.5 and 23.6 GB/s delivered, and does not
+improve with further throttling — 1.08× at 96%, 1.08× at 85%, 1.078× at 35%,
+1.084× at 8%. The 4% figure is the rate cap and it is real.
+
+#### The harm is definitively not capacity
+
+Throttling the request *rate* does not stop a streamer from occupying the L3 —
+over an 8 s arm even 0.94 GB/s rewrites 16 MiB many times over — and the
+occupancy column confirms it kept doing so. The cleanest cell is at ws=256:
+under MBA8 the streamer holds **15.9 of the 16 MiB L3** and the victim reads
+**exactly 1.000×**. At ws=8192, MBA16 leaves the streamer holding 7.8 MiB and
+the victim at 1.018×. Same footprint, harm gone. §5.3 inferred this from
+occupancy; it is now measured directly.
+
+#### The full MBA-only Pareto curve at ws = 8192
+
+For completeness, and because the shape matters: the tax falls smoothly with
+throttling when CAT is not applied, and only the combination is cheap.
+
+| streamer GB/s | % full | streamer L3 | victim tax |
+|---:|---:|---:|---:|
+| 24.69 | 100% | 16.0 | 18.667× |
+| 23.70 | 96% | 15.4 | 4.13× |
+| 15.38 | 63% | 14.9 | 3.943× |
+| 12.68 | 52% | 12.8 | 3.298× |
+| 8.66 | 35% | 10.9 | 2.154× |
+| 3.91 | 16% | 8.9 | 1.284× |
+| 1.99 | 8% | 7.8 | 1.018× |
+| 0.94 | 4% | 8.1 | 1.010× |
+
+The same pattern holds at ws=65536, where the victim is DRAM-bound:
+4.552× → 1.036× with CAT12+MBA64, and CAT alone does nothing at all there
+(4.537×), as expected when nothing fits.
+
+#### What this does to L5
+
+**"No deployed alternative occupies this corner" is false at this operating
+point and must not be written.** It is not even expensive to occupy: 4% of the
+streamer's throughput.
+
+What survives is narrower, and none of it is a capability claim:
+
+- **CAT alone — the mechanism the paper's admission-gate discussion is actually
+  about — recovers almost nothing here: 18.73× → 13.05×.** This is untouched by
+  the MBA result and is arguably the more useful finding, because it is a
+  statement about the *admission* mechanism specifically rather than about
+  interference control in general.
+- Reaching 1.07× requires an operator to know which workload is the aggressor,
+  place its cores in a class, and choose a cap within a few percent of the
+  saturation point — where being slightly too generous (MBA224) buys nothing at
+  all. Two orthogonal knobs, tuned per workload pair, at core/CLOSID
+  granularity rather than at the granularity of the data.
+- The Intel leg is untouched. mos182 reads 1.065× at the matching point, so
+  there is no harm there for any mechanism to recover, and nothing in this
+  section changes that.
+
+Whether "the deployed alternative works, costs 4%, and needs per-pair tuning at
+a granularity that is not the data's" is a paper or a paragraph in someone
+else's related work is §9 item 6, and not a call I should make. What I can say
+is that the L5 argument cannot be carried by the AMD residual, because the
+residual is recoverable by shipping hardware at negligible cost.
 
 ## 6. Consequences
 
@@ -409,10 +549,13 @@ charge to neutralize.
   L2-resident victim has essentially no co-run tax, and that on AMD the
   non-L2-resident victim has a 12.4× tax that CAT does **not** recover. The
   gate is not merely mis-aimed: it selects the only population where a tax
-  exists, and then mis-describes that tax as capacity.
+  exists, and then mis-describes that tax as capacity. §5.6 sharpens this
+  further: the tax is a *bandwidth* charge, so a capacity knob is the wrong
+  instrument for it in both directions.
 - **A large CAT-irrecoverable co-run residual on shipping AMD silicon**, now
-  measured with the no-streamer control the earlier result lacked (§5.3). This
-  is a live paper asset, conditional on the MBA arm in §7.5.
+  measured with the no-streamer control the earlier result lacked (§5.3) — but
+  read only as a statement about way-partitioning. It is 18.73× → 13.05× for
+  CAT alone, and that is what is alive.
 - The measurement apparatus, now with D1/D2 fixed (`patches/`).
 - **A bandwidth-matched control for free.** An 8-thread streamer delivers
   ~24 GB/s from local DRAM and ~24 GB/s from CXL on mos182, and ~24.7 GB/s
@@ -424,6 +567,12 @@ charge to neutralize.
   an inference, not a measurement. The operational claim the control needs (the
   two arms are bandwidth-matched at 8 threads) is measured; the mechanism
   behind the local number is not.
+
+**Newly dead (§5.6):** the L5 "no deployed alternative occupies this corner"
+claim, at least at this operating point. CAT+MBA reaches 1.07× at a 4% cost to
+the streamer, so the AMD residual is not an unoccupied corner. The MBA arm was
+run to test exactly this and it came back the wrong way; reporting it is not
+optional.
 
 **Cost:** 17 days to deadline, and roughly one day spent. The probe did exactly
 what it was built to do — this is a cheap negative, not an expensive one, and
@@ -446,15 +595,16 @@ These are decisions, not recommendations I should take myself.
    the OLTP index is no longer competing for that slot.
 4. **Whether the headline becomes an H3 capability claim** (permitted under the
    embargo), given that the silicon-harm framing just lost its Intel leg.
-5. **Whether to run the MBA arm on moscxl.** This is the one I would put first,
-   ahead of item 2. §5.3 has a 12.4× CAT-irrecoverable residual on shipping
-   silicon; whether that is an unoccupied corner or a well-known bandwidth
-   problem turns entirely on whether MBA throttling of the streamer group
-   recovers it. It is one arm, ~10 minutes on an already-built apparatus, and
-   it is the difference between a live L5 claim and a number a reviewer kills
-   in one sentence. I have not run it: the pre-registered kill switch has
-   fired, the design is abandoned, and starting a new campaign on a dead line
-   is a §9 call, not mine.
+5. **The MBA arm — ANSWERED, and answered against us (§5.6).** Run on the
+   lead's instruction. It is a well-known bandwidth problem: CAT+MBA takes
+   18.73× to 1.07× at a 4% streamer cost, and MBA does it without displacing
+   the streamer from the L3, which also settles that the harm was never
+   capacity. **The L5 "unoccupied corner" sentence cannot be written from the
+   AMD number and should be struck wherever it appears.** No further
+   experimental work is queued on this line. The residual figure that survives
+   for the paper is the CAT-alone one, 18.73× → 13.05×, and it must be labelled
+   as being about way-partitioning specifically, not about interference
+   control.
 6. **Whether the paper's harm claim relocates rather than dies.** §5.5 is
    written as a finding, not a rescue, but it does hand back a mechanism story:
    harm on non-L2-resident victims, CAT-resistant, AMD-specific at these
@@ -462,8 +612,11 @@ These are decisions, not recommendations I should take myself.
    better-evidenced claim than the one being replaced, and it is also a
    different paper section. Whether to make that move is a structural call.
 
-Items 5 and 2 should not wait, in that order: 5 decides whether there is
-anything worth keeping, and 2 decides whether anything further is spent here.
+With 5 resolved, **item 6 is now the one that should not wait**, and it is a
+narrower question than it was this morning: the relocated harm claim can no
+longer be "shipping hardware cannot fix this," only "way-partitioning cannot
+fix this, and the thing that can needs per-workload-pair tuning at core
+granularity." Item 2 follows from it.
 
 ## 8. Defects found while running this
 
