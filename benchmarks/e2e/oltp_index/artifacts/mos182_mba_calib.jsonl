@@ -1,0 +1,10 @@
+{"bw_gbps": 23.823, "dur_s": 4, "mb_readback": 100, "mb_set": 100, "node": 1, "threads": 8}
+{"bw_gbps": 23.952, "dur_s": 4, "mb_readback": 90, "mb_set": 90, "node": 1, "threads": 8}
+{"bw_gbps": 23.982, "dur_s": 4, "mb_readback": 80, "mb_set": 80, "node": 1, "threads": 8}
+{"bw_gbps": 23.963, "dur_s": 4, "mb_readback": 70, "mb_set": 70, "node": 1, "threads": 8}
+{"bw_gbps": 23.972, "dur_s": 4, "mb_readback": 60, "mb_set": 60, "node": 1, "threads": 8}
+{"bw_gbps": 23.934, "dur_s": 4, "mb_readback": 50, "mb_set": 50, "node": 1, "threads": 8}
+{"bw_gbps": 23.961, "dur_s": 4, "mb_readback": 40, "mb_set": 40, "node": 1, "threads": 8}
+{"bw_gbps": 23.879, "dur_s": 4, "mb_readback": 30, "mb_set": 30, "node": 1, "threads": 8}
+{"bw_gbps": 22.569, "dur_s": 4, "mb_readback": 20, "mb_set": 20, "node": 1, "threads": 8}
+{"bw_gbps": 12.571, "dur_s": 4, "mb_readback": 10, "mb_set": 10, "node": 1, "threads": 8}

@@ -1,8 +1,10 @@
 # G-probe outcome: the kill switch fires, and the victim population inverts
 
 **Date:** 2026-08-23 · **Hosts:** mos182 (Xeon 8462Y+, SPR), moscxl (EPYC 9754, Bergamo)
-**Artifacts:** `artifacts/probe_mos182_matrix.jsonl` (60), `artifacts/probe_mos182_cat_control.jsonl` (18), `artifacts/probe_mos182_sfpressure.jsonl` (15), `artifacts/probe_moscxl.jsonl` (72), `artifacts/probe_moscxl_cat12_control.jsonl` (36), `artifacts/probe_moscxl_mba.jsonl` (99), `artifacts/probe_moscxl_mba_knee.jsonl` (36), `artifacts/probe_moscxl_mba_knee2.jsonl` (18), `artifacts/probe_moscxl_mba_2x2.jsonl` (18), `artifacts/moscxl_mba_calib.jsonl` (9) — 372 probe runs plus a 9-point MBA unit calibration, all valid
-**Runners:** `scripts/run_probe.py`, `scripts/run_cat_control.py`, `scripts/run_sfpressure.py`, `scripts/run_probe_moscxl.py`, `scripts/run_cat12_control_moscxl.py`, `scripts/run_mba_moscxl.py`, `scripts/run_mba_knee_moscxl.py`, `scripts/run_mba_knee2_moscxl.py`, `scripts/run_mba_2x2_moscxl.py`, `scripts/mba_calib.py`
+**Artifacts (moscxl):** `probe_moscxl.jsonl` (72), `probe_moscxl_cat12_control.jsonl` (36), `probe_moscxl_mba.jsonl` (99), `probe_moscxl_mba_knee.jsonl` (36), `probe_moscxl_mba_knee2.jsonl` (18), `probe_moscxl_mba_2x2.jsonl` (18), `moscxl_mba_calib.jsonl` (9)
+**Artifacts (mos182):** `probe_mos182_matrix.jsonl` (60), `probe_mos182_cat_control.jsonl` (18), `probe_mos182_sfpressure.jsonl` (15), `mos182_wsext.jsonl` (75), `probe_mos182_mba.jsonl` (54), `probe_mos182_cat12_control.jsonl` (18), `mos182_mba_calib.jsonl` (10)
+— 519 probe runs plus two MBA unit calibrations, all valid, all in `artifacts/`
+**Runners:** `scripts/run_probe.py`, `run_cat_control.py`, `run_sfpressure.py`, `run_cat12_control_mos182.py`, `run_mba_mos182.py`, `mba_calib_mos182.py`, `run_probe_moscxl.py`, `run_cat12_control_moscxl.py`, `run_mba_moscxl.py`, `run_mba_knee_moscxl.py`, `run_mba_knee2_moscxl.py`, `run_mba_2x2_moscxl.py`, `mba_calib.py`
 
 ## Verdict
 
@@ -14,10 +16,17 @@ its interpretation fixed in advance:
 > running it first.
 
 **At the operating point the kill switch was written about — an L2-resident
-victim — the residual is small on both hosts.** On mos182 the largest mean
-co-run tax at any working set, in any arm, is 1.065×, and the largest single
-run is 1.11×. (Read that sentence with its scope attached: one working set out
-of L2, moscxl reads 18.8×. See "But do not read this as 'no harm'" below.)
+victim — the residual is small on both hosts.** On mos182 the typical reading
+there is 1.000× and nothing in the original matrix exceeds 1.065×.
+
+That matrix stopped at a 16 MiB victim, and its scope was later stated here as
+though it covered the host. It did not, and §5.7 corrects it: extending the
+sweep to a victim sized to the full 60 MiB LLC finds a **1.60×** co-run tax on
+mos182. The kill-switch verdict is untouched — it was always about the
+L2-resident victim — but no sentence in this document may say "the largest tax
+anywhere on mos182 is 1.065×". Read the null with its scope attached in both
+directions: one working set out of L2, moscxl reads 18.8×, and at a
+LLC-sized victim mos182 reads 1.60×. See "But do not read this as 'no harm'".
 
 At the L2-resident point itself the typical mos182 reading is **1.000×**, with
 the victim's L2 miss rate pinned at 0.00% while a co-resident streamer holds
@@ -70,6 +79,16 @@ mechanism the gate is about — recovers almost nothing (18.73× → 13.05×)**,
 reaching 1.07× needs an operator to identify the aggressor and tune two
 orthogonal knobs at core granularity, within a few percent of a saturation
 knee.
+
+**That is an AMD sentence, and §5.7 shows the Intel leg is the mirror image.**
+The same arm on mos182: MBA is inert (1.221× → 1.229× while removing 47% of
+the streamer's bandwidth), and CAT alone recovers the co-run tax *completely* —
+measured against its own no-streamer control, the residual is **0.997×**.
+mos182's harm is capacity and CAT is the right tool for it; moscxl's harm is
+bandwidth and CAT is the wrong tool. One control separates them on both hosts:
+MBA cuts the streamer's request rate without cutting its cache occupancy, so
+the AMD tax dying and the Intel tax surviving under it is direct evidence of
+which resource each is. Neither is the mechanism the design predicted.
 
 ## 1. What the design needed to be true
 
@@ -267,6 +286,10 @@ H2 and H3 is made or implied here. §5.3 is a magnitude and a CAT-recovery
 fraction, nothing more.)
 
 ## 5. moscxl — the harsh-capacity replication, and the finding that inverts
+
+*Host note: §5.1–§5.6 are all moscxl. §5.7 returns to mos182 to run §5.6's arm
+there, and is kept in this section because it only means anything read against
+§5.6. Every figure below names its host.*
 
 mos182 alone cannot distinguish "SPR does not back-invalidate" from "shipping
 server LLCs do not back-invalidate," and those are very different claims.
@@ -529,6 +552,153 @@ else's related work is §9 item 6, and not a call I should make. What I can say
 is that the L5 argument cannot be carried by the AMD residual, because the
 residual is recoverable by shipping hardware at negligible cost.
 
+### 5.7 The same MBA arm on Intel (mos182): the mirror image
+
+Repeating §5.6 on mos182 required two things before any arm could run, and both
+changed what the experiment is.
+
+**The knob is not the same knob.** moscxl's MB is a group-level 1/8 GB/s cap
+with 2048 steps. mos182 reports `bandwidth_gran 10, min_bandwidth 10,
+delay_linear 1, thread_throttle_mode max` — ten coarse steps of a *per-core*
+request delay scaled to one core's peak, not to the group's share of a shared
+ceiling. Calibrated on the host (`scripts/mba_calib_mos182.py`,
+`artifacts/mos182_mba_calib.jsonl`, 8 threads, the arms' own streamer):
+
+| MB | 100 | 90 | 80 | 70 | 60 | 50 | 40 | 30 | 20 | 10 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| GB/s | 23.82 | 23.95 | 23.98 | 23.96 | 23.97 | 23.93 | 23.96 | 23.88 | **22.57** | **12.57** |
+
+Eight of the ten settings do nothing at all: capping each of 8 cores to 30% of
+its individual peak still lets them saturate a ceiling that is already
+saturated. Only MB=20 (94.7% of full) and MB=10 (52.8%) bind. So Intel offers
+exactly one barely-binding setting and one deep one, and MB=30 is a free
+non-binding control — the analogue of moscxl's MBA256/224. That MB=20 lands at
+94.7% delivered, almost exactly moscxl's 96% knee, is an arithmetic coincidence
+of core count and must not be read as the two knobs behaving alike.
+
+**There was no known tax to recover, because the matrix stopped short.** §2's
+largest reading is 1.065×, but §2 tops out at a 16 MiB victim — 27% of this
+LLC — whereas moscxl blew up at 50% of its L3. The matching relative point had
+never been probed on Intel. `scripts/run_probe.py` re-run with
+`WS_LIST=16384,30720,61440,122880,245760` (`artifacts/mos182_wsext.jsonl`,
+75 runs, all valid, 3 reps) finds the Intel tax is **non-monotone in working
+set and peaks where the matrix was not looking**:
+
+| ws | 16 MiB | 30 MiB | **60 MiB (= LLC)** | 120 MiB | 240 MiB |
+|---|---:|---:|---:|---:|---:|
+| quiescent cyc/acc | 95.04 | 100.73 | 132.38 | 275.35 | 310.13 |
+| `WB_local` | 1.057× | 1.143× | **1.603×** | 1.182× | 1.065× |
+| `WB_cxl` | 1.063× | 1.143× | 1.597× | 1.182× | 1.065× |
+
+This corrects a claim in this document's own Verdict. "The largest mean co-run
+tax at any working set, in any arm, is 1.065×" was true of the working sets
+measured and is false of this host: at a victim sized to the LLC it is 1.60×.
+The kill-switch verdict is unaffected — that was about the L2-resident victim,
+which still reads 1.000× — but the scope sentence was an overreach and is
+corrected in place. The curve falls back to 1.065× at 4× LLC for the ordinary
+reason: a victim that already misses everything has no residency left to lose.
+
+#### The 2×2 at ws = 61440 KB, the peak
+
+`scripts/run_mba_mos182.py`, `artifacts/probe_mos182_mba.jsonl` — 54 runs, all
+valid, 3 reps, same monkeypatch discipline as §5.6. Quiescent 131.22
+cyc/access; streamer 8 threads on local DRAM.
+
+| | **MBA off** (23.73 GB/s) | **MBA20** (22.51, 95%) | **MBA10** (12.63, 53%) |
+|---|---:|---:|---:|
+| **no L3 partition** | **1.621×** | 1.594× | 1.476× |
+| **victim granted 12/15 ways** | **1.221×** | 1.224× | 1.229× |
+
+**MBA is inert here.** Taking away 47% of the streamer's bandwidth removes 9%
+of the excess in the unpartitioned arm and *none at all* from the partitioned
+one. This is the opposite of moscxl, where 4% bought everything.
+
+#### And after CAT there is nothing left for it to do
+
+The 1.221× is not a residual. §5.3's rule applies with more force on Intel,
+because at this working set the partition is not free: a 12-of-15-way grant
+caps a 60 MiB victim at 48 MiB. The missing cell
+(`scripts/run_cat12_control_mos182.py`,
+`artifacts/probe_mos182_cat12_control.jsonl`, 18 runs, all valid) supplies the
+denominator — quiescent drifted 0.2% between the two sessions, so they are
+comparable:
+
+| ws | CAT12_nostream / quiescent | CAT12 co-run / CAT12_nostream |
+|---:|---:|---:|
+| 30720 | 1.028× | **0.984×** |
+| 61440 | 1.222× | **0.997×** |
+
+**The co-run residual on Intel, after way-partitioning, is zero.** The entire
+1.221× is the price of the partition itself. A 23.7 GB/s, 8-core,
+LLC-thrashing co-runner costs a 12-way-granted victim nothing measurable, at
+either working set, at any MBA setting. That is why MBA does nothing: not
+because it is a weak knob, but because CAT already took the whole tax.
+
+#### The two hosts are mirror images, and one control proves it
+
+| | moscxl (Bergamo) | mos182 (SPR) |
+|---|---|---|
+| peak co-run tax | **18.73×** (victim = ½ L3) | **1.62×** (victim = 1× LLC) |
+| CAT12 vs its own no-stream control | **12.4×** — CAT fails | **1.00×** — CAT complete |
+| MBA against that residual | 13.05× → **1.07×** at 96% bw | 1.221× → 1.229× at 53% bw |
+| harm class | bandwidth / queueing | capacity |
+
+The discriminating control is the same one on both hosts, and it points in
+opposite directions. MBA lowers the streamer's *request rate* without lowering
+its *cache occupancy* — verified in the occupancy column on both machines
+(moscxl: 15.9 of 16 MiB held under MBA8; mos182: 24.2 MiB held under MBA10,
+statistically identical to the 25.4 MiB it holds unthrottled). So:
+
+- moscxl's tax **vanishes** when rate falls and occupancy does not → the harm
+  was never capacity.
+- mos182's tax **survives** when rate falls and occupancy does not, and
+  vanishes when occupancy is partitioned away → the harm is capacity, and
+  only capacity.
+
+Two vendors, one victim, one streamer, opposite mechanisms. Neither is the
+mechanism the design predicted, which was back-invalidation of the private L2.
+
+#### What this does to the paper
+
+- **The L5 conclusion of §5.6 is unchanged and now two-sided.** There is no
+  unoccupied corner on either host: on AMD the deployed pair costs 4%, on Intel
+  a single deployed knob costs nothing beyond the partition and leaves no
+  residual at all. The Intel leg is the weaker case for the paper, not the
+  stronger one.
+- **"CAT recovers almost nothing" is an AMD statement, not a general one.**
+  §5.6's surviving finding (18.73× → 13.05×) must carry its host and operating
+  point every time it is used, per §5.1. On Intel the same partition recovers
+  100%.
+- **The admission-gate inversion survives both legs, and is now the only thing
+  that does.** A capacity-sensitivity gate mis-describes the AMD harm (which is
+  bandwidth) and is redundant against the Intel harm (which CAT already fixes
+  without any gate). It is wrong in one direction on one vendor and unnecessary
+  in the other direction on the other.
+
+#### Two incidental findings, both worth knowing
+
+**mos182 exposes L2 CAT.** `/sys/fs/resctrl/info/L2/` is populated —
+`cbm_mask ffff` (16 ways), `num_closids 8`, one domain per core — and the
+schemata carries a live `L2:` line. §1's premise sentence, "CAT cannot defend a
+private cache," is therefore false as written on this silicon: there is a
+private-L2 way-allocation knob in the same kernel interface. The *argument*
+survives, because an invalidation is not an allocation and no L2 mask prevents
+back-invalidation — but the sentence would not survive a reviewer with an SPR
+box, and should be rewritten to say what it means. Whether this interface
+actually enforces was not tested.
+
+**CAT12 is repeatedly faster than quiescent at large working sets** — 0.985×
+at 16 MiB, 0.893× at 120 MiB, 0.967× at 240 MiB in the wsext sweep, and 0.984×
+against its own no-stream control at 30 MiB — with the victim holding *more*
+LLC under a 12-way cap (45.9 MiB) than with all 15 ways available (42.9 MiB).
+Consistent across 3 reps, so not noise. One candidate: `shareable_bits=6000`
+says L3 ways 13–14 are shared with other agents (DDIO), and the `0fff` victim
+mask excludes exactly those two, so the partition may be buying isolation from
+inbound DMA. **This is a guess and was not tested.** It does not affect
+anything above — the peak operating point has CAT12 at 1.222×, well clear of
+it — but any future use of a `0fff` mask on this host should establish what
+this is first.
+
 ## 6. Consequences
 
 **Dead:** the OLTP-index headline as specified. The victim was chosen precisely
@@ -568,11 +738,22 @@ charge to neutralize.
   two arms are bandwidth-matched at 8 threads) is measured; the mechanism
   behind the local number is not.
 
-**Newly dead (§5.6):** the L5 "no deployed alternative occupies this corner"
-claim, at least at this operating point. CAT+MBA reaches 1.07× at a 4% cost to
-the streamer, so the AMD residual is not an unoccupied corner. The MBA arm was
-run to test exactly this and it came back the wrong way; reporting it is not
-optional.
+**Newly dead (§5.6, §5.7):** the L5 "no deployed alternative occupies this
+corner" claim, on both hosts and by two different routes. On moscxl CAT+MBA
+reaches 1.07× at a 4% cost to the streamer. On mos182 CAT alone reaches 0.997×
+of its own no-streamer control — there is no residual there at all, at any MBA
+setting, so the Intel leg never had a corner to occupy. The MBA arm was run
+twice to test exactly this and came back the wrong way both times; reporting it
+is not optional.
+
+**Also newly dead:** any general form of "way-partitioning cannot recover this
+tax." It cannot on Bergamo and it entirely can on Sapphire Rapids. Per §5.1
+that claim now travels with its host and operating point or it does not travel.
+
+**Newly corrected:** this document's own Verdict claimed 1.065× as the largest
+mos182 tax at any working set. The matrix it rested on stopped at a 16 MiB
+victim; at an LLC-sized victim mos182 reads 1.60× (§5.7). The kill switch is
+unaffected, the scope sentence was wrong.
 
 **Cost:** 17 days to deadline, and roughly one day spent. The probe did exactly
 what it was built to do — this is a cheap negative, not an expensive one, and
@@ -604,7 +785,9 @@ These are decisions, not recommendations I should take myself.
    experimental work is queued on this line. The residual figure that survives
    for the paper is the CAT-alone one, 18.73× → 13.05×, and it must be labelled
    as being about way-partitioning specifically, not about interference
-   control.
+   control. **And per §5.7 it must also carry its vendor**: on mos182 the same
+   partition recovers 100% of the tax and MBA is inert, so "CAT recovers almost
+   nothing" is a Bergamo sentence, not a server-CPU sentence.
 6. **Whether the paper's harm claim relocates rather than dies.** §5.5 is
    written as a finding, not a rescue, but it does hand back a mechanism story:
    harm on non-L2-resident victims, CAT-resistant, AMD-specific at these
@@ -628,3 +811,23 @@ granularity." Item 2 follows from it.
   Intel's preserves the leading zero, so the check whose entire purpose is to
   catch a silently-unapplied CAT mask was itself vendor-dependent — it aborted
   a valid moscxl run. Now compared numerically in both runners.
+- **The MB readback had the same bug in the other direction.** Intel pads MB
+  values with a leading space (`MB:0= 100;1= 100`); AMD does not. The regex
+  written for AMD (`{DOM}=(\d+)`) therefore matched nothing on Intel and the
+  first mos182 calibration aborted with "MBA NOT APPLIED" against a schemata
+  that had applied perfectly. Same class of defect as the one above, in the
+  same check, found two hosts later. Now `=\s*(\d+)`, compared numerically.
+  The lesson both times: a readback assertion written against one vendor's
+  string formatting is an apparatus bug waiting for the second vendor.
+- **§1's premise sentence is wrong on Intel silicon.** "CAT cannot defend a
+  private cache" — mos182 exposes L2 CAT (`/sys/fs/resctrl/info/L2/`,
+  `cbm_mask ffff`, 8 CLOSIDs, per-core domains). The argument survives, because
+  back-invalidation is not allocation and no L2 way mask prevents it, but the
+  sentence as written is false and a reviewer with an SPR box would say so.
+  See §5.7. Whether the interface enforces was not tested.
+- **An unexplained sub-quiescent effect on mos182 at large working sets.** A
+  12-way-granted victim is repeatedly *faster* than the same victim with all 15
+  ways and no co-runner, and holds more LLC while doing it (§5.7). Consistent
+  over 3 reps at three working sets. A DDIO-isolation candidate is named there
+  and is untested. It does not touch any conclusion in this document, and it is
+  a trap for anything that later uses a `0fff` mask on this host.

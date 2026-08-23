@@ -24,7 +24,19 @@
 > That surviving tax is a bandwidth charge, not an unoccupied corner:
 > CAT+MBA together take it to **1.07×** while the streamer keeps **96%** of its
 > bandwidth (`GPROBE_OUTCOME.md` §5.6). What survives is only that
-> way-partitioning alone recovers almost none of it (18.73× → 13.05×).
+> way-partitioning alone recovers almost none of it (18.73× → 13.05×) — and
+> that is a Bergamo sentence. On mos182 (§5.7) the same partition recovers the
+> tax *completely* (residual 0.997× of its own no-streamer control) and MBA is
+> inert. The two hosts are mirror images: bandwidth harm on AMD, capacity harm
+> on Intel, and neither is the private-L2 back-invalidation this design
+> predicted.
+>
+> One correction to the banner above, from §5.7: this design's matrix stopped
+> at a 16 MiB victim, so "1.065× is the largest tax on mos182" was a statement
+> about the working sets measured, not about the host. At a victim sized to the
+> full 60 MiB LLC, mos182 reads **1.60×**. The kill switch still fires — it was
+> always about the L2-resident victim, which reads 1.000× — but the scope claim
+> was too broad.
 >
 > This document is kept unedited below as the pre-registration it was, so that
 > the prediction and the result can be read against each other. Do not resume
