@@ -45,11 +45,24 @@ rather than by building what `tmp_dutyfree_exp` tracks, so that all three hosts
 run a byte-identical instrument. mos182's committed version is preserved at
 `src/aggressor.c.pre_provision_20260823`.
 
-**Not fixed, and flagged for the lead.** Committing to `tmp_dutyfree_exp`, or
-vendoring its source into `DutyFree`, is outside the standing authorization for
-this repository and is a structural decision about where the instrument lives.
-It should be taken deliberately. Until it is, the md5 above is the only record
-of which aggressor produced which data.
+**Resolved 2026-08-23, by vendoring, on the lead's instruction.** The source
+now lives in `benchmarks/e2e/instrument/`, with a manifest and a cross-host
+drift check; see that directory's `README.md`. The md5 above is no longer the
+only record of which aggressor produced which data.
+
+Vendoring surfaced a second instance that this document had not found, and it
+is worse than the one described above. `amd_flushbehind_aggressor.c` — which
+produced the `FB0`/`FB256` arms, the primary de-confound pair of the AMD
+campaign — was **untracked in any repository and present on `moscxl` alone**,
+absent from mos181 and mos182 and from `tmp_dutyfree_exp`'s Makefile. It is
+vendored too. Had that disk been lost, the source of a paper number would have
+been gone outright, which is the §6.6 case rather than a hazard of it.
+
+Two things vendoring did **not** do, both left for the lead. It did not change
+what the hosts build from: the campaign scripts still resolve the streamer under
+`~/tmp_dutyfree_exp/bin/`, so the vendored copy is monitored for drift rather
+than authoritative. And it did not commit the modified files upstream in
+`tmp_dutyfree_exp`, so they still have no hash of their own.
 
 ## What was installed
 
