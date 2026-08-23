@@ -44,6 +44,16 @@ if pgrep -a -f -- "--outdir=$CDIR" >/dev/null 2>&1; then
 fi
 
 # --- gate 2: the image the checkpoint was taken on is the image we restore ---
+# Exercised in BOTH directions against T4's real config.json (2026-08-24, while
+# the boot was still running -- the file is written at startup):
+#   * config.json contains exactly ONE image_file, at
+#     /system/pc/south_bridge/ide/disks[0]/image/child, so the `head -1` below
+#     is unambiguous and the fact that `return` does not unwind the recursion
+#     cannot pick a wrong one.
+#   * it resolves to w8-busybox-streaming-r1.img -> gate PASSES for $DISK.
+#   * substituting x86-ubuntu-18.04-img-hashjoin-v2 -> gate REFUSES.
+# A gate that has only ever been seen to fail is not known to protect anything;
+# this one has now been seen to pass on the right image and refuse the wrong one.
 BOOTIMG=$(python3 -c '
 import json,sys
 def walk(o):

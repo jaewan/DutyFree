@@ -818,6 +818,17 @@ should wait for T5, which is what T5 produces.
 > the output. `w7_analyze.py` is not executed by `w7_campaign.sh`, which is why
 > editing it mid-campaign is safe.
 
+> **T5 gate 2 has now been exercised in the passing direction, not only the
+> failing one.** Against T4's real `config.json` (written at boot start, so
+> readable while the boot runs): exactly one `image_file` exists, at
+> `/system/pc/south_bridge/ide/disks[0]/image/child`; it resolves to the busybox
+> image so the gate passes, and substituting the Ubuntu image makes it refuse.
+> This also retires a latent quirk -- the extractor's `return` does not unwind
+> the recursion, so with several `image_file` entries `head -1` could have picked
+> by traversal order; there is exactly one. A gate seen only to fail is not known
+> to protect anything, and gate 2 is the one whose failure mode is silent
+> corruption rather than an error.
+
 ---
 
 # Stop-work list
