@@ -274,16 +274,47 @@ This is the highest-value non-experiment task in the plan.
   currently buried as a "by-product" in a status document.
 - **W5.5** Reconcile Sec2's concession with the H3 claim, pending W3.
 
-## W6 -- The cost argument. Currently absent; it is what makes modest benefit sufficient.
+## W6 -- The cost argument. **W6.1 and W6.2 MEASURED 2026-08-24.**
+
+> **Outcome: `W6.1_IMPLEMENTATION_COST_AUDIT_2026-08-24.md`.** Static audit of
+> both trees against their pre-STREAMING bases, zero compute. The assertions
+> below were checkable and are now checked. Every structural claim holds -- and
+> **one clause is wrong in our favour: there is no new PTE bit.** The decode
+> reads the PAT selector, PCD and PWT, three bits the walker already reads on
+> every walk, in two lines per leaf size. The paper's title is an implementation
+> fact. Queue rows 26 and 27 carry it into the text.
 
 Nobody adds hardware for 6%. People do add a PAT encoding for 6%.
 
-- **W6.1** Hardware cost: unused PAT slot 6, one PTE bit, TLB carry, one
-  fill-path predicate. Argue explicitly against datapaths that already exist for
-  WC and MOVNTDQA -- no new coherence states, no new structures.
-- **W6.2** OS cost: the mmap/mprotect flag, PAT setup, immutability enforcement
-  (I0/I1). Partly written already.
+- ~~**W6.1** Hardware cost: unused PAT slot 6, one PTE bit, TLB carry, one
+  fill-path predicate.~~ **DONE, and the wording was too modest.** Measured:
+  **zero** new coherence states, message types, SLICC structures or enumerations
+  attributable to \textsc{Streaming} (the 1 event / 4 transitions / 2 actions in
+  the diff are the finite-SF *model*, present in the WB arm too). **One bit
+  through six structures** -- TLB entry, an unused encoding in `Request`'s
+  existing coherence-flag bitfield, RubyRequest, one wire bit in
+  `CHIRequestMsg`, TBE, one LLC tag bit -- plus **four lines of decision logic**
+  and **no new PTE bit**. 43 attributable non-comment non-logging lines total.
+  The "argue against datapaths that already exist for WC and MOVNTDQA" half is
+  still owed as *prose*; the numbers it would cite now exist.
+- ~~**W6.2** OS cost.~~ **DONE.** **564** non-comment kernel lines over Linux 6.8
+  across 16 commits, **447** without the removable debugfs PTE-query facility,
+  **one line** of new UAPI (`PROT_STREAMING`), no new syscall. I0/I1 enforcement
+  is six rejection rules over VMA flags the kernel already maintains. There is
+  more test (155 KUnit + 662 selftest lines) than implementation.
 - **W6.3** State the comparison honestly: CAT shipped for less benefit than this.
+  **Still owed** -- it is the one part of W6 that is an argument rather than a
+  count, and it needs CAT's shipped-era justification sourced, not asserted.
+
+**What W6 does not yet cover, and must say so.** (i) Lines bound *structural*
+complexity, not silicon area, timing or verification effort; lead with the
+structural zeros and cite the counts as context. (ii) **Only H2's cost is
+established.** H3 as realized is variant (a) -- no-retention, `ReadOnce`, off by
+default -- and the sound retention variants (b)/(c) are unbuilt, so nothing here
+prices them. (iii) The kernel's exit drain (`WBNOINVD` to one CPU per core) is
+counted in lines, not cycles; that is the §3 δ embargo's unresolved item, and
+measuring the *streamer-side* cost of flush-behind -- which is **not** embargoed
+-- is the obvious way to convert the largest unpriced item into a number.
 
 ## W7 -- Necessity and benefit at the same operating point. The structural gap.
 
@@ -344,7 +375,7 @@ Plan B fails if the existing campaign eats the runway. Stop:
 | phase | weeks | work |
 |---|---|---|
 | 0 | 1 | **W1** (decisive cell) + **W4** (provenance audit) in parallel |
-| 1 | 2-4 | W2 (benefit under scrutiny), W5 (restructure), W6 (cost argument) |
+| 1 | 2-4 | W2 (benefit under scrutiny), W5 (restructure), ~~W6~~ **W6.3 only** -- W6.1/W6.2 measured 2026-08-24 |
 | 2 | 5-9 | W3 (H3 grounding), W7 (necessity+benefit convergence) |
 | 3 | 10-12 | W8 if it fits; full rewrite; 18pp -> target length |
 
