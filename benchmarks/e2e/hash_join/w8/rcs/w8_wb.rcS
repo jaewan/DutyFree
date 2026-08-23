@@ -1,0 +1,13 @@
+#!/bin/sh
+# W8 / T5 arm: w8_wb
+# Injected at restore via m5 readfile. The guest's /sbin/init execs this.
+echo "W8-RCS-START w8_wb"
+/bin/mount -t debugfs debugfs /sys/kernel/debug 2>/dev/null
+/sbin/m5 resetstats
+/root/cxl_join_bench.gem5fs --mode morsel --policy wb  \
+  --fact-bytes 16777216 --hot-bytes 4194304 --reps 1 --warmups 0 \
+  --probe-batch 0 --threads 1 --cpu-list 0 --json
+echo "W8-RCS-BENCH-EXIT $?"
+/sbin/m5 dumpstats
+echo "W8-RCS-DONE w8_wb"
+/sbin/m5 exit

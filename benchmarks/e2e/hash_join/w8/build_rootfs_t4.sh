@@ -37,8 +37,12 @@ for f in "$BENCH" "$M5DIR/m5mini.c" "$M5DIR/m5ops.S"; do
   [ -e "$f" ] || { echo "FAIL missing $f" >&2; exit 2; }
 done
 command -v busybox >/dev/null || { echo "FAIL no busybox on the host" >&2; exit 2; }
-ldd "$(command -v busybox)" 2>&1 | grep -q "not a dynamic executable" \
-  || { echo "FAIL host busybox is dynamically linked; the guest has no libc" >&2; exit 2; }
+# ldd exits 1 on a static binary, which `set -o pipefail` turns into a failure
+# of the whole check -- so capture first, test second. readelf is the direct
+# question anyway: a static binary has no PT_INTERP.
+if readelf -l "$(command -v busybox)" 2>/dev/null | grep -q "INTERP"; then
+  echo "FAIL host busybox is dynamically linked; the guest has no libc" >&2; exit 2
+fi
 
 rm -rf "$STAGE"; mkdir -p "$STAGE"
 mkdir -p "$STAGE"/{bin,sbin,etc,proc,sys,dev,tmp,root,var/log,usr/bin,usr/sbin}
@@ -116,7 +120,12 @@ PROV
 mkdir -p "$OUT"
 FS="$STAGE.ext2"
 rm -f "$FS" "$IMG"
-mke2fs -q -t ext2 -L w8root -d "$STAGE" -b 4096 "$FS" "${FS_MB}m"
+# mke2fs -d copies the staging tree's ownership, which is the unprivileged
+# build user. The guest runs as uid 0 so DAC never bites, but a rootfs whose
+# every inode is owned by 1001 is a trap for anyone who later adds a
+# non-root step. fakeroot gives the chown without privilege.
+fakeroot -- sh -c 'chown -R 0:0 "$1" && mke2fs -q -t ext2 -L w8root -d "$1" -b 4096 "$2" "$3"' \
+  _ "$STAGE" "$FS" "${FS_MB}m"
 # 1 MiB of gap for the MBR + alignment, then the filesystem.
 dd if=/dev/zero of="$IMG" bs=1M count=$((FS_MB + 1)) status=none
 printf 'label: dos\nstart=2048, type=83, bootable\n' | sfdisk -q "$IMG" >/dev/null
