@@ -1091,3 +1091,25 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > hot table does not fit the 2 MiB private L2, so it is not an L2-residency
 > artifact. That is the L3 problem stated quantitatively. P1/P4/P5 stay open;
 > P3 completed at n=3 (+0.63%) and is not adjudicated in this memo.
+
+> **2026-08-24 04:15, W7 P5 constrained, and a disclosure I would rather not
+> make.** Addendum appended to `W7_PREREGISTRATION_2026-08-23.md`. With 22/28
+> cells in, three of P5's four gaps are visible (A0/B0 +0.53%, A0/B1 +1.23%,
+> A1/B1 +0.63%; A1/B0 unseen). Because the test is `gap(A1/B1) > max(singles)`
+> and 0.628 < 1.234 already, **P5's binary verdict is fixed no matter what
+> A1/B0 says: the 2×2 fails the ordering test**, and A0/B1 — not the convergence
+> cell — carries the largest H2 effect in the campaign. So the addendum is
+> explicitly *not* a blind pre-registration of P5 and says so; only P1 is still
+> genuinely blind. Four rules registered before A1/B0 lands: (R1) the B axis
+> reached 1.77 of ≥6 lines, so any small B contribution is **confounded** and
+> may not be read as evidence about O1 — the direct analogue of W7.2's A1 rule;
+> (R2) a "2×2 justified" outcome would have had to be stated at the realized
+> point; (R3) the "either knob delivers ≥5%" escape clause is **dead** — every
+> H2 effect in W7 is ≤1.23%, so the honest statement is "no knob tested
+> suffices," registered now so neither reading can be picked later; (R4) **F12
+> in my own analyzer** — its P5 else-branch printed "a single knob already
+> suffices", which is a dominance branch asserting a sufficiency claim that the
+> data contradicts. Wording fixed, computation byte-identical, annotated in
+> place with date and reason. §4's strong-negative story ("P3 fails with P1 and
+> P2 both confirmed") is **unavailable** now that P2 is falsified and may not be
+> quoted as live.

@@ -178,3 +178,77 @@ on the hash-table side — 53% of the LLC is *unreachable* on both the 320 MiB
 part and the 5 MiB model, for the same power-of-two reason. Edit-queue row 19
 already qualifies `tab:h3sf` on the SF axis; if W7 runs, an equivalent
 qualification is owed on the LLC axis.
+
+---
+
+# Addendum, 2026-08-24 ~04:15 — how P2's falsification constrains P5, and a disclosure
+
+The original text above is unchanged. This addendum is appended, not edited in,
+per the practice A6.19 fixes for committed markdown.
+
+## What I have seen, and what I have not
+
+Written with 22 of 28 cells complete. Of P5's four cells I have seen **three**:
+
+| gap (cyc/access, WB→H2) | value | seen? |
+|---|---:|---|
+| A0/B0 | +0.534% | yes, n=3 |
+| A0/B1 | +1.234% | yes, n=3 |
+| A1/B1 | +0.628% | yes, n=3 |
+| A1/B0 | — | **no**, still running |
+
+## Disclosure: P5's verdict is already determined, so this is NOT a blind
+##            pre-registration of it
+
+`w7_analyze.py` reports the 2×2 justified iff `gap(A1/B1) > max(gap(A0/B1),
+gap(A1/B0))`. Two of those three are already known, and **0.628 < 1.234**, so
+the condition is false *for every possible value of the unseen A1/B0 gap*.
+
+**P5's binary outcome is therefore fixed before its last cells land: the 2×2
+does not pass the ordering test.** A1/B1 is not the largest H2 effect; A0/B1 is,
+and it is 2× larger.
+
+I state this rather than presenting the rules below as blind, because they are
+not blind with respect to P5 and it would be easy to imply otherwise. **P1 is
+genuinely blind** — it is evaluated at A1/B0 alone and I have seen neither of
+its arms.
+
+## The reading rules, registered now
+
+**(R1) The B axis did not reach strength, and a small B contribution may not be
+read as evidence about O1.** P2 is falsified: batching reached 1.77 lines in
+flight against a required ≥6, i.e. it moved ~26% of the bandwidth where roughly
+340% was needed. Any P5 or P3 statement in which the B axis appears to
+contribute little is therefore **confounded** — the knob barely moved, and a
+null on a knob that barely moved is uninformative about that knob's target. This
+is the exact analogue of `W7.2`'s rule for the mis-sized A1, registered here for
+the same reason: before the affected data is in.
+
+**(R2) A "2×2 justified" outcome could only have been stated at the realized
+point.** Moot now, given the disclosure above, but recorded so the rule is not
+invented later: it would have had to read "with the MLP axis relieved only to
+1.77 lines, 12% of the machine's measured 14.62-line ceiling" (§5.1).
+
+**(R3) The sufficiency escape clause is dead, and may not be invoked
+selectively.** §3's P5 says "if either single knob already delivers ≥5%, the
+2×2 is unnecessary and the simpler experiment is the one to report." Every H2
+effect measured anywhere in W7 is **≤1.23%**. No single knob delivers ≥5%, so
+this clause does not fire, and the correct statement is not "a single knob
+suffices" but **"no knob tested suffices."** Registered now so that neither
+reading can be selected after A1/B0 lands.
+
+**(R4) F12 in my own analyzer, found and fixed.** `w7_analyze.py`'s P5
+else-branch printed *"a single knob already suffices; report the simpler
+experiment"*. That branch is a **dominance** test, not the **sufficiency** test
+R3 describes, and on the measured data its string asserts the opposite of the
+truth. Wording corrected 2026-08-24; **the computation is byte-identical** and
+the change is annotated in place with its date and reason, because editing
+analysis code after seeing data is precisely what §6.6 polices. Anyone auditing
+should diff the function and confirm only strings moved.
+
+## What §4 is still owed
+
+§4's strong-negative story requires "P3 fails at A1/B1 with P1 and P2 both
+confirmed." P2 is falsified, so **that story is unavailable** and §4 may not be
+quoted as though it were still live. What replaces it depends on P1, which is
+still blind, and is not decided here.

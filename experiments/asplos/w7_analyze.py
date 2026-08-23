@@ -246,9 +246,30 @@ def main():
     parts = {k: gap(*k) for k in (("A0", "B0"), ("A0", "B1"), ("A1", "B0"), ("A1", "B1"))}
     if all(v is not None for v in parts.values()):
         single = max(parts[("A0", "B1")], parts[("A1", "B0")])
+        # WORDING ONLY, changed 2026-08-24 after the A0 column landed; the
+        # computation above and below is byte-identical to what was committed
+        # before the campaign, and the change is recorded because changing
+        # analysis code after seeing data is exactly what S6.6 polices.
+        # The old else-string read "a single knob already suffices; report the
+        # simpler experiment".  That is not what this branch tests and, on the
+        # measured data, it is false: the branch is a DOMINANCE test (is A1/B1
+        # the largest H2 effect?), whereas the pre-registration's clause is a
+        # SUFFICIENCY test ("if either single knob already delivers >=5%").
+        # Every H2 effect measured is ~1% or less, so no knob suffices, and a
+        # reader who trusted the old string would have concluded the opposite.
+        # That is F12 -- an artifact read and believed that does not do what it
+        # says -- in my own analyzer, so the string is corrected to state the
+        # test it performs and to refuse to draw the sufficiency conclusion.
+        verdict = ("2x2 justified: A1/B1 dominates both single-knob cells"
+                   if parts[("A1", "B1")] > single else
+                   "ordering test FAILS: A1/B1 is not the largest H2 effect")
         print(f"P5: A0/B0 {parts[('A0','B0')]:+.2f}%  A0/B1 {parts[('A0','B1')]:+.2f}%  "
               f"A1/B0 {parts[('A1','B0')]:+.2f}%  A1/B1 {parts[('A1','B1')]:+.2f}%  -- "
-              f"{'2x2 justified' if parts[('A1','B1')] > single else 'a single knob already suffices; report the simpler experiment'}")
+              f"{verdict}")
+        print("     [this is a DOMINANCE test. The pre-registration's separate clause -- "
+              "'if either single knob already delivers >=5%, the 2x2 is unnecessary' -- is a")
+        print("      SUFFICIENCY test and must be read off the magnitudes above, not off this "
+              "verdict string. Do not report 'a single knob suffices' unless one exceeds 5%.]")
         print("     [F9.4] the two A1 entries are at a 20 MiB LLC, not 32 MiB; see the geometry banner.")
     else:
         print("P5: incomplete")
