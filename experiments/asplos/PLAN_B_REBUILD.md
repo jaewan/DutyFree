@@ -991,3 +991,19 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > declined only because it would change the apparatus mid-campaign.
 > Process note: this plan entry lands one commit after the memo it belongs to
 > (38ae985), which is the F11 fix-#4 pairing rule slipping by one commit.
+
+> **2026-08-24, T5 arm order fixed before data: `wb` → `stream_mprot` →
+> `stream_m5op`.** Discovered on pre-flight that `fs_restore_chi_8592.sh` has
+> never been executed — `logs/fs_restore_chi/` does not exist in either gem5 tree
+> — and that no FS + Ruby/CHI run exists anywhere in the project. T5 arm 1 is
+> therefore the first exercise of an untested launcher *and* a measurement, so a
+> failure there is most likely apparatus, not science. Statically verified what
+> could be: memory layout equals T4's boot (256 GiB / 128 GiB CXL), CPU count
+> matches (the launcher infers `N=2` from the substring `2cpu` in the checkpoint
+> *name* — fragile, noted), `--restore-with-cpu=O3CPU` against an Atomic
+> checkpoint is the supported flow, and `-r 1` resolves to the real tick dir.
+> `wb` runs first because it is the control and needs no streaming machinery, so
+> a broken restore surfaces without being entangled with declaration or the
+> walker; `stream_m5op` runs last because its expected result is zero, which is
+> indistinguishable from a broken run until a positive arm has shown a non-zero
+> count is reachable. See W8.1 third addendum.
