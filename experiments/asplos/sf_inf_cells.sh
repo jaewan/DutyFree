@@ -20,6 +20,23 @@
 # NOTE on provenance: H3SF_REMEASURED_2026-08-20.md attributes the table to
 # gem5 0f37c28. The runs actually used 356e7b7d0e -- 0f37c28 predates the
 # argv[2] streaming gate those runs depend on. Recorded, not reconciled.
+#
+# AMENDED 2026-08-24 (see W4.5_SF_CAMPAIGN_PROVENANCE_2026-08-24.md):
+#  1. This script launches TWO of the four infinite-SF arms. sf_qui_inf and
+#     sf_wb_inf were NOT produced by it -- they are from the same uncommitted
+#     2026-08-20 batch as the finite arms (F10). Memos that cite "the
+#     infinite-SF arms, launcher sf_inf_cells.sh" for all four are wrong; the
+#     quiescent arm, which is the denominator of every tax, has no runner in
+#     git. sf_fin_cells.sh (2026-08-24) is the committed finite sibling and
+#     likewise does not recover the 2026-08-20 provenance.
+#  2. The note above is now reconciled, not merely recorded. A gem5 run is
+#     three artifacts: the compiled binary (built 2026-08-09, src/ as of
+#     56874f1d42; no src/ commit since), the Python configs/ tree read at run
+#     time (last changed fa103c5b7b, 2026-08-19), and the workload binaries
+#     (verified byte-identical to committed source at HEAD). 0f37c28 is the
+#     last content commit to configs/, so it is a defensible name for the
+#     config tree and the wrong name for the workload. Both hashes were partly
+#     right. Report the triple, not a hash.
 set -u
 cd ~/DutyFree-Gem5
 G=build_Intel_8592/gem5.opt

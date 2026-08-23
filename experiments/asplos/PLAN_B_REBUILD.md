@@ -263,7 +263,7 @@ That is exactly H3's charge, in silicon, findable.
 Outcome is useful in both directions: either H3 gets silicon grounding, or the
 paper gets simpler and more honest by dropping it.
 
-## W4 -- Provenance audit. **W4.3 ledger built, W4.4 closed. W4.1/W4.2 are text edits, held on the lead's co-author decision.**
+## W4 -- Provenance audit. **W4.3 ledger built, W4.4 and W4.5 closed. W4.1/W4.2 are text edits, held on the lead's co-author decision.**
 
 The panel referee's judgement on record: the unreproducible RocksDB 2.33x
 sentence, *not* the nulls, is the decisive reject reason. One unsourced number
@@ -277,6 +277,32 @@ makes a referee assume the rest are unsourced too.
 - **W4.3** Build a full provenance table: every number in the paper ->
   artifact file -> commit -> date -> runner. Any number that cannot be traced
   is deleted, not reconciled (Sec6.6).
+- **W4.5** **CLOSED 2026-08-24** --
+  `W4.5_SF_CAMPAIGN_PROVENANCE_2026-08-24.md`. The SF campaigns audited against
+  their own artifacts, after `analyze_sf_fin.py` turned up a contradiction with
+  provenance tables written hours earlier the same day. Three findings.
+  (1) **`sf_inf_cells.sh` launched two of the four infinite-SF arms, not four.**
+  `sf_qui_inf` and `sf_wb_inf` are from the uncommitted 2026-08-20 batch (F10),
+  and the quiescent arm is the denominator of every tax in W1, W1.4, W1.5 and
+  W3.4. Dated addenda correct W1.4, W1.5, W3.4, the `sf_inf_cells.sh` header and
+  the W4.3 ledger; `analyze_sf_fin.py` now derives the provenance line from the
+  `DONE_` sentinels on disk instead of asserting it.
+  (2) **"Four days and one gem5 commit apart" is wrong toward over-caution.**
+  There is no commit between the campaigns. One simulator binary (`gem5 compiled
+  Aug 9 2026`, `src/` as of `56874f1d42`, no `src/` commit since), one `configs/`
+  tree, workload binaries verified byte-identical to committed source, and a
+  four-line `config.ini` delta. The hedge on the H2+H3 finite-vs-infinite
+  agreement (151.06 vs 152.24 cyc per victim L2 demand miss, **-0.78%**) is
+  withdrawn as stated. A bonus control fell out: `sf_qui_fin` and `sf_qui_inf`
+  are distinct runs that agree **to the cycle** at all three seeds, because the
+  quiescent workload never evicts from the SF.
+  (3) **"gem5 `<hash>`" is not an apparatus.** A run is three artifacts with
+  three vintages -- compiled binary, Python `configs/` read at run time, workload
+  binaries. `0f37c28` names the config tree and `356e7b7d0e` the workload, which
+  is why both attributions looked defensible and the error survived twice. Owed
+  to edit-queue row 18: the provenance appendix reports the triple. Every
+  "gem5 `<hash>`" cell in the W4.3 table is under-specified.
+  One item stays gone under Sec6.6: the seed values for the 2026-08-20 batch.
 - ~~**W4.4** Confirm no published number traces to the pre-D1/D2-fix binary.~~
   **CLOSED 2026-08-23, verdict "no"** --
   `benchmarks/e2e/oltp_index/patches/W4.4_AUDIT_2026-08-23.md`. Done the right

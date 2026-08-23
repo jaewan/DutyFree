@@ -182,3 +182,32 @@ is the answer, and it should be in the paper as one sentence with a pointer.
 
 **No row is withdrawn by W1.5.** The registered withdrawal trigger — H2+H3
 coming in >10% *better* than H2 at an infinite SF — did not fire.
+
+## Seventh amendment, 2026-08-24: row 18 gains a shape
+
+Row 18 (provenance appendix) currently asks for artifact -> commit -> date ->
+runner per number. `W4.5_SF_CAMPAIGN_PROVENANCE_2026-08-24.md` shows the
+"commit" column cannot be one hash for a gem5 number, and that this is what
+produced the `0f37c28` vs `356e7b7d0e` confusion the W4.3 ledger records twice.
+A gem5 run is three artifacts with three vintages:
+
+- the **simulator binary** — fixed by the build, not by HEAD;
+- the **Python `configs/` tree** — read at run time, so *not* frozen by the
+  build;
+- the **workload binaries** — fixed by whenever they were last compiled.
+
+For the SF campaigns these are 2026-08-09 (`src/` as of `56874f1d42`),
+`fa103c5b7b`, and a verified byte-identical rebuild of committed source at
+`356e7b7d0e`. `0f37c28` is a correct name for the second and a wrong name for
+the third, which is why it is right for `tab:declpredmeas`/`tab:declpredx` and
+wrong for `tab:h3sf`.
+
+**Edit:** the appendix reports the triple for every gem5 number. Silicon numbers
+keep the single-hash form; they have one binary.
+
+This is an addition, not a correction — row 18 is not wrong, it is
+under-specified in the same way the numbers it audits are.
+
+Also owed here, from the same memo: every "gem5 `<hash>`" cell in the W4.3
+ledger's main table is under-specified and should be re-emitted in the triple
+form when the appendix is written. Not a defect in any number.
