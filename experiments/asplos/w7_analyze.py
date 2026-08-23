@@ -74,7 +74,12 @@ def stats(d):
     if not f.exists() or f.stat().st_size == 0:
         return None
     out, fills = {}, None
-    for line in f.read_text().splitlines():
+    # errors="replace" for the same reason t5_analyze.py carries it: gem5 has
+    # been observed writing non-UTF-8 into its own output files, and a strict
+    # decode here is a crash mode in the analyzer, on the artifact it exists to
+    # read.  bench_json() below already did this; stats() did not.  A campaign
+    # that took ~20 host-hours should not be unreadable because of one byte.
+    for line in f.read_text(errors="replace").splitlines():
         if line.startswith("system.ruby.Cache_Controller.DataArrayWriteOnFill"):
             cols = [c.strip() for c in line.split("|")[1:] if c.strip()]
             if cols:
