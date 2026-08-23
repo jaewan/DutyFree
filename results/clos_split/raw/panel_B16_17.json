@@ -1,0 +1,158 @@
+{
+  "active_cycles_per_access": 127.239347,
+  "cmd": [
+    "perf",
+    "stat",
+    "-x,",
+    "-e",
+    "cycles,ref-cycles,instructions,cpu-migrations,LLC-loads,LLC-load-misses,mem_load_l3_miss_retired.local_dram,mem_load_l3_miss_retired.remote_dram,offcore_requests.l3_miss_demand_data_rd",
+    "--",
+    "/home/domin/tmp_dutyfree_exp/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench",
+    "--mode",
+    "morsel",
+    "--policy",
+    "wb",
+    "--fact-node",
+    "2",
+    "--hot-node",
+    "0",
+    "--fact-bytes",
+    "1g",
+    "--hot-bytes",
+    "177838489",
+    "--cpu-list",
+    "32-47",
+    "--morsel",
+    "1m",
+    "--warmups",
+    "2",
+    "--reps",
+    "1",
+    "--threads",
+    "16"
+  ],
+  "cov": 0,
+  "elapsed_wall": 2.7502803802490234,
+  "fact_base": "0x7d289de00000",
+  "fact_bytes": 1073741824,
+  "fact_end": "0x7d28dde00000",
+  "fact_node": 2,
+  "hit_rate": 0.5,
+  "hot_bytes": 177838489,
+  "hot_node": 0,
+  "join_mtuples_per_s": 233.907864,
+  "label": "B16",
+  "matches_last_rep": 33427603,
+  "median": 233.907864,
+  "mode": "morsel",
+  "perf": {
+    "LLC-load-misses": 104534785,
+    "LLC-loads": 206778323,
+    "cpu-migrations": 16,
+    "cycles": 13006328752,
+    "instructions": 8718338136,
+    "mem_load_l3_miss_retired.local_dram": 3146469,
+    "mem_load_l3_miss_retired.remote_dram": 7024840,
+    "offcore_requests.l3_miss_demand_data_rd": 105384087,
+    "ref-cycles": 13014578863
+  },
+  "pf_distance": 0,
+  "placement": "sampled_pages=4096 node2=4096",
+  "policy": "wb",
+  "rep_index": 17,
+  "result_hash": 0,
+  "returncode": 0,
+  "samples": [
+    233.907864
+  ],
+  "seconds": 0.286902983,
+  "seed": 13835551735702238294,
+  "status": "ok",
+  "stderr": "13006328752,,cycles,4315965944,62.00,,\n13014578863,,ref-cycles,5183258285,74.00,,\n8718338136,,instructions,6048839062,87.00,,\n16,,cpu-migrations,6912862189,100.00,,\n206778323,,LLC-loads,6051569037,87.00,,\n104534785,,LLC-load-misses,6054598482,87.00,,\n3146469,,mem_load_l3_miss_retired.local_dram,6050250008,87.00,,\n7024840,,mem_load_l3_miss_retired.remote_dram,6047829606,87.00,,\n105384087,,offcore_requests.l3_miss_demand_data_rd,3447201623,49.00,,",
+  "stream_bandwidth_gbps": 3.74252583,
+  "stream_count": 4,
+  "sum_last_rep": -369203,
+  "thread_mapping": [
+    {
+      "cpu": 32,
+      "physical_core": 32,
+      "thread": 0
+    },
+    {
+      "cpu": 33,
+      "physical_core": 33,
+      "thread": 1
+    },
+    {
+      "cpu": 34,
+      "physical_core": 34,
+      "thread": 2
+    },
+    {
+      "cpu": 35,
+      "physical_core": 35,
+      "thread": 3
+    },
+    {
+      "cpu": 36,
+      "physical_core": 36,
+      "thread": 4
+    },
+    {
+      "cpu": 37,
+      "physical_core": 37,
+      "thread": 5
+    },
+    {
+      "cpu": 38,
+      "physical_core": 38,
+      "thread": 6
+    },
+    {
+      "cpu": 39,
+      "physical_core": 39,
+      "thread": 7
+    },
+    {
+      "cpu": 40,
+      "physical_core": 40,
+      "thread": 8
+    },
+    {
+      "cpu": 41,
+      "physical_core": 41,
+      "thread": 9
+    },
+    {
+      "cpu": 42,
+      "physical_core": 42,
+      "thread": 10
+    },
+    {
+      "cpu": 43,
+      "physical_core": 43,
+      "thread": 11
+    },
+    {
+      "cpu": 44,
+      "physical_core": 44,
+      "thread": 12
+    },
+    {
+      "cpu": 45,
+      "physical_core": 45,
+      "thread": 13
+    },
+    {
+      "cpu": 46,
+      "physical_core": 46,
+      "thread": 14
+    },
+    {
+      "cpu": 47,
+      "physical_core": 47,
+      "thread": 15
+    }
+  ],
+  "threads": 16
+}

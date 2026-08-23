@@ -1,0 +1,33 @@
+{
+  "mode": "hot-probe",
+  "policy": "wb",
+  "fact_bytes": 0,
+  "hot_bytes": 524288,
+  "fact_node": 2,
+  "hot_node": 0,
+  "threads": 1,
+  "pf_distance": 0,
+  "stream_count": 4,
+  "seed": 13835551735702238294,
+  "hit_rate": 0.5,
+  "fact_base": "0x0",
+  "fact_end": "0x0",
+  "thread_mapping": [
+    {
+      "thread": 0,
+      "cpu": 32,
+      "physical_core": 32
+    }
+  ],
+  "samples": [
+    56.8710908
+  ],
+  "median": 56.8710908,
+  "cov": 0,
+  "seconds": 0.295004294,
+  "probe_mops_per_s": 56.8710908,
+  "active_cycles_per_access": 33.3518066,
+  "sink": 137447342080,
+  "status": "ok",
+  "label": "Q"
+}

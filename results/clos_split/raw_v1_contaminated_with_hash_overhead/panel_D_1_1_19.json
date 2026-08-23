@@ -1,0 +1,185 @@
+{
+  "active_cycles_per_access": 96.7730518,
+  "cmd": [
+    "perf",
+    "stat",
+    "-x,",
+    "-e",
+    "cycles,ref-cycles,instructions,cpu-migrations,LLC-loads,LLC-load-misses,mem_load_l3_miss_retired.local_dram,mem_load_l3_miss_retired.remote_dram,offcore_requests.l3_miss_demand_data_rd",
+    "--",
+    "/home/domin/tmp_dutyfree_exp/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench",
+    "--mode",
+    "split",
+    "--policy",
+    "wb",
+    "--fact-node",
+    "2",
+    "--hot-node",
+    "0",
+    "--fact-bytes",
+    "1g",
+    "--hot-bytes",
+    "177838489",
+    "--cpu-list",
+    "32-47",
+    "--morsel",
+    "1m",
+    "--warmups",
+    "2",
+    "--reps",
+    "1",
+    "--scan-threads",
+    "8",
+    "--probe-threads",
+    "8",
+    "--queue-depth",
+    "16",
+    "--result-hash"
+  ],
+  "cov": 0,
+  "elapsed_wall": 3.0541114807128906,
+  "fact_base": "0x7f2f76000000",
+  "fact_bytes": 1073741824,
+  "fact_end": "0x7f2fb6000000",
+  "fact_node": 2,
+  "hit_rate": 0.5,
+  "hot_bytes": 177838489,
+  "hot_node": 0,
+  "join_mtuples_per_s": 152.520763,
+  "label": "D_1_1",
+  "matches_last_rep": 33427603,
+  "median": 152.520763,
+  "mode": "split",
+  "morsel_elems": 1048576,
+  "perf": {
+    "LLC-load-misses": 15779798,
+    "LLC-loads": 249156167,
+    "cpu-migrations": 16,
+    "cycles": 11835774921,
+    "instructions": 10398525225,
+    "mem_load_l3_miss_retired.local_dram": 4881671,
+    "mem_load_l3_miss_retired.remote_dram": 1408974,
+    "offcore_requests.l3_miss_demand_data_rd": 27332476,
+    "ref-cycles": 11842957912
+  },
+  "pf_distance": 0,
+  "placement": "sampled_pages=4096 node2=4096",
+  "policy": "wb",
+  "probe_threads": 8,
+  "queue_depth": 16,
+  "rep_index": 19,
+  "result_hash": 7700551460813443366,
+  "returncode": 0,
+  "samples": [
+    152.520763
+  ],
+  "scan_cycles_per_access": 75.8936318,
+  "scan_memcpy": false,
+  "scan_threads": 8,
+  "seconds": 0.439998218,
+  "seed": 13835551735702238294,
+  "status": "ok",
+  "stderr": "11835774921,,cycles,3911830854,62.00,,\n11842957912,,ref-cycles,4701702380,74.00,,\n10398525225,,instructions,5492015770,87.00,,\n16,,cpu-migrations,6282346604,100.00,,\n249156167,,LLC-loads,5494583864,87.00,,\n15779798,,LLC-load-misses,5501188786,87.00,,\n4881671,,mem_load_l3_miss_retired.local_dram,5498828118,87.00,,\n1408974,,mem_load_l3_miss_retired.remote_dram,5502921730,87.00,,\n27332476,,offcore_requests.l3_miss_demand_data_rd,3131863918,49.00,,",
+  "stream_bandwidth_gbps": 2.44033221,
+  "stream_count": 4,
+  "sum_last_rep": -369203,
+  "thread_mapping": [
+    {
+      "cpu": 32,
+      "physical_core": 32,
+      "role": "scan",
+      "thread": 0
+    },
+    {
+      "cpu": 33,
+      "physical_core": 33,
+      "role": "scan",
+      "thread": 1
+    },
+    {
+      "cpu": 34,
+      "physical_core": 34,
+      "role": "scan",
+      "thread": 2
+    },
+    {
+      "cpu": 35,
+      "physical_core": 35,
+      "role": "scan",
+      "thread": 3
+    },
+    {
+      "cpu": 36,
+      "physical_core": 36,
+      "role": "scan",
+      "thread": 4
+    },
+    {
+      "cpu": 37,
+      "physical_core": 37,
+      "role": "scan",
+      "thread": 5
+    },
+    {
+      "cpu": 38,
+      "physical_core": 38,
+      "role": "scan",
+      "thread": 6
+    },
+    {
+      "cpu": 39,
+      "physical_core": 39,
+      "role": "scan",
+      "thread": 7
+    },
+    {
+      "cpu": 40,
+      "physical_core": 40,
+      "role": "probe",
+      "thread": 8
+    },
+    {
+      "cpu": 41,
+      "physical_core": 41,
+      "role": "probe",
+      "thread": 9
+    },
+    {
+      "cpu": 42,
+      "physical_core": 42,
+      "role": "probe",
+      "thread": 10
+    },
+    {
+      "cpu": 43,
+      "physical_core": 43,
+      "role": "probe",
+      "thread": 11
+    },
+    {
+      "cpu": 44,
+      "physical_core": 44,
+      "role": "probe",
+      "thread": 12
+    },
+    {
+      "cpu": 45,
+      "physical_core": 45,
+      "role": "probe",
+      "thread": 13
+    },
+    {
+      "cpu": 46,
+      "physical_core": 46,
+      "role": "probe",
+      "thread": 14
+    },
+    {
+      "cpu": 47,
+      "physical_core": 47,
+      "role": "probe",
+      "thread": 15
+    }
+  ],
+  "threads": 16
+}

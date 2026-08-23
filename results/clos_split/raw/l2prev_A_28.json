@@ -1,0 +1,37 @@
+{
+  "mode": "morsel",
+  "policy": "wb",
+  "fact_bytes": 268435456,
+  "hot_bytes": 524288,
+  "fact_node": 2,
+  "hot_node": 0,
+  "threads": 1,
+  "pf_distance": 0,
+  "stream_count": 4,
+  "seed": 13835551735702238294,
+  "hit_rate": 0.5,
+  "fact_base": "0x76c5b5600000",
+  "fact_end": "0x76c5c5600000",
+  "thread_mapping": [
+    {
+      "thread": 0,
+      "cpu": 32,
+      "physical_core": 32
+    }
+  ],
+  "placement": "sampled_pages=4096 node2=4096",
+  "samples": [
+    35.4593846
+  ],
+  "median": 35.4593846,
+  "cov": 0,
+  "seconds": 0.47313895,
+  "join_mtuples_per_s": 35.4593846,
+  "stream_bandwidth_gbps": 0.567350154,
+  "active_cycles_per_access": 53.5190907,
+  "matches_last_rep": 8355779,
+  "sum_last_rep": 72057594037915783,
+  "result_hash": 0,
+  "status": "ok",
+  "label": "A"
+}

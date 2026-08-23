@@ -1,0 +1,168 @@
+{
+  "active_cycles_per_access": 88.6908373,
+  "cmd": [
+    "perf",
+    "stat",
+    "-x,",
+    "-e",
+    "cycles,ref-cycles,instructions,cpu-migrations,LLC-loads,LLC-load-misses,mem_load_l3_miss_retired.local_dram,mem_load_l3_miss_retired.remote_dram,offcore_requests.l3_miss_demand_data_rd",
+    "--",
+    "/home/domin/tmp_dutyfree_exp/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench",
+    "--policy",
+    "wb",
+    "--fact-node",
+    "2",
+    "--hot-node",
+    "0",
+    "--fact-bytes",
+    "1g",
+    "--hot-bytes",
+    "177838489",
+    "--cpu-list",
+    "32-47",
+    "--morsel",
+    "1m",
+    "--warmups",
+    "2",
+    "--reps",
+    "1",
+    "--mode",
+    "morsel",
+    "--threads",
+    "16"
+  ],
+  "cov": 0,
+  "elapsed_wall": 2.6844146251678467,
+  "fact_base": "0x7d2c7dc00000",
+  "fact_bytes": 1073741824,
+  "fact_end": "0x7d2cbdc00000",
+  "fact_node": 2,
+  "freq_after_khz": {
+    "32": 800000,
+    "39": 800000,
+    "47": 800000
+  },
+  "freq_before_khz": {
+    "32": 800000,
+    "39": 800000,
+    "47": 800000
+  },
+  "hit_rate": 0.5,
+  "hot_bytes": 177838489,
+  "hot_node": 0,
+  "join_mtuples_per_s": 335.253089,
+  "label": "A",
+  "matches_last_rep": 33427603,
+  "median": 335.253089,
+  "mode": "morsel",
+  "perf": {
+    "LLC-load-misses": 13461233,
+    "LLC-loads": 219842687,
+    "cpu-migrations": 17,
+    "cycles": 10486306233,
+    "instructions": 8756189636,
+    "mem_load_l3_miss_retired.local_dram": 3694259,
+    "mem_load_l3_miss_retired.remote_dram": 1091746,
+    "offcore_requests.l3_miss_demand_data_rd": 13354778,
+    "ref-cycles": 10493450445
+  },
+  "pf_distance": 0,
+  "placement": "sampled_pages=4096 node2=4096",
+  "policy": "wb",
+  "rep_index": 6,
+  "result_hash": 0,
+  "returncode": 0,
+  "samples": [
+    335.253089
+  ],
+  "seconds": 0.200173738,
+  "seed": 13835551735702238294,
+  "status": "ok",
+  "stderr": "10486306233,,cycles,3471130578,62.00,,\n10493450445,,ref-cycles,4166830640,74.00,,\n8756189636,,instructions,4869185858,87.00,,\n17,,cpu-migrations,5570223497,100.00,,\n219842687,,LLC-loads,4871603505,87.00,,\n13461233,,LLC-load-misses,4875111212,87.00,,\n3694259,,mem_load_l3_miss_retired.local_dram,4877569349,87.00,,\n1091746,,mem_load_l3_miss_retired.remote_dram,4879420831,87.00,,\n13354778,,offcore_requests.l3_miss_demand_data_rd,2777189091,49.00,,",
+  "stream_bandwidth_gbps": 5.36404942,
+  "stream_count": 4,
+  "sum_last_rep": -369203,
+  "thread_mapping": [
+    {
+      "cpu": 32,
+      "physical_core": 32,
+      "thread": 0
+    },
+    {
+      "cpu": 33,
+      "physical_core": 33,
+      "thread": 1
+    },
+    {
+      "cpu": 34,
+      "physical_core": 34,
+      "thread": 2
+    },
+    {
+      "cpu": 35,
+      "physical_core": 35,
+      "thread": 3
+    },
+    {
+      "cpu": 36,
+      "physical_core": 36,
+      "thread": 4
+    },
+    {
+      "cpu": 37,
+      "physical_core": 37,
+      "thread": 5
+    },
+    {
+      "cpu": 38,
+      "physical_core": 38,
+      "thread": 6
+    },
+    {
+      "cpu": 39,
+      "physical_core": 39,
+      "thread": 7
+    },
+    {
+      "cpu": 40,
+      "physical_core": 40,
+      "thread": 8
+    },
+    {
+      "cpu": 41,
+      "physical_core": 41,
+      "thread": 9
+    },
+    {
+      "cpu": 42,
+      "physical_core": 42,
+      "thread": 10
+    },
+    {
+      "cpu": 43,
+      "physical_core": 43,
+      "thread": 11
+    },
+    {
+      "cpu": 44,
+      "physical_core": 44,
+      "thread": 12
+    },
+    {
+      "cpu": 45,
+      "physical_core": 45,
+      "thread": 13
+    },
+    {
+      "cpu": 46,
+      "physical_core": 46,
+      "thread": 14
+    },
+    {
+      "cpu": 47,
+      "physical_core": 47,
+      "thread": 15
+    }
+  ],
+  "threads": 16
+}

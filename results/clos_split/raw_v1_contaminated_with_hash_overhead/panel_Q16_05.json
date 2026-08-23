@@ -1,0 +1,150 @@
+{
+  "active_cycles_per_access": 55.9306258,
+  "cmd": [
+    "perf",
+    "stat",
+    "-x,",
+    "-e",
+    "cycles,ref-cycles,instructions,cpu-migrations,LLC-loads,LLC-load-misses,mem_load_l3_miss_retired.local_dram,mem_load_l3_miss_retired.remote_dram,offcore_requests.l3_miss_demand_data_rd",
+    "--",
+    "/home/domin/tmp_dutyfree_exp/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench",
+    "--mode",
+    "hot-probe",
+    "--policy",
+    "wb",
+    "--fact-bytes",
+    "1g",
+    "--hot-bytes",
+    "177838489",
+    "--cpu-list",
+    "32-47",
+    "--morsel",
+    "1m",
+    "--warmups",
+    "2",
+    "--reps",
+    "1",
+    "--threads",
+    "16"
+  ],
+  "cov": 0,
+  "elapsed_wall": 0.6330592632293701,
+  "fact_base": "0x0",
+  "fact_bytes": 0,
+  "fact_end": "0x0",
+  "fact_node": 2,
+  "hit_rate": 0.5,
+  "hot_bytes": 177838489,
+  "hot_node": 0,
+  "label": "Q16",
+  "median": 425.549156,
+  "mode": "hot-probe",
+  "perf": {
+    "LLC-load-misses": 4699018,
+    "LLC-loads": 103274072,
+    "cpu-migrations": 16,
+    "cycles": 4524248289,
+    "instructions": 3691963353,
+    "mem_load_l3_miss_retired.local_dram": 1222477,
+    "mem_load_l3_miss_retired.remote_dram": 738452,
+    "offcore_requests.l3_miss_demand_data_rd": 4773023,
+    "ref-cycles": 4537300035
+  },
+  "pf_distance": 0,
+  "policy": "wb",
+  "probe_mops_per_s": 425.549156,
+  "rep_index": 5,
+  "returncode": 0,
+  "samples": [
+    425.549156
+  ],
+  "seconds": 0.157699441,
+  "seed": 13835551735702238294,
+  "sink": 281475010265088,
+  "status": "ok",
+  "stderr": "4524248289,,cycles,1503664037,62.00,,\n4537300035,,ref-cycles,1801067174,74.00,,\n3691963353,,instructions,2102970767,87.00,,\n16,,cpu-migrations,2409635668,100.00,,\n103274072,,LLC-loads,2105395754,87.00,,\n4699018,,LLC-load-misses,2107744501,87.00,,\n1222477,,mem_load_l3_miss_retired.local_dram,2108993642,87.00,,\n738452,,mem_load_l3_miss_retired.remote_dram,2110698437,87.00,,\n4773023,,offcore_requests.l3_miss_demand_data_rd,1205710338,50.00,,",
+  "stream_count": 4,
+  "thread_mapping": [
+    {
+      "cpu": 32,
+      "physical_core": 32,
+      "thread": 0
+    },
+    {
+      "cpu": 33,
+      "physical_core": 33,
+      "thread": 1
+    },
+    {
+      "cpu": 34,
+      "physical_core": 34,
+      "thread": 2
+    },
+    {
+      "cpu": 35,
+      "physical_core": 35,
+      "thread": 3
+    },
+    {
+      "cpu": 36,
+      "physical_core": 36,
+      "thread": 4
+    },
+    {
+      "cpu": 37,
+      "physical_core": 37,
+      "thread": 5
+    },
+    {
+      "cpu": 38,
+      "physical_core": 38,
+      "thread": 6
+    },
+    {
+      "cpu": 39,
+      "physical_core": 39,
+      "thread": 7
+    },
+    {
+      "cpu": 40,
+      "physical_core": 40,
+      "thread": 8
+    },
+    {
+      "cpu": 41,
+      "physical_core": 41,
+      "thread": 9
+    },
+    {
+      "cpu": 42,
+      "physical_core": 42,
+      "thread": 10
+    },
+    {
+      "cpu": 43,
+      "physical_core": 43,
+      "thread": 11
+    },
+    {
+      "cpu": 44,
+      "physical_core": 44,
+      "thread": 12
+    },
+    {
+      "cpu": 45,
+      "physical_core": 45,
+      "thread": 13
+    },
+    {
+      "cpu": 46,
+      "physical_core": 46,
+      "thread": 14
+    },
+    {
+      "cpu": 47,
+      "physical_core": 47,
+      "thread": 15
+    }
+  ],
+  "threads": 16
+}

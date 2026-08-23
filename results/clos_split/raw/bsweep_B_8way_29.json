@@ -1,0 +1,127 @@
+{
+  "mode": "morsel",
+  "policy": "wb",
+  "fact_bytes": 1073741824,
+  "hot_bytes": 177838489,
+  "fact_node": 2,
+  "hot_node": 0,
+  "threads": 16,
+  "pf_distance": 0,
+  "stream_count": 4,
+  "seed": 13835551735702238294,
+  "hit_rate": 0.5,
+  "fact_base": "0x7a403ae00000",
+  "fact_end": "0x7a407ae00000",
+  "thread_mapping": [
+    {
+      "thread": 0,
+      "cpu": 32,
+      "physical_core": 32
+    },
+    {
+      "thread": 1,
+      "cpu": 33,
+      "physical_core": 33
+    },
+    {
+      "thread": 2,
+      "cpu": 34,
+      "physical_core": 34
+    },
+    {
+      "thread": 3,
+      "cpu": 35,
+      "physical_core": 35
+    },
+    {
+      "thread": 4,
+      "cpu": 36,
+      "physical_core": 36
+    },
+    {
+      "thread": 5,
+      "cpu": 37,
+      "physical_core": 37
+    },
+    {
+      "thread": 6,
+      "cpu": 38,
+      "physical_core": 38
+    },
+    {
+      "thread": 7,
+      "cpu": 39,
+      "physical_core": 39
+    },
+    {
+      "thread": 8,
+      "cpu": 40,
+      "physical_core": 40
+    },
+    {
+      "thread": 9,
+      "cpu": 41,
+      "physical_core": 41
+    },
+    {
+      "thread": 10,
+      "cpu": 42,
+      "physical_core": 42
+    },
+    {
+      "thread": 11,
+      "cpu": 43,
+      "physical_core": 43
+    },
+    {
+      "thread": 12,
+      "cpu": 44,
+      "physical_core": 44
+    },
+    {
+      "thread": 13,
+      "cpu": 45,
+      "physical_core": 45
+    },
+    {
+      "thread": 14,
+      "cpu": 46,
+      "physical_core": 46
+    },
+    {
+      "thread": 15,
+      "cpu": 47,
+      "physical_core": 47
+    }
+  ],
+  "placement": "sampled_pages=4096 node2=4096",
+  "no_stream": false,
+  "local_n": 67108864,
+  "samples": [
+    253.187214
+  ],
+  "median": 253.187214,
+  "cov": 0,
+  "seconds": 0.265056292,
+  "join_mtuples_per_s": 253.187214,
+  "stream_bandwidth_gbps": 4.05099542,
+  "active_cycles_per_access": 116.102314,
+  "matches_last_rep": 33427603,
+  "sum_last_rep": -369203,
+  "result_hash": 0,
+  "status": "ok",
+  "label": "B_8way",
+  "rep_index": 29,
+  "returncode": 0,
+  "perf": {
+    "cycles": 12291298277,
+    "ref-cycles": 12305124929,
+    "instructions": 8876964367,
+    "cpu-migrations": 17,
+    "LLC-loads": 208100653,
+    "LLC-load-misses": 74894881,
+    "mem_load_l3_miss_retired.local_dram": 3702592,
+    "mem_load_l3_miss_retired.remote_dram": 5985165,
+    "offcore_requests.l3_miss_demand_data_rd": 75350430
+  }
+}
