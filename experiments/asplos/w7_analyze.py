@@ -34,6 +34,20 @@ Pre-registration: W7_PREREGISTRATION_2026-08-23.md sections 3 (P1-P5) and its
                     is bench-reported throughout, so P2's >=2.0 GB/s threshold
                     is on this quantity. simSeconds-derived is still printed as
                     `wholeGB/s` for reference; do not mix the two.
+  [F9.4] A1's LLC is 20 MiB, not the 32 MiB it asks for.  gem5's CacheMemory
+                    computes m_cache_num_sets = (size/assoc)/block = 26,214 for
+                    32MiB/20-way, but indexes with m_cache_num_set_bits =
+                    floorLog2(26,214) = 14, so only 16,384 sets are reachable:
+                    16,384 x 20 x 64 = 20 MiB effective.  A0 is unaffected
+                    (5MiB/20 = 4,096 sets exactly), as are both L2s (2MiB/16 =
+                    2,048; 512KiB/16 = 512).  Consequence for the reading: A1's
+                    8 MiB hot table is 40% of the LLC, not the 25% the
+                    pre-registration reasoned about, so A1 is a HARDER cell than
+                    intended, not a softer one.  The campaign was already running
+                    when this was found and was not disturbed (apparatus rule);
+                    the number is therefore reported as measured and labelled.
+                    See W4.6_TAB_SENS_ASSOC_AXIS_2026-08-24.md addendum.
+
   lines in flight   Little's law on the bench figure, the same derivation GATE1
                     section 4 uses: (bytes/s) * 203e-9 / 64. There is no
                     MSHR-occupancy stat in this build -- lqAvgOccupancy exists
@@ -142,6 +156,13 @@ def main():
                     grid[(A, B, pol)] = a
                     allmatch.update(a["matches"])
 
+    print("== geometry as SIMULATED (not as requested) ==")
+    print("  A0  L2 2MiB/16 = 2048 sets   LLC 5MiB/20  = 4096 sets   -> LLC  5 MiB, hot 4 MiB")
+    print("  A1  L2 512KiB/16 = 512 sets  LLC 32MiB/20 = 26214 sets  -> LLC 20 MiB, hot 8 MiB  [F9.4]")
+    print("  [F9.4] floorLog2(26214)=14 -> 16384 sets reachable -> 16384*20*64 = 20 MiB.")
+    print("         A1's hot set is 40% of its LLC, not 25%.  A1 is harder than pre-registered,")
+    print("         not softer.  Every A1 number below is at a 20 MiB LLC.")
+    print()
     print("== cells (mean of completed seeds) ==")
     hdr = f"{'cell':<14}{'n':>2} {'cyc/acc':>9} {'sd':>7} {'LLChit%':>8} {'DRAMrd MB':>10} " \
           f"{'CXLrd MB':>9} {'GB/s':>7} {'wholeBW':>8} {'lines':>6} {'fills':>10} {'hnfWr':>10} {'host h':>7}"
@@ -174,14 +195,14 @@ def main():
             return None
         return (w["cyc"] - h["cyc"]) / w["cyc"] * 100
 
-    # P1 -- O2 isolated at A1/B0. Achievable saving vs a one-compulsory-load floor.
+    # P1 -- O2 isolated at A1/B0 [F9.4: LLC 20 MiB effective, not 32]. Achievable saving vs a one-compulsory-load floor.
     w, h = grid.get(("A1", "B0", "wb")), grid.get(("A1", "B0", "stream"))
     if w and h:
         d_hit = h["llc_hit"] - w["llc_hit"]
         floor = 8 * 1024 * 1024  # one compulsory load of the 8 MiB hot table
         achievable = w["dram_read"] - floor
         realised = (w["dram_read"] - h["dram_read"]) / achievable * 100 if achievable > 0 else float("nan")
-        print(f"P1 A1/B0: LLC hit {w['llc_hit']:.2f} -> {h['llc_hit']:.2f} "
+        print(f"P1 A1/B0 [LLC 20MiB eff]: LLC hit {w['llc_hit']:.2f} -> {h['llc_hit']:.2f} "
               f"(+{d_hit:.2f} pts, need >=15) | DRAM saving realised {realised:.1f}% "
               f"of achievable (need >=50, falsified <25.8)")
     else:
@@ -200,7 +221,7 @@ def main():
     g = gap("A1", "B1")
     if g is not None:
         v = "CONFIRMED" if g >= 5 else ("FALSIFIED" if g < 2 else "inconclusive (2-5%)")
-        print(f"P3 A1/B1: cyc/acc WB->H2 {g:+.2f}% (need >=5, falsified <2) -- {v}")
+        print(f"P3 A1/B1 [LLC 20MiB eff]: cyc/acc WB->H2 {g:+.2f}% (need >=5, falsified <2) -- {v}")
     else:
         print("P3: incomplete")
 
@@ -211,6 +232,7 @@ def main():
         print(f"P5: A0/B0 {parts[('A0','B0')]:+.2f}%  A0/B1 {parts[('A0','B1')]:+.2f}%  "
               f"A1/B0 {parts[('A1','B0')]:+.2f}%  A1/B1 {parts[('A1','B1')]:+.2f}%  -- "
               f"{'2x2 justified' if parts[('A1','B1')] > single else 'a single knob already suffices; report the simpler experiment'}")
+        print("     [F9.4] the two A1 entries are at a 20 MiB LLC, not 32 MiB; see the geometry banner.")
     else:
         print("P5: incomplete")
 

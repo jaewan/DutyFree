@@ -804,6 +804,20 @@ should wait for T5, which is what T5 produces.
 > like an arm flag error and is not. Not fixed: the image is frozen and nothing
 > here needs the host binary.
 
+> **W7's analyzer now carries the [F9.4] marker at the lines that compute A1's
+> numbers.** W7's A1 cell is one of the three floorLog2-affected cells repo-wide:
+> it requests `--l3_size=32MiB --l3_assoc=20`, which is 26,214 sets, of which
+> `floorLog2` leaves 16,384 reachable -- **20 MiB effective**. A0 is clean
+> (5MiB/20 = 4,096 sets exactly) and so are both L2s. The consequence runs in the
+> safe direction: A1's 8 MiB hot table occupies 40% of its LLC rather than the
+> 25% the pre-registration reasoned about, so **A1 is a harder cell than
+> intended, not a softer one** -- a positive result there is not inflated by the
+> defect. The running campaign was not disturbed (apparatus rule); the analyzer
+> instead prints a geometry-as-simulated banner above the cell table and tags
+> P1, P3 and P5 inline, so the marker travels with the number to whoever reads
+> the output. `w7_analyze.py` is not executed by `w7_campaign.sh`, which is why
+> editing it mid-campaign is safe.
+
 ---
 
 # Stop-work list
