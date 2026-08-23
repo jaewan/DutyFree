@@ -238,6 +238,19 @@ This is the experiment that would make the paper whole, and it is a principled
 prediction rather than a fishing expedition, which matters under Sec6.6. Three
 months is enough; seventeen days was not.
 
+**Pre-registered 2026-08-23: `W7_PREREGISTRATION_2026-08-23.md`.** Designing it
+changed the diagnosis. The paragraph above names MLP as the obstacle; the
+fused-null correction memo's own counters show a **second, separable** one. At
+its 4 MiB arm H2 cut HNF fills 59.6% and the victim's LLC hit rate moved
+53.6% -> 53.9% -- H2 excluded the stream and the victim still did not become
+resident, realising 25.8% of the available residency gain. The cause is
+hierarchy compression: per-core L2:LLC is 2.5x in the model and 160x on the
+8592+, so the protectable window `(2 MiB, 5 MiB]` holds exactly one power of
+two and leaves 1 MiB of headroom at it. W7 is therefore a **2x2** (hierarchy x
+probe batching), not a single workload rewrite, with five numeric falsifiers.
+The one that matters is P4: raising MLP must not hand the recovery back to CAT,
+because that would buy a benefit result by destroying the necessity result.
+
 ## W8 -- gem5 FS capability demonstration. Stretch, not critical path.
 
 `GEM5_FS_OS_CONTRACT_PREREGISTRATION.md` is written and has never been run.
