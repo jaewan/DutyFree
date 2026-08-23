@@ -25,6 +25,7 @@ headline table.
 | 3 | `Sec3_Mitigation.tex:93` | "even 12 of 20, more than the hot table's own share, leaves it 20\% worse" | **the clause inverts.** 12/20 of 320 MiB = 192 MiB = 75% *of* the 256 MiB table. Rewrite around "the table alone needs 16 of 20 ways, so a partition wide enough to hold it leaves 4 ways for everything else." | F9.2. The substantive claim survives and is sharpened. |
 | 4 | `Sec1_Introduction.tex:111`, `Sec5_Evaluation.tex:354`, `:388`, `Appendix.tex:163`, `:168` | "6.92$\times$ residual" | "9.87$\times$" | W4.2. Retired in-repo 2026-08-08; an independent runner reads 9.97x. Comment sites `Abstract.tex:45`, `Sec2_DirectoryTax.tex:141`, `Sec5_Evaluation.tex:457`, `:462` carry it too. |
 | 5 | *site unresolved* | the S1 premise that CAT cannot defend a private cache | mos182 exposes **L2 CAT** (`/sys/fs/resctrl/info/L2/` populated, `cbm_mask ffff`, `num_closids 8`, live `L2:` schemata line), so the sentence is false as written on this silicon. The argument survives — an invalidation is not an allocation, and no L2 way mask prevents back-invalidation — but the sentence does not. | W5.3 §page-1 correction, from GPROBE S5.7. **Site not located**: greps for `cannot defend`, `way mask`, and non-comment `private` across all `.tex` do not find it in `Sec1`/`Abstract`; the nearest live claim is `Sec4_Streaming.tex:50`. Locate before editing; it may already have been reworded. |
+| 21 | `Sec5_Evaluation.tex:216-219` | "H2 pays down capacity and leaves that tax where write-back left it (2.51$\times$)" | **the two charges are not additive, and the sentence asserts they are.** If H2 paid down the 1.369x capacity charge and left the SF charge untouched, the finite-SF total would fall well below WB's 2.501x. It does not move (2.512x). The correct statement: *the back-invalidation charge subsumes the capacity charge* — the SF tracks private-cache contents, which H2 by construction does not touch, so once the victim is being back-invalidated out of its own L2 it no longer matters whether the aggressor also occupies the LLC. Same conclusion (only H3 removes it), sound reason. | W1 §reconciliation. Independently: W1 measures H2 removing **90.9%** of the capacity charge at an infinite SF, so "H2 pays down capacity" is true — it is the "and leaves that tax" arithmetic that fails. Load-bearing: this is the sentence that makes H3 necessary, and a referee who checks the addition finds it does not. |
 
 ## Tier 2 — arm identity and provenance at the point of use
 
@@ -42,6 +43,8 @@ headline table.
 | 15 | `tab:gem5` | **name** the estimator | F5 |
 | 20 | every gem5 table (`tab:gem5`, `tab:sens`, `tab:h1bw`, `tab:h3sf`) | **add** a variance statement, and make it the honest one. `tab:h3sf`'s infinite-SF cells now carry one — WB/inf tax **1.3689 ± 0.0015 (1 sd)**, from three repeated identical runs (CoV 0.042% quiescent, 0.100% WB). The other three tables have **none**, and the paper should say so rather than imply single-run numbers are exact. Do not describe the `_s1/_s2/_s3` spread as seed sensitivity: `SEED` enables divergence but does not control it, so these are repeated runs, not a seed sweep. | W1.3, closing the gap `GATE1_FUSED_NULL_CORRECTION` §6 named; estimator per its §6.1 amendment. |
 | 19 | anywhere `tab:h3sf`'s 2.501x (or the finite-SF charge generally) is presented as an expectable silicon quantity | qualify it as a mechanism study at 1.0x SF:L2 coverage. Shipping parts provision snoop filters at a multiple of aggregate private capacity; mos182 cannot be made to thrash even at 62 MiB of streaming private footprint (tax 1.020x, bounded at 1.0998x). | W3.1 closure + `GPROBE_OUTCOME.md` S3.2/S4.1, which states the requirement in as many words. |
+| 22 | `tab:h3sf` (`Appendix.tex:205-229`) and `tab:sens` (`:126-135`) | **cross-reference them, and reconcile the 0.7%.** They share an arm. `tab:h3sf` has no H2/infinite-SF row; `tab:sens` publishes exactly that cell at **1.041x / 88.8% recovered**, and five more across assoc {8,12,20} and WSS {24,53,97}, all 88.8-91.9%. A reader of `tab:h3sf` alone concludes H2 does nothing. W1's three-run remeasure reads **1.0337 ± 0.0005**, which differs from the published 1.041 by ~14 sd — small, real, and spanning a commit (`b2c6499` -> `356e7b7d0e`) and a harness change. State it; do not smooth it. | W1 correction 2026-08-24 / W4.3 **F11**. This is the paper-side half of the failure that produced Plan B's premise 1. |
+| 23 | `Appendix.tex:227` | "mean of three randomisation seeds, half-range $\le$0.07~cyc/access" | "mean of three repeated runs" — the exact wording row 20 forbids, now with a site. `SEED` enables divergence but does not control it (`GATE1_FUSED_NULL_CORRECTION` §6.1: a fixed-seed control did not reproduce, 562,510 vs 562,777 HNF fills). Three runs is a repeat, not a seed sweep, and calling it a seed sweep claims a robustness the design does not deliver. | W1.3 / row 20, site pinned. |
 
 ## Tier 3 — restructure, larger than a line edit
 
@@ -50,6 +53,7 @@ headline table.
 | 16 | Restate contribution (2) as *"no deployed control can be **aimed at** the object."* The current wording claims no alternative helps, which the MBA result falsifies. | W5.2, earned by W5.3's two-vendor table rather than conceded. |
 | 17 | Promote `tab:fused` from Sec3 to the headline; add the L5 two-vendor table; promote the victim-MLP result out of a status file. | W5.1 / W5.3 / W5.4. Structural surgery — S9 lead decision in its own right. |
 | 18 | Add a provenance appendix — and it must state what is **gone**, not only what is pinned. Three of the four major campaigns (`tab:h3sf`'s gem5 cells, `tab:fused`'s way sweep and its nine rows, oltp_index's 668 rows) have no recoverable apparatus; the fourth survived only because `/tmp` outlived it. The numbers reproduce, the launchers and binaries do not exist. | W4.3 **F10**. Upgraded from optional to load-bearing: the referee's inference from the RocksDB sentence — one unsourced number implies the rest — turns out to be partly correct, so silence is the worst available answer and disclosure is the only one, since the artifacts cannot be recovered. |
+| 24 | **Place H2's benefit result.** It is currently one column of an appendix sensitivity table. H2 removes **88.8-91.9%** of the capacity charge across two axes and three independent measurements — this is the paper's benefit claim for the mechanism in its title, and `tab:h3sf`, the table a reader reaches from Sec5, omits it. Moving it forward is structural surgery and interacts with rows 17 and 22. | W1 + `tab:sens`. **S9 lead decision** in its own right: it changes what the paper's central experiment is. |
 
 ---
 
@@ -62,8 +66,11 @@ headline table.
   256 MiB — 53% is unattainable — and changing the geometry to match the prose
   would be fitting the experiment to the text, which S6.6 forbids. Fix the
   text.
-- **Nothing gated on W1.** These are all true regardless of how the
-  H2/infinite-SF cell lands.
+- ~~**Nothing gated on W1.**~~ **No longer true, 2026-08-24.** Rows 1-20 are
+  still unconditional. Rows 21-24 come from W1 and from discovering that
+  `tab:sens` already carried the cell; they are conditional on nothing further,
+  since W1 passed and the `tab:sens` rows were already published, but they did
+  not exist when this bullet was written.
 - **No attempt to reconstruct the three lost apparatus states (F10).** Two were
   tried and failed; the third is a source state present in neither commit nor
   stash on either host. Rebuilding *a* binary that reproduces the numbers would
@@ -76,3 +83,8 @@ Rows 1 and 4 first: both are pure deletions/substitutions, both are needed
 under every outcome including a return to Plan A, and row 1 is the single
 sentence the referee named. Then Tier 1 rows 2, 3, 5. Then Tier 2, which is
 mechanical. Tier 3 only after the lead has decided the paper's shape.
+
+**Amended 2026-08-24: row 21 joins rows 1 and 4 at the front.** It is a Tier 1
+correctness fix in the paragraph that motivates H3, it is checkable by a referee
+with arithmetic alone, and it does not depend on any lead decision. Rows 22 and
+23 follow with Tier 2. Row 24 is Tier 3 and waits.
