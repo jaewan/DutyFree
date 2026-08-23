@@ -1226,3 +1226,20 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > non-zero `stats.txt`). **G0–G5 and `t5_analyze.py` untouched**, and the rule
 > that `stream_mprot` waits for `wb`'s gate to be read *and stated in writing*
 > stands unchanged.
+
+> **2026-08-24 05:05, the "add `exit 0` on DRY" item was hiding a destructive
+> defect.** `w7_campaign.sh`. The pending note said the dry path merely failed to
+> stop cleanly. It was worse: `launch()` ran **`rm -rf "$OUT/$n"` above the DRY
+> branch**, so `W7_DRY=1 ./w7_campaign.sh` — the one invocation whose entire
+> purpose is to change nothing — would have **deleted all 28 completed cells**
+> before printing its first DRY line, and the tail would then have stamped a
+> fresh `w7.done` over the real one. Same shape as A6.19's `run_join_campaign.py
+> --help`: an inspection command with a destructive body. Fixed by checking DRY
+> before the first side effect and having the dry path *print* the command
+> instead of writing it, so it is side-effect-free and safe against a live
+> `$OUT`; the tail is guarded too. Verified in the only way that counts — patched
+> first, then ran `W7_DRY=1 W7_OUT=/tmp/w7` against the live campaign: **28/28
+> cells survive and `w7.done`'s mtime is unchanged.** `~/tmpfs_backup/w7/` was
+> already refreshed to 28 cells / 60 MB on ext4 before this was attempted. No
+> data or analysis is affected — the campaign ran on the old file and its results
+> stand.

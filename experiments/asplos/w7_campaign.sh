@@ -78,10 +78,19 @@ A1 512KiB 32MiB 8388608"
 
 launch() {  # $1 name  $2 l2  $3 l3  $4 opts
   local n=$1 l2=$2 l3=$3 opts=$4
-  rm -rf "$OUT/$n"
   local cmd="$G --outdir=$OUT/$n $(base_args "$l2" "$l3") -c $BIN --options '$opts'"
+  # DRY must be checked BEFORE the first side effect, and it was not.
+  # Fixed 2026-08-24, after the campaign completed. As written, the `rm -rf
+  # "$OUT/$n"` below and the `.cmd` write sat ABOVE this branch, so
+  # `W7_DRY=1 ./w7_campaign.sh` -- the one invocation whose entire purpose is to
+  # change nothing -- would have deleted all 28 completed cells in $OUT before
+  # printing a single DRY line. That is the same shape as A6.19's
+  # `run_join_campaign.py --help`: an inspection command with a destructive
+  # body. The dry path now prints the command instead of writing it, so it has
+  # no side effect at all and can be run against a live $OUT.
+  if [ "$DRY" = 1 ]; then echo "DRY $n :: $opts"; echo "    $cmd"; return; fi
+  rm -rf "$OUT/$n"
   echo "$cmd" > "$OUT/$n.cmd"
-  if [ "$DRY" = 1 ]; then echo "DRY $n :: $opts"; return; fi
   ( eval "$cmd" > "$OUT/$n.log" 2>&1
     echo "DONE_$? NAME=$n $(date +%s)" >> "$OUT/$n.log" ) &
 }
@@ -116,4 +125,7 @@ while read -r hname l2 l3 hot; do
 done <<< "$HIER"
 
 wait
+# Guarded for the same reason as launch(): in DRY mode `wait` returns at once
+# and this line would stamp a fresh completion marker over a real campaign's.
+[ "$DRY" = 1 ] && { echo "DRY: no cells launched, w7.done not written"; exit 0; }
 echo "W7_CAMPAIGN_DONE $(date +%s)" > "$OUT/w7.done"
