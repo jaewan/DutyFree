@@ -1,0 +1,49 @@
+W8 gem5 build-config check -- build_opts/Intel_8592 vs the binary's own config
+Generated 2026-08-24 against build_Intel_8592/gem5.opt (compiled 01:24).
+
+OK   BATCH                            requested=(not set)                built=(not set)
+OK   BUILD_GPU                        requested=(not set)                built=(not set)
+OK   BUILD_ISA                        requested=y                        built=y
+OK   HAVE_DEPRECATED_NAMESPACE        requested=y                        built=y
+OK   HAVE_FENV                        requested=y                        built=y
+OK   HAVE_KVM                         requested=y                        built=y
+OK   HAVE_POSIX_CLOCK                 requested=y                        built=y
+OK   HAVE_SYSTEMC                     requested=y                        built=y
+OK   HAVE_TUNTAP                      requested=y                        built=y
+OK   KVM_ISA                          requested="x86"                    built="x86"
+OK   M5_BUILD_CACHE                   requested=""                       built=""
+OK   NUMBER_BITS_PER_SET              requested=256                      built=256
+OK   PROTOCOL                         requested="CHI"                    built="CHI"
+OK   RUBY                             requested=y                        built=y
+OK   RUBY_PROTOCOL_CHI                requested=y                        built=y
+OK   RUBY_PROTOCOL_Garnet_standalone  requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MESI_Three_Level   requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MESI_Three_Level_HTM requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MESI_Two_Level     requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MI_example         requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MOESI_AMD_4th_PF   requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MOESI_AMD_Base     requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MOESI_CMP_directory requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MOESI_CMP_token    requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MOESI_hammer       requested=(not set)                built=(not set)
+OK   RUBY_PROTOCOL_MSI                requested=(not set)                built=(not set)
+OK   SLICC_HTML                       requested=(not set)                built=(not set)
+OK   USE_ARM_ISA                      requested=(not set)                built=(not set)
+OK   USE_EFENCE                       requested=(not set)                built=(not set)
+OK   USE_KVM                          requested=y                        built=y
+OK   USE_MIPS_ISA                     requested=(not set)                built=(not set)
+OK   USE_MULTIPLE_PROTOCOLS           requested=y                        built=y
+OK   USE_POSIX_CLOCK                  requested=(not set)                built=(not set)
+OK   USE_POWER_ISA                    requested=(not set)                built=(not set)
+OK   USE_RISCV_ISA                    requested=(not set)                built=(not set)
+OK   USE_SPARC_ISA                    requested=(not set)                built=(not set)
+OK   USE_SYSTEMC                      requested=y                        built=y
+OK   USE_TEST_OBJECTS                 requested=(not set)                built=(not set)
+OK   USE_X86_ISA                      requested=y                        built=y
+
+39 requested keys, 0 differ.
+
+Keys the build resolved that the request did not name are not listed: the
+question is whether every pinned option survived, not whether scons has
+defaults. The four that decide the machine are PROTOCOL, RUBY_PROTOCOL_CHI,
+NUMBER_BITS_PER_SET and USE_X86_ISA.
