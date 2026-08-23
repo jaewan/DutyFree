@@ -236,6 +236,64 @@ static inline void gem5_set_streaming(void *, long) {}
 enum class DeclareVia { M5OP, MPROTECT };
 static DeclareVia g_declare = DeclareVia::M5OP;
 
+// W8 gate: read the installed PTE back out of the kernel.
+//
+// This is the artifact the whole full-system task exists to produce. mprotect
+// returning 0 means the kernel accepted the request; it does not mean the PTE
+// carries the Streaming encoding. mm/streaming.c exposes
+// /sys/kernel/debug/streaming/pte_query for exactly this, and it resolves the
+// address in `current->mm` -- so the querying process must be the one that
+// owns the mapping. That is why this lives in the benchmark and not in the
+// .rcS.
+//
+// Slot number is read off the same three bits the gem5 walker reads
+// (pagetable_walker.cc:360-390): PAT<<2 | PCD<<1 | PWT, where PAT is bit 7 of a
+// 4K PTE and bit 12 of a 2M leaf. Streaming is slot 6 -- PAT=1, PCD=1, PWT=0.
+static void streaming_pte_readback(uintptr_t vaddr) {
+  const char *dir = "/sys/kernel/debug/streaming/pte_query";
+  char buf[32];
+  std::snprintf(buf, sizeof(buf), "%lx", (unsigned long)vaddr);
+  FILE *w = std::fopen(dir, "r+");
+  if (!w) {
+    std::cerr << "DECLARE_PTE_READBACK unavailable: cannot open " << dir << ": "
+              << std::strerror(errno) << " (debugfs not mounted, or a kernel without "
+                 "CONFIG_PAT_STREAMING) -- the declaration is UNVERIFIED\n";
+    return;
+  }
+  if (std::fwrite(buf, 1, std::strlen(buf), w) != std::strlen(buf)) {
+    std::cerr << "DECLARE_PTE_READBACK failed on write: " << std::strerror(errno)
+              << " -- the declaration is UNVERIFIED\n";
+    std::fclose(w);
+    return;
+  }
+  std::fflush(w);
+  std::rewind(w);
+  char line[128] = {0};
+  if (!std::fgets(line, sizeof(line), w)) {
+    std::cerr << "DECLARE_PTE_READBACK failed on read -- UNVERIFIED\n";
+    std::fclose(w);
+    return;
+  }
+  std::fclose(w);
+  unsigned long qv = 0, pteval = 0;
+  unsigned lvl = 0;
+  if (std::sscanf(line, "%lx %lx %u", &qv, &pteval, &lvl) != 3) {
+    std::cerr << "DECLARE_PTE_READBACK unparsed: " << line << " -- UNVERIFIED\n";
+    return;
+  }
+  unsigned pwt = (pteval >> 3) & 1u;
+  unsigned pcd = (pteval >> 4) & 1u;
+  unsigned pat = (lvl >= 21) ? ((pteval >> 12) & 1u) : ((pteval >> 7) & 1u);
+  unsigned slot = (pat << 2) | (pcd << 1) | pwt;
+  std::cerr << "DECLARE_PTE_READBACK vaddr=0x" << std::hex << qv
+            << " pte=0x" << pteval << std::dec
+            << " level_shift=" << lvl
+            << " PAT=" << pat << " PCD=" << pcd << " PWT=" << pwt
+            << " pat_slot=" << slot
+            << (slot == 6 ? "  GATE=PASS(slot6=Streaming)" : "  GATE=FAIL(expected slot 6)")
+            << "\n";
+}
+
 static void declare_streaming(void *addr, uint64_t bytes) {
   if (g_declare == DeclareVia::M5OP) { gem5_set_streaming(addr, (long)bytes); return; }
   // Page-align outward: mprotect refuses an unaligned base, and declaring a
@@ -254,6 +312,7 @@ static void declare_streaming(void *addr, uint64_t bytes) {
   }
   std::cerr << "DECLARE_STREAMING via=mprotect base=0x" << std::hex << base
             << " len=0x" << (end - base) << std::dec << " rc=0\n";
+  streaming_pte_readback(base);
 }
 
 void *alloc_bytes(uint64_t bytes, int node, bool huge2m, const char *name) {
