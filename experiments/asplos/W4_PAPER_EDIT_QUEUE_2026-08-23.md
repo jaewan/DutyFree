@@ -48,7 +48,7 @@ headline table.
 |---|---|---|
 | 16 | Restate contribution (2) as *"no deployed control can be **aimed at** the object."* The current wording claims no alternative helps, which the MBA result falsifies. | W5.2, earned by W5.3's two-vendor table rather than conceded. |
 | 17 | Promote `tab:fused` from Sec3 to the headline; add the L5 two-vendor table; promote the victim-MLP result out of a status file. | W5.1 / W5.3 / W5.4. Structural surgery — S9 lead decision in its own right. |
-| 18 | Add a provenance appendix. | W4.3; the referee's reject reason is unsourced numbers, and a ledger now exists. |
+| 18 | Add a provenance appendix — and it must state what is **gone**, not only what is pinned. Three of the four major campaigns (`tab:h3sf`'s gem5 cells, `tab:fused`'s way sweep and its nine rows, oltp_index's 668 rows) have no recoverable apparatus; the fourth survived only because `/tmp` outlived it. The numbers reproduce, the launchers and binaries do not exist. | W4.3 **F10**. Upgraded from optional to load-bearing: the referee's inference from the RocksDB sentence — one unsourced number implies the rest — turns out to be partly correct, so silence is the worst available answer and disclosure is the only one, since the artifacts cannot be recovered. |
 
 ---
 
@@ -63,6 +63,11 @@ headline table.
   text.
 - **Nothing gated on W1.** These are all true regardless of how the
   H2/infinite-SF cell lands.
+- **No attempt to reconstruct the three lost apparatus states (F10).** Two were
+  tried and failed; the third is a source state present in neither commit nor
+  stash on either host. Rebuilding *a* binary that reproduces the numbers would
+  not establish that it is *the* binary, and presenting it as such is exactly
+  the move S6.6 forbids. Row 18 discloses instead.
 
 ## Recommended order once unblocked
 
