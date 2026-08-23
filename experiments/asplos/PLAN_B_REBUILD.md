@@ -1338,3 +1338,43 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > three gates for both remaining T5 arms leaving nothing behind, and the three
 > `.rcS` scripts differ **only** in arm name and `--declare` — the premise of
 > G0's negative control, previously assumed. T5's `wb` arm untouched throughout.
+
+> **2026-08-24 — W8 / T5 arm 1 (`wb`) GATE: PASS. Arm 2 authorized.** Full-system
+> run of the real workload through a real kernel, restored from T4's checkpoint:
+> `streamingTranslations = 0`, `streamingAccesses = 0`, `W8-RCS-BENCH-EXIT 0`,
+> JSON `status=ok`. simSeconds 0.2337, 1 h 39 m host. Nothing other than a
+> declaration sets the bit. `W8.6_T5_WB_GATE_2026-08-24.md`.
+>
+> **Four qualifications, none of which moves the gate, all of which bind reporting:**
+>
+> **(A)** The `wb` record says `"declare":"m5op"` although the arm passed no
+> `--declare`: `g_declare` defaults to M5OP and is printed unconditionally, while
+> `declare_streaming()` is only reached under `policy == "stream"`. The control is
+> clean, the reporting is not — and `t5_analyze.py` prints `declare=m5op` directly
+> above `G1 PASS (expected ==0)`, which reads as the negative-control claim that
+> belongs to the *m5op* arm. **Reading rule: `declare` is meaningful only when
+> `policy == stream`.**
+>
+> **(B) T5's FS runs have no CXL involvement — a new finding that extends W8.1.**
+> `bindpool` is SE-only just as `setstreaming` is (`pseudo_inst.cc:674` warned);
+> the bench took the m5op path and its own record says `"placement": "GEM5 no NUMA
+> placement check"` — no `mbind` fallback, no verification. At the controllers:
+> the 198 ns CXL range read **46 KB**, the 97 ns DRAM range read **45 MB**. The
+> 16 MiB fact array was served from DRAM; `"fact_node": 2` was requested, not
+> realized. No gate is touched (all gates concern the declaration reaching the
+> walker, not placement), but this is a **fourth** independent reason no
+> performance comparison is licensed out of T5.
+>
+> **(C)** `stats.txt` holds **two** cumulative dump sections (`m5 dumpstats` then
+> `m5 exit`; two `simSeconds`, 0.233184 and 0.233720) and `stat_sum` sums both, so
+> any non-zero count is ~2× inflated. Presence gates are unaffected; **no count may
+> be quoted as measured** when arm 2 returns a non-zero classification count.
+>
+> **(D)** `run_t5.sh` exits 1 on a successful arm — `grep -c` returns 1 at zero
+> matches, `pipefail` propagates, `set -e` aborts before `exit $rc`. Affects `wb`
+> and `stream_mprot`; only `stream_m5op` exits 0. **Expect exit 1 from arm 2 and
+> treat it as uninformative.** Not fixed (apparatus rule; a wrong exit code does
+> not prevent running). Exact mirror of W8.5's F12 — success reported over a
+> killed run there, failure over a completed one here — and a direct vindication
+> of `f47d554`'s rule: gate on the workload's own markers, never the harness's
+> exit status. `t5_analyze.py` did, and was right.
