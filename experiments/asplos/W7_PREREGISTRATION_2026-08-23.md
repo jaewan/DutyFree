@@ -252,3 +252,38 @@ should diff the function and confirm only strings moved.
 confirmed." P2 is falsified, so **that story is unavailable** and §4 may not be
 quoted as though it were still live. What replaces it depends on P1, which is
 still blind, and is not decided here.
+
+---
+
+# Addendum, 2026-08-24 ~04:40 — P1 may be arithmetically unevaluable at A1
+
+Appended, original unchanged. Written **blind to both A1/B0 arms**, which are
+still running; the constraint below is derived from A1/B1, which I have seen.
+
+**(R5) P1's hit-rate half may be outside the range of its own metric.** P1 reads:
+"LLC hit rate rises by **≥15 points** WB→H2." At the one A1 cell visible, the WB
+arm's LLC hit rate is **97.61%**, leaving **2.39 points** of headroom to a
+perfect cache. If A1/B0's WB arm is similar — and it should be, since batching
+does not change what is fetched — then **no policy whatever can produce +15
+points**, and P1's hit-rate criterion is not a hypothesis about H2 but an
+arithmetic impossibility.
+
+Registered rule, conditional so it is decidable when the data arrives: **if
+A1/B0's WB LLC hit rate is ≥85%, P1's hit-rate half is reported as NOT EVALUABLE,
+not as falsified.** This is stronger than and distinct from `W7.2`'s protection.
+`W7.2` says a falsified P1 at A1 is "a null at a different point"; R5 says the
+threshold lies outside the metric's range, so there is no experiment at any
+operating point of this machine that could have confirmed it.
+
+P1's **DRAM half** ("≥50% of the achievable saving, falsified below 25.8%") has
+range and stays evaluable, under `W7.2`'s existing rule. For reference, the same
+computation at A1/B1 yields 14.5%.
+
+**Why A1 did this.** A1 was chosen to relieve O2 so that H2 would have room to
+work. It over-relieved it: an 8 MiB hot table in a 20 MiB effective LLC is 97.6%
+resident, so there is almost nothing left for an admission policy to protect,
+which is the obvious candidate for why H2 moves A1/B1 by only 0.63%. That
+diagnosis is measurable independently of the outcome — the §6.6 standard — and
+is registered here rather than offered later as an excuse. See also
+`W7.4_PREFETCHERS_AND_THE_CXL_ANOMALY_2026-08-24.md` §2a: at A1 the fact array is
+31.5% LLC-resident in the WB arm, so A1 is not the streaming regime either.

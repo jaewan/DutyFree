@@ -1113,3 +1113,49 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > place with date and reason. §4's strong-negative story ("P3 fails with P1 and
 > P2 both confirmed") is **unavailable** now that P2 is falsified and may not be
 > quoted as live.
+
+> **2026-08-24 04:40, two facts about the W7 machine that were never on record.**
+> `W7.4_PREFETCHERS_AND_THE_CXL_ANOMALY_2026-08-24.md`, plus an (R5) addendum to
+> the pre-registration. Both from re-reading committed artifacts; no new runs.
+>
+> **(1) The W7 machine prefetches, hard, and this was undisclosed.** The
+> instantiated `config.json` carries `MultiPrefetcher` at both L1D (Stride +
+> DCPT) and L2 (Stride + Tagged) on both cores, running at **0.547 prefetches
+> per demand access** at B0. §5.1 disclosure now owed on every W7 figure,
+> `W7.3`'s included. It does not change P2's verdict and it cuts against the
+> kernel: the "1.40 lines" serial baseline is what the loop sustains *with*
+> aggressive prefetching, and knob B raises demand accesses 64% while cutting
+> prefetches 43% (ratio 0.547 → 0.189) because k=16 scattered probes are less
+> prefetchable than a strided scan. It also supplies a **measured** candidate for
+> what `W7.3` §6 could only hypothesise: the 14.62-line smoke ceiling is
+> substantially a *prefetcher's* achievement on a pure sequential scan, so the
+> ≥6 target was calibrated against a mechanism the fused loop cannot invoke.
+>
+> **(2) H2 reads FEWER CXL bytes than WB, at every cell, and nothing predicts
+> that.** 8.3% vs 0.5% of stream traffic absorbed on-chip at A0; 47.4% vs 31.5%
+> at A1. Non-admission should cause *more* re-fetches. Prefetch differences are
+> **ruled out by measurement** (ratios identical to three decimals within each
+> cell). Leading untested candidate is **inclusion victims** — under WB an
+> admitted fact line is evicted from the thrashed LLC, back-invalidating a live
+> L2 copy and forcing a CXL re-fetch, which H2 avoids by never admitting it. If
+> true that is a real, previously unarticulated benefit of non-allocation.
+> Registered before P1 lands: **unresolved**, may not be reported as a benefit
+> until tested (§6.6), may not be dismissed as noise (5.2 MB at A0, 10.6 MB at
+> A1, stable over 3 seeds), and stands as a pending question against every W7
+> traffic figure including `W7.3` §8's "22.6% of DRAM reads removed."
+>
+> **(2a) A1 is not the streaming regime, and this reaches P1's and P3's cells.**
+> `W7.2` excluded the A1 *smokes* because the 16 MiB fact array fits the 20 MiB
+> effective LLC; the same defect reaches the A1 **morsel** cells and was not
+> propagated. A1's WB arm absorbs **31.5%** of the fact stream on-chip against
+> A0's 0.5%.
+>
+> **(R5) P1's hit-rate half may be arithmetically unevaluable.** A1/B1's WB arm
+> hits **97.61%**, leaving 2.39 points against a required **+15**. Registered
+> blind to both A1/B0 arms: if A1/B0's WB hit rate is ≥85%, P1's hit-rate half is
+> **NOT EVALUABLE**, not falsified — stronger than W7.2's protection, which says
+> "a null at a different point"; R5 says the threshold is outside the metric's
+> range. The DRAM half keeps its range and stays evaluable (14.5% at A1/B1).
+> Diagnosis, registered rather than offered later as an excuse: **A1 over-relieved
+> O2** — an 8 MiB hot table 97.6%-resident in a 20 MiB LLC leaves an admission
+> policy almost nothing to protect, the obvious candidate for H2's 0.63% there.
