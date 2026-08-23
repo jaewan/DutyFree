@@ -181,11 +181,20 @@ of the existing rows.
 Effort: hours of compute, ~1 day with analysis. **Nothing else in this plan is
 worth starting until this lands.**
 
-## W2 -- Benefit under scrutiny. Only if W1 passes.
+## W2 -- Benefit under scrutiny. **W2.1 answered 2026-08-24; W2.2/W2.3 largely pre-existing. Off the critical path.**
 
-- **W2.1 P0-1 bandwidth-matched de-confound.** Already designed. Show H2's
-  recovery is not "the aggressor got slower." Without this, the first reviewer
-  kills the result.
+- ~~**W2.1 P0-1 bandwidth-matched de-confound.**~~ **ANSWERED 2026-08-24, zero
+  compute** -- `W2.1_DECONFOUND_2026-08-24.md`. The nine W1 runs already held a
+  better discriminator than a matched point. The victim's L2 demand miss count
+  is **invariant (714,210 -> 714,068, 0.02%)** while the fraction of those misses
+  reaching DRAM goes **62.4% -> <=0.45%**. A throttle shortens queues and lowers
+  miss *latency*; it cannot relocate a miss from DRAM to the LLC. The argument
+  needs no assumption about the victim's response shape, which the matched-point
+  design did. The throttle is real and small and is reported rather than denied:
+  the stream loses **6.25% of delivered bandwidth (245 sd)** -- and that looks
+  like a **cost of H2** (it also pays +1.70 MB of CXL writes, having lost its LLC
+  writeback absorption), not the source of the victim's gain. **The MSHR band is
+  downgraded to a robustness result** with a prediction registered in the memo.
 - ~~**W2.2 Working-set sensitivity.**~~ **Largely already done** -- see the
   2026-08-24 correction. `tab:sens` sweeps WSS/LLC {24%, 53%, 97%} on the H2 arm
   and reads {--, 88.8%, 90.5%} recovered. The curve exists. What is still owed is
@@ -196,9 +205,10 @@ worth starting until this lands.**
   knife-edge and the paper can say so. Same residual owing: variance, and the
   de-confound at a second point.
 
-Effort: **revised down from ~1 week to ~2 days** -- three repetitions at two
-existing points plus counter extraction, not a new sweep. W2.1 is the only item
-here that is genuinely unbuilt, and W1 answered part of it in place.
+Effort: **revised down again, 2026-08-24: ~1 week -> ~2 days -> under a day.**
+W2.1 was the only genuinely unbuilt item and the existing runs answered it. What
+remains in W2 is repetition for variance at the `tab:sens` points and, if
+wanted, the MSHR band as robustness. **W2 is no longer on the critical path.**
 
 ## W3 -- Does *any* shipping machine levy H3's charge? New work, valuable either way.
 
