@@ -539,6 +539,36 @@ probe batching), not a single workload rewrite, with five numeric falsifiers.
 The one that matters is P4: raising MLP must not hand the recovery back to CAT,
 because that would buy a benefit result by destroying the necessity result.
 
+> **W7.2, 2026-08-24, written mid-campaign and before any morsel cell finished:
+> `W7.2_A1_SIZING_2026-08-24.md`.** Two defects in Knob A, both found from the
+> four completed `stream-smoke` references at zero compute cost.
+>
+> 1. **A1's LLC is 20 MiB, not 32 MiB.** gem5's `CacheMemory` indexes only
+>    `2^floorLog2(num_sets)` sets; 32 MiB/20-way gives 26,214 sets, of which
+>    16,384 are reachable. 37.5% of the array is allocated and never addressed.
+>    A0 (4096 sets) and every L1/L2 in the campaign are exact. The
+>    pre-registration's "64x" and "victim at 25% of LLC" are realized as **40x**
+>    and **40%**. 32 MiB is unreachable at 20-way at all: the neighbours are
+>    20 MiB and 40 MiB. This is **F9's defect class relocated to the LLC**.
+> 2. **A1's bandwidth reference is LLC-resident.** Both A1 smoke arms read the
+>    16 MiB fact array from CXL exactly once -- 16,777,216 bytes, identical to
+>    the byte across wb and stream -- at 97.98% HNF hit rate. 9.27 GB/s is an
+>    on-chip number and cannot be the denominator P2 calls "achieved fused
+>    bandwidth." A0's reference is sound (5.03 passes against a 4-pass floor).
+>
+> **P2 is unaffected** -- it is evaluated at A0/B1. **P1 and P3 are both at the
+> realized A1 point**, and W7.2 registers the reading in advance: a null there
+> may not be reported as falsifying the pre-registered prediction, because the
+> point measured is not the point registered; a positive is still a positive if
+> labelled with the realized geometry per Sec5.1. The running campaign was **not
+> touched** (apparatus rule); re-running A1 is a spending decision, and W7.2
+> states the corrected-geometry and fact-size options without choosing.
+>
+> Also fixed and committed with it: `w7_analyze.py`'s comparability gate printed
+> `PASS -- invariant` on an **empty** result set (`len(set()) <= 1`), an F12-class
+> vacuous PASS caught by running the analyzer against partial data rather than
+> waiting to trust it.
+
 ## W8 -- gem5 FS capability demonstration. Stretch, not critical path.
 
 `GEM5_FS_OS_CONTRACT_PREREGISTRATION.md` is written and has never been run.

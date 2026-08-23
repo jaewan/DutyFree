@@ -145,7 +145,15 @@ def main():
 
     print("\n== correctness gate (F12: --check is inert in morsel mode; this IS the gate) ==")
     print(f"distinct matches_last_rep across all completed cells: {sorted(allmatch)}")
-    print("PASS -- invariant" if len(allmatch) <= 1 else "**FAIL -- arms are not comparable**")
+    # An empty set is NOT a pass.  Fixed 2026-08-24 after the first run against
+    # partial data printed "PASS -- invariant" with zero morsel cells complete:
+    # a gate that passes on no evidence is worse than no gate.
+    if not allmatch:
+        print("**NO DATA -- gate not evaluated** (no completed morsel cell reports matches_last_rep)")
+    elif len(allmatch) == 1:
+        print("PASS -- invariant")
+    else:
+        print("**FAIL -- arms are not comparable**")
 
     print("\n== pre-registered falsifiers ==")
 
@@ -199,12 +207,22 @@ def main():
           "resctrl arm, which SE mode cannot run. See the memo.")
 
     print("\n== stream-smoke references (the P2 denominator) ==")
+    # Compulsory CXL traffic for the reference: fact_bytes x (1 warmup + reps).
+    # If the measured CXL read is at that floor, the array is LLC-resident after
+    # the warmup and the number is NOT a streaming ceiling.  See
+    # W7.2_A1_SIZING_2026-08-24.md.
     for A in ("A0", "A1"):
         for pol in ("wb", "stream"):
             r = row(f"{A}_SMOKE_{pol}")
             if r:
+                j = bench_json(ROOT / f"{A}_SMOKE_{pol}.log")
+                fb = j.get("fact_bytes", 0)
+                passes = (r["cxl_read"] / fb) if fb else 0.0
+                flag = "  <-- one compulsory pass: LLC-RESIDENT, not a streaming reference" \
+                       if 0 < passes < 1.5 else ""
                 print(f"{A}_SMOKE_{pol:<7} {r['gbs']:.3f} GB/s  lines {r['lif']:.2f}  "
-                      f"host {r['host']/3600:.2f} h")
+                      f"CXL {r['cxl_read']/1e6:.2f} MB = {passes:.2f} passes over the fact array  "
+                      f"host {r['host']/3600:.2f} h{flag}")
 
 
 if __name__ == "__main__":
