@@ -239,7 +239,7 @@ That is exactly H3's charge, in silicon, findable.
 Outcome is useful in both directions: either H3 gets silicon grounding, or the
 paper gets simpler and more honest by dropping it.
 
-## W4 -- Provenance audit. Start now, in parallel with W1. Referee's named reject reason.
+## W4 -- Provenance audit. **W4.3 ledger built, W4.4 closed. W4.1/W4.2 are text edits, held on the lead's co-author decision.**
 
 The panel referee's judgement on record: the unreproducible RocksDB 2.33x
 sentence, *not* the nulls, is the decisive reject reason. One unsourced number
@@ -253,8 +253,25 @@ makes a referee assume the rest are unsourced too.
 - **W4.3** Build a full provenance table: every number in the paper ->
   artifact file -> commit -> date -> runner. Any number that cannot be traced
   is deleted, not reconciled (Sec6.6).
-- **W4.4** Confirm no published number traces to the pre-D1/D2-fix binary.
-  Rebuild that binary on mos181 -- now unblocked, the `ld_*` sims are done.
+- ~~**W4.4** Confirm no published number traces to the pre-D1/D2-fix binary.~~
+  **CLOSED 2026-08-23, verdict "no"** --
+  `benchmarks/e2e/oltp_index/patches/W4.4_AUDIT_2026-08-23.md`. Done the right
+  way: the pre-fix binary was kept and the post-fix one rebuilt, then compared
+  on the same host under the same sweep, rather than reasoning from the
+  constants. The AMD codes read **identically zero** on both Intel hosts -- a
+  signature, not noise -- so any run that used them is recognisable on sight,
+  and the published Intel artifacts (clean capacity transitions,
+  `cyc_per_access` present in all 245 mos182 and 423 moscxl rows, hit counts
+  scaling exactly 2.5x with `DUR`) cannot have come from it. D2 never bit
+  anywhere: every runner passes `-w` explicitly. All three hosts are now on the
+  patched, self-reporting HEAD.
+
+  **It found a worse defect than the one it was looking for.** The binary that
+  produced the entire oltp_index campaign was built from a source state that is
+  in no commit and no stash on either host -- a third state between `481115c`
+  and the patched HEAD. Same class as the uncommitted `tab:h3sf` launcher
+  (F10). Recorded as gone per §6.6, not reconciled. The numbers are sound; the
+  apparatus is not pinned.
 
 This is the highest-value non-experiment task in the plan.
 
@@ -429,4 +446,4 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
    mos181 (idle, no contention).
 2. Start W4.1 and W4.2 -- both are pure deletions/corrections, needed under
    every outcome including a hypothetical return to Plan A.
-3. Rebuild the D1/D2-fixed binary on mos181, now unblocked.
+3. ~~Rebuild the D1/D2-fixed binary on mos181, now unblocked.~~ **Done 2026-08-23; all three hosts patched.**
