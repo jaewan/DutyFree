@@ -1318,3 +1318,23 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > Addendum appended to `W8.5_T2_SUPERVISED_TRIO_WAS_TRUNCATED_2026-08-24.md`,
 > original text verbatim (A6.19). No published number moves. T5's `wb` arm was
 > not touched during any of this (apparatus rule).
+
+> **2026-08-24 (same day, strengthening the entry above) — T5 is structurally
+> immune to the F12, and the sweep's real yield is a design rule.** My addendum
+> first said only that `run_t5.sh` "has no watchdog"; that is incomplete. T5's
+> G4 keys on `W8-RCS-BENCH-EXIT 0` plus a JSON `status=ok` — markers printed **by
+> the guest workload**, which a killed run cannot emit. Verified with two
+> synthetic arms carrying **byte-identical `stats.txt`**: they separate on G4
+> alone, FAIL vs PASS. `t5_analyze.py` also correctly reports `NO DATA` on the
+> live empty arm, so it does not carry `w7_analyze.py`'s pass-on-no-evidence bug.
+>
+> **Rule: gate on a completion marker the workload itself emits, never on the
+> simulator's or harness's exit status.** The supervised runner tested
+> `$status -eq 0 && -s stats.txt` — both properties of the *simulator*, both
+> satisfied by a SIGINT'd gem5. This supersedes the weaker "child that lies
+> convincingly" heuristic: that says where to worry, this says what to build.
+>
+> Also verified and recorded so they are not repeated: `DRYRUN=1` passes all
+> three gates for both remaining T5 arms leaving nothing behind, and the three
+> `.rcS` scripts differ **only** in arm name and `--declare` — the premise of
+> G0's negative control, previously assumed. T5's `wb` arm untouched throughout.
