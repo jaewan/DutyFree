@@ -1037,3 +1037,16 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > recur: `run_t5.sh` already captures `PIPESTATUS[0]` and propagates it. Added
 > `DRYRUN=1` to `run_t5.sh` so the gates can be exercised against the real
 > checkpoint without spending a run; all three arms pass, no side effects.
+
+> **2026-08-24 03:32, T5 geometry as instantiated.** Read from the running arm's
+> `config.json`. Two findings. F9.4 does **not** touch T5 — every level's set
+> count is an exact power of two (L1I 64, L1D 64, L2 2048, LLC 4096) — checked,
+> not assumed, so T5 needs no `[F9.4]` marker and the affected set repo-wide
+> stays at three LLC cells. But T5's **aggregate LLC is 10 MiB, not 5 MiB**:
+> `--num-l3caches=N` with `N=2` builds two 5 MiB HNF slices, while W7's SE cells
+> pass `--num-l3caches=1` at the same nominal `--l3_size=5MiB`. So T5's machine
+> has twice W7 A0's last-level capacity at the same flag value. Registered before
+> any T5 number exists: no T5 figure may be placed beside a W7 figure, and every
+> T5 quantity must name "2 × 5 MiB HNF slices, 10 MiB aggregate" at its point of
+> use (§5.1). Third independent reason no performance comparison is licensed out
+> of T5, and a caution for any future FS↔SE calibration.
