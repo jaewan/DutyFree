@@ -284,7 +284,7 @@ This is the highest-value non-experiment task in the plan.
   currently buried as a "by-product" in a status document.
 - **W5.5** Reconcile Sec2's concession with the H3 claim, pending W3.
 
-## W6 -- The cost argument. **W6.1 and W6.2 MEASURED 2026-08-24.**
+## W6 -- The cost argument. **COMPLETE 2026-08-24.** W6.1/W6.2 measured, W6.3 sourced and overturned.
 
 > **Outcome: `W6.1_IMPLEMENTATION_COST_AUDIT_2026-08-24.md`.** Static audit of
 > both trees against their pre-STREAMING bases, zero compute. The assertions
@@ -312,9 +312,26 @@ Nobody adds hardware for 6%. People do add a PAT encoding for 6%.
   **one line** of new UAPI (`PROT_STREAMING`), no new syscall. I0/I1 enforcement
   is six rejection rules over VMA flags the kernel already maintains. There is
   more test (155 KUnit + 662 selftest lines) than implementation.
-- **W6.3** State the comparison honestly: CAT shipped for less benefit than this.
-  **Still owed** -- it is the one part of W6 that is an argument rather than a
-  count, and it needs CAT's shipped-era justification sourced, not asserted.
+- ~~**W6.3** State the comparison honestly: CAT shipped for less benefit than
+  this.~~ **DONE 2026-08-24, and the claim does not survive sourcing** --
+  `W6.3_CAT_COMPARISON_2026-08-24.md`. Published CAT benefits are not small; the
+  claim contradicts W5.3's own table, where CAT *recovers* the Intel capacity
+  charge; and cache QoS shipped on a capability argument, not a throughput one,
+  so there is no throughput promise to beat. **Do not write the sentence**
+  (queue row 31).
+
+  What replaces it is better. The SDM, read at source: CAT tags every request
+  from a logical processor with its COS and consults that tag in the LLC
+  **allocation** decision. That is H2's mechanism, in the same pipeline
+  position, shipping since E5-2600 v3 -- so W6.1's proposed WC/MOVNTDQA analogy
+  is the weaker one and should be dropped for CAT (queue row 30). The difference
+  between the two is not the mechanism but what the label can name: CAT's is a
+  *thread*, bound at context switch; ours is an *object*, bound at translation.
+  **That is the paper's title as an architectural fact.** On footprint, CAT
+  needs a CPUID leaf, a per-logical-processor association register, a file of
+  mask MSRs per class, an architectural mask-contiguity rule, and a write on
+  every context switch; \textsc{Streaming} needs no new architectural state at
+  all.
 
 **What W6 does not yet cover, and must say so.** (i) Lines bound *structural*
 complexity, not silicon area, timing or verification effort; lead with the
@@ -385,7 +402,7 @@ Plan B fails if the existing campaign eats the runway. Stop:
 | phase | weeks | work |
 |---|---|---|
 | 0 | 1 | **W1** (decisive cell) + **W4** (provenance audit) in parallel |
-| 1 | 2-4 | W2 (benefit under scrutiny), W5 (restructure), ~~W6~~ **W6.3 only** -- W6.1/W6.2 measured 2026-08-24 |
+| 1 | 2-4 | ~~W2~~ ~~W6~~ **W5 (restructure) only** -- W2.1 answered and W6 complete, both 2026-08-24 |
 | 2 | 5-9 | W3 (H3 grounding), W7 (necessity+benefit convergence) |
 | 3 | 10-12 | W8 if it fits; full rewrite; 18pp -> target length |
 
