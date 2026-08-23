@@ -789,6 +789,21 @@ and now it can, in one sentence. The row is licensed by source reading alone,
 but if the claim is to be stated as *demonstrated* rather than *argued* it
 should wait for T5, which is what T5 produces.
 
+> **W8.1 second addendum: the rest of T5's analyzer contract, checked before the
+> run.** G2's `GATE=PASS(slot6=Streaming)` (`cxl_join_bench.cpp:293`, `cerr`),
+> G4's `"status":"ok"` (`run_morsel`, `:1650`, `cout`) and its
+> `W8-RCS-BENCH-EXIT` echo, and G5's gem5 warning all exist and all reach the
+> console -- init is pid 1 with the console on fds 0/1/2 and `exec` inherits
+> them. **Every flag the three arms pass is accepted by the guest binary**; an
+> unrecognized one would abort the arm with `exit 2` before any output and would
+> have surfaced only after a full restore. The image's `/etc/W8-PROVENANCE`,
+> read with `debugfs` without booting, records the same sha256 as
+> `build/cxl_join_bench.gem5fs`, so the binary checked is the binary in the
+> guest. **Trap left in place:** the *host* build `build/cxl_join_bench` is dated
+> 2026-08-11, predates `--probe-batch`, and exits 2 on it -- a failure that looks
+> like an arm flag error and is not. Not fixed: the image is frozen and nothing
+> here needs the host binary.
+
 ---
 
 # Stop-work list
