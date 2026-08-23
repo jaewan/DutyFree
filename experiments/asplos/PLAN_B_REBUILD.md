@@ -1378,3 +1378,25 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > killed run there, failure over a completed one here — and a direct vindication
 > of `f47d554`'s rule: gate on the workload's own markers, never the harness's
 > exit status. `t5_analyze.py` did, and was right.
+
+> **2026-08-24 — `t5_sections.py`, committed before arm 2's data existed.**
+> W8.6 qualification C: each T5 arm's `stats.txt` holds two cumulative dump
+> sections (`m5 dumpstats`, then `m5 exit`), and `t5_analyze.py`'s `stat_sum`
+> adds them, so any non-zero count it prints is ~2× inflated. Its gates are
+> presence tests and are unaffected, so **`t5_analyze.py` is deliberately not
+> edited** — it is pre-registered apparatus and the campaign is mid-flight.
+> This is a separate reader: it computes no gate, overrides no verdict, and
+> reports each stat per section, naming the last section (resetstats → m5_exit)
+> as the one to quote. Written and committed **while arm 2 was still running and
+> before any non-zero classification count existed**, for the same reason
+> `t5_analyze.py` was written before its data.
+>
+> Validated on arm 1, where the answer is known to be zero: 4 rows per section,
+> not the 8 `t5_analyze.py` reports — the 2× is confirmed rather than inferred.
+> Two defects in my own first draft were caught by that validation and fixed
+> before commit: it formatted every value with `.0f`, rendering simSeconds
+> 0.233184 as **"0"**, and it flagged 33 legitimate repeated Ruby rows
+> (`avg_reserved`/`avg_size`/`avg_util`, one per cache partition) as anomalies
+> while silently dropping all but the first. A reader that truncates the quantity
+> it exists to report, or cries wolf loudly enough to hide a real duplicate, is
+> the failure the file warns about.
