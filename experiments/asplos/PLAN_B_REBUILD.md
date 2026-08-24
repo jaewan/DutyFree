@@ -1890,3 +1890,41 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > internal, same-session, balanced comparisons are unaffected, so its verdict
 > stands), and any future re-run of the panel will measure different variance
 > than the July CoV column and must say so rather than call it a replication.
+
+> **2026-08-24 (paper edit, lead-authorized) — the 53%->80% operating point is
+> corrected in the draft.** Three files in `~/STREAMING_Paper/ASPLOS27/Text/`
+> modified, and therefore published to the co-authors:
+>
+> - `Sec3_Mitigation.tex:73` — "a pre-built open hash table of about 170~MB
+>   (53\% of LLC)" -> "**256~MiB (80\% of LLC)**".
+> - `Sec3_Mitigation.tex` sweep sentence — the clause "even 12 of 20, **more than
+>   the hot table's own share**" is **removed**, because it inverts: at 80% of
+>   LLC, 12/20 = 60% is *less* than the table's share. The conclusion it
+>   supported -- that the only non-hurting allocation is the trivial one -- is
+>   unchanged and still measured.
+> - `tab:fused` caption — now states "$n{=}30$ randomized runs per cell, medians;
+>   **CoV 1.3--5.3\%**", using the dispersion that has existed since 2026-07-29
+>   plus the three bsweep CoVs computed today.
+> - `Appendix.tex:76` — same size correction, plus a parameters-section sentence
+>   giving the mechanism: `--hot-bytes` is requested as 177,838,489 B (169.6 MiB)
+>   and the entry count is rounded up to a power of two, so the instantiated
+>   table is 16,777,216 x 16 B = 256 MiB. States that the instantiated size is
+>   reported throughout and that drafts before today reported the requested one.
+>
+> **Checked and deliberately NOT changed:** `Sec2_DirectoryTax.tex:96` and
+> `Sec3_Mitigation.tex:24` both describe the **pointer-chase** victim, and
+> `pointer_chase.c:171` aligns WSS only up to a 2 MiB boundary with no
+> power-of-two rounding, so their "170~MB / 53%" is correct. `Sec5:189/201/239`
+> and `Appendix.tex:129-152, 414` are gem5 `tab:sens`/`tab:gem5` rows at a
+> different operating point. Brace balance verified unchanged (delta 0, matching
+> HEAD) in both edited files.
+>
+> **One framing decision left to the lead, recorded as a `\jw{}` note in
+> `Sec3_Mitigation.tex` rather than decided here.** The corrected figure permits
+> a stronger sentence -- "the reused structure alone occupies 80% of the LLC, so
+> no non-trivial mask can contain it" -- but it also opens a referee objection:
+> an 80%-of-LLC victim makes CAT's failure less surprising. The *scope* failure
+> does not depend on table size (the stream shares the CLOS and evicts the
+> structure within whatever ways it is given) but the *magnitude* does. The note
+> states both, points at the 512 KB sensitivity point already in the file, and
+> leaves the choice open. Nothing was committed or pushed in the paper tree.
