@@ -1,0 +1,29 @@
+
+ Performance counter stats for '/home/domin/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench --mode split --policy wb --fact-node 2 --hot-node 0 --fact-bytes 256m --hot-bytes 177838489 --morsel 1m --warmups 2 --reps 1 --cpu-list 32,160 --scan-threads 1 --probe-threads 1 --queue-depth 16':
+
+       179,627,319      l1d_pend_miss.fb_full                                                 
+     3,776,777,788      cycles                                                                
+     3,613,893,930      instructions                                                          
+    22,006,929,348      TOPDOWN.SLOTS                    #     32.8 %  tma_bad_speculation    
+                                                         #     11.3 %  tma_frontend_bound     
+     3,743,981,124      topdown-retiring                 #     39.1 %  tma_backend_bound      
+     2,585,009,224      topdown-fe-bound                                                      
+     4,470,680,070      topdown-mem-bound                #     18.9 %  tma_core_bound         
+                                                         #     20.1 %  tma_memory_bound       
+     8,674,935,496      topdown-be-bound                                                      
+       352,396,166      topdown-heavy-ops                #     16.9 %  tma_retiring           
+                                                         #      1.6 %  tma_heavy_operations   
+                                                         #     15.3 %  tma_light_operations   
+     7,063,815,082      topdown-br-mispredict            #     31.8 %  tma_branch_mispredicts 
+                                                         #      1.0 %  tma_machine_clears     
+     1,479,710,921      topdown-fetch-lat                #      5.0 %  tma_fetch_bandwidth    
+                                                         #      6.3 %  tma_fetch_latency      
+     7,200,511,306      topdown-bad-spec                                                      
+        74,320,130      INT_MISC.UOP_DROPPING                                                 
+
+       1.934755417 seconds time elapsed
+
+       1.529251000 seconds user
+       0.460473000 seconds sys
+
+
