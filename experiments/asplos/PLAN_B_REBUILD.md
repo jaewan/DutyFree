@@ -1700,3 +1700,52 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > rest of the hygiene batch (the five superseded AMD triples, the RocksDB prose,
 > the 9.6x/19.85x arm identity, F9.4 labels), and those are paper-tree writes
 > gated on T0.
+
+> **2026-08-24 (T3 executed) — stream-side TLB excluded; the walk counters say
+> the load-induced walks are the VICTIM's; and `tab:fused`'s quiescent
+> denominator is bimodal with n=1.**
+> Pre-registered at `5070dbe`, runner at `30e60fd`, both before the run. Outcome
+> in `T3_HUGEPAGE_OUTCOME_2026-08-24.md`. mos181, 1 core, panel-verbatim
+> operating point, n=5, arms interleaved.
+>
+> **R = -0.088, below the registered 0.10 threshold: stream-side TLB/walk
+> pressure is excluded.** The paired A-arm comparison is far tighter and agrees:
+> cyc/access **-0.38%**, page walks **-0.45%**. Guard 1 passed decisively --
+> every A_2m rep consumed exactly **128** node-2 hugetlb pages (256 MB / 2 MiB)
+> and every other arm consumed 0, so `MAP_HUGETLB` really succeeded. That had to
+> be measured externally, because `alloc_bytes()` falls back from `MAP_HUGETLB`
+> to `mmap`+`MADV_HUGEPAGE` **silently** and the JSON's `anon_huge_kb`/`table_*`
+> fields describe the hot table, not the fact array.
+>
+> **The null is a mechanism, not just a null.** The stream's pages went from
+> 65,536 to 128 -- a 512x smaller translation footprint -- yet its apparent walk
+> contribution fell only **1.8%** (7.953M -> 7.811M), where the arithmetic
+> predicts 99.8%. So the ~8M extra walks under load are **not the stream's
+> translations; they are the victim's**, invariant to the stream's page size,
+> driven by a 170 MB hot table on ~43,500 4 KiB pages. The motivated follow-up
+> is therefore the **victim's** page size, which T3 could not touch (the hot
+> table is a `std::vector` and the prereg barred editing the kernel). Cheap: an
+> arena or an `LD_PRELOAD` like the existing `duckdb_join/tools/thp_arena.c`.
+> This does not reopen the stream-side question; it opens the one the counters
+> pointed at.
+>
+> **Incidental, and material to the paper's strongest exhibit.** The quiescent
+> arm is **bimodal** -- per-rep cyc/access clusters near ~55.5 and ~63.5 (Q_4k:
+> 55.62/61.17/63.28/64.05/64.09; Q_2m: 55.46/55.56/55.79/62.07/64.48). Which
+> mode each arm sampled is the entire 2.97 cyc `Delta` difference and why R is
+> negative rather than zero. `run_confirmatory_panel.py` passes `--reps 1` and
+> runs each label **once**, so the published `tab:fused` quiescent **61.71 is a
+> single sample from that distribution** -- and it is the denominator of the
+> 1.4737x same-core tax the paper calls its decisive case, carrying ~+/-7% from
+> the denominator alone. With the ledger's "18/18 cells reproduce exactly" being
+> *recomputation*, not replication, `tab:fused` has **no n and no CoV and at
+> least one bimodal load-bearing cell.** Establishing n/CoV is now a hygiene
+> blocker, not a nicety. Note the walk counters are stable to 0.05-0.23% while
+> cyc/access swings 2.6-6.5%, so the bistability is in timing, not in memory
+> behaviour; cause unidentified and reported as such.
+>
+> **T3 closed. T4 (the `Delta_M3` cycles-per-access conversion) is next**, and
+> Addendum 3 C2's objection stands: use thread count and hot-set size as the
+> levers, not MBA, which is a pacing throttle barred by the standing rule and
+> which W5.3 showed to be a step function rather than a clean rate knob.
+> No system state was changed by T3 and no source file was edited.
