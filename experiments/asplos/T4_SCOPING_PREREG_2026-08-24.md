@@ -188,3 +188,57 @@ later:
 
 The multiplexed sub-bucket numbers from the smoke are **not** recorded as data
 and must not be quoted.
+
+---
+
+# Addendum 2 — 2026-08-24: a defect in my own gate, and the same-code-path re-run
+
+Registered **before the re-run executes**. Phase 1 has already produced its
+result and it is reported unchanged; this addendum states what it can and cannot
+carry.
+
+**The defect.** Phase 1's arms are `Q = --mode hot-probe` and `A = --mode
+morsel`. Those are **different loops**. That is the correct pairing for measuring
+the published *tax* (it is how the tax is defined, and it matches T3 and the
+panel's operating point), but it is the **wrong pairing for a TMA attribution**:
+a differential over pipeline-slot categories between two different code paths
+conflates *interference* with *code-path difference*. A bad-speculation term is
+exactly the kind of thing a different loop shape produces on its own.
+
+**Why this matters most for the finding that actually surfaced.** Phase 1's
+dominant category is bad speculation at 46.8% of Δ. That is the term least
+defensible under this confound, and the paper must not carry it until the
+confound is removed.
+
+**The fix, available in the committed binary.** `--no-stream` runs `run_morsel`'s
+**own loop** with the stream removed (`cxl_join_bench.cpp:1522,1570,1591`), which
+is exactly a same-code-path quiescent baseline. The 2026-07-29 decomposition
+already used it and recorded the anomaly this campaign's A5 exists to
+re-verify — the no-stream variant was *slower* than the real fused case (91.5 vs
+84.4 cyc/access).
+
+**Registered arms for the re-run (phase 1b):** `Qs = --mode morsel --no-stream`
+and `A = --mode morsel`, identical in every other argument, n=12,
+order-balanced, same metrics, same falsifier.
+
+**Registered readings, fixed now:**
+
+| outcome | reading |
+|---|---|
+| bad-spec share of Δ stays ≥30% in 1b | the bad-speculation term is **real interference**, and it is the headline finding: the fused tax is largely a speculation effect |
+| bad-spec share falls below 15% in 1b | phase 1's bad-spec term was a **code-path artifact** of the hot-probe/morsel pairing, and must be withdrawn |
+| 15–30% | partially artifactual; report both pairings side by side and claim neither |
+
+**The memory-side gate verdict is evaluated again on 1b, and 1b governs.** If the
+two pairings disagree on the memory-bound share, 1b is the one with a controlled
+code path and phase 1's is reported as superseded.
+
+**A5 comes free.** Because `Qs` *is* the no-stream arm, this re-run also
+re-verifies the OoO-overlap anomaly under order balancing at n=12: if
+`cyc(Qs) > cyc(A)`, the anomaly survives, and the implication registered in A5
+applies — the fused baseline is partly latency-hidden by the interleaving, so the
+net tax sits atop a gross displacement partly offset by an overlap benefit.
+
+**Unchanged:** A4's dilution arms are still required before any strong causal
+sentence reaches the paper. TMA plus a controlled code path is still attribution,
+not cause.
