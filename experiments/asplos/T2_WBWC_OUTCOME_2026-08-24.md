@@ -130,3 +130,28 @@ untouched throughout (baseline 0x0, confirmed on an unmeasured core). The
 `setup/*_freeze.sh` scripts were deliberately **not** run — mos182 and moscxl are
 shared, arms were compared within-host and interleaved, and host state is
 recorded rather than imposed.
+
+---
+
+# Addendum 1 — 2026-08-24: this document's verdict is RETRACTED
+
+The body above concludes that the intro's WB/WC contrast is falsified and must be
+deleted. **Withdrawn.** T2's `C` arm (`stream_wc`) is `MOVNTDQA` on **WB
+anonymous pages**; the paper's WC arm is `wc_ntdqa` on a **WC-mapped device**
+(`/dev/cxl_wc`, `pgprot_writecombine`) — a different memory type, and the same
+aggressor implements `wb_ntdqa` separately for the arm T2 actually measured. The
+registered falsifier fired against a claim it could not reach.
+
+On the correct arms, from an audit that predates today
+(`experiments/phase1/e4_hygiene/RESULTS.md`, n=12): WB 12.43, WC 3.20,
+**ratio 3.882 against the implied 3.762 — `corroborated` (≥3.0), not
+`falsified` (<2.0)**. The absolute scale is ~21–24% low, already documented
+there with candidate causes.
+
+What survives, correctly scoped: `stream_wc` ≡ `stream_nt` (so `stream_nt.c`'s
+H4 reading is void); the new `stream_wc_nopf` arm and C′/C ≈ 0.69, as statements
+about `MOVNTDQA`-on-WB; B/A ≈ 0.94 (prefetch contributes ~6% of WB stream
+bandwidth on Intel local DRAM); and the cross-vendor single-core WB figures —
+which, being Intel, do **not** corroborate the paper's AMD 15.8 either.
+
+Full reasoning: `E1_ARM_IDENTITY_AUDIT_2026-08-24.md`.

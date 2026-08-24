@@ -1928,3 +1928,44 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > structure within whatever ways it is given) but the *magnitude* does. The note
 > states both, points at the 512 KB sensitivity point already in the file, and
 > leaves the choice open. Nothing was committed or pushed in the paper tree.
+
+> **2026-08-24 (E1 arm-identity audit) — E1 is SOUND, and the audit retracts T2's
+> headline.** `E1_ARM_IDENTITY_AUDIT_2026-08-24.md`.
+>
+> **E1 measures the enforced plane.** `Sec2:30` says the WC path uses
+> `pgprot_writecombine` with `MOVNTDQA`; traced to
+> `benchmarks/e2e/instrument/src/aggressor.c` mode `wc_ntdqa` ->
+> `mmap("/dev/cxl_wc")`. The same aggressor implements **`wb_ntdqa` separately**,
+> so its author drew the distinction I later collapsed. **Concern closed.**
+> Byte-matching was by **thread count** (WB 2T packed vs WC 5T spread, n=12,
+> rep-interleaved), not the barred `-R` throttle. Tax numbers reproduce tightly:
+> 1.2877x [1.2790,1.3095] vs 1.28x, and 0.9996x [0.9879,1.0136] vs 1.003x.
+>
+> **T2's headline is RETRACTED.** T2's `C` arm was `MOVNTDQA`-on-WB -- the
+> aggressor's `wb_ntdqa`, not `wc_ntdqa` -- so its falsifier fired against a
+> claim it could not reach. T2's own prereg said "true WC is still not measured"
+> in S3 while asserting in S2 that the paper's arm *was* the WB-page proxy. On the
+> correct arms, from `e4_hygiene/RESULTS.md` (n=12, predating today): WB 12.43,
+> WC 3.20, **ratio 3.882 vs the implied 3.762 -> CORROBORATED**, with the
+> absolute scale ~21-24% low and its candidate causes already recorded. Also
+> withdrawn: the claim that "4.2 GB/s" was gem5's 4.17 mislabelled.
+>
+> **Two real defects found.** (1) The paper never names E1's platform -- the pair
+> is **AMD, diff-CCX**, while `Sec1:35`/`Sec2:61` state it bare and Sec2's
+> preamble says "eight on Intel", inviting the wrong reading. (2) **F10: the
+> `/dev/cxl_wc` driver is not committed** -- only the path `#define` exists, no
+> module source, and the device is absent on both Intel hosts with no module
+> loaded, so E1's WC arm is not reproducible from this repo.
+>
+> **Fourth F11 of the day and the worst**, because it produced a
+> "delete-from-the-paper" recommendation against a claim that reproduces. Had I
+> read `e4_hygiene/RESULTS.md` first, the entire T2 campaign was unnecessary --
+> that document already carried the 15.8/4.2 audit with n=12 and CIs.
+>
+> **Hygiene list, revised by this audit:** REMOVE "delete the intro WB/WC pair".
+> ADD: restate the absolutes at 12.43/3.20 or keep 15.8/4.2 with the documented
+> ~21-24% scale caveat; name E1's platform at both use sites; commit the
+> `/dev/cxl_wc` driver or declare it lost per S6.6; and **rename
+> `benchmarks/bench/aggressor/stream_wc.c`**, whose name caused this error and
+> will cause it again -- the `instrument` aggressor already uses the correct
+> label `wb_ntdqa`.
