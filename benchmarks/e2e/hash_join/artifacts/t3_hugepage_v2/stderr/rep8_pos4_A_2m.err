@@ -1,0 +1,6 @@
+HOT_TABLE pid=2226657 base=0x72b305fff010 bytes=268435456 entries=16777216 anon_huge_kb=0 kernel_page_kb=4 mmu_page_kb=4
+HOT_TABLE_WARMED pid=2226657 warmups=2 pre_measure_sleep_s=0
+31145335,,dtlb_load_misses.walk_completed,1661878047,100.00,,
+925562310,,dtlb_load_misses.walk_active,1661878047,100.00,,
+3157234167,,cycles,1661878047,100.00,,
+2619266877,,instructions,1661878047,100.00,,

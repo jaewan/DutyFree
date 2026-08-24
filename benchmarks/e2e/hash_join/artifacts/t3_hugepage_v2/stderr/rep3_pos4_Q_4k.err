@@ -1,0 +1,4 @@
+23353484,,dtlb_load_misses.walk_completed,943124412,100.00,,
+521578832,,dtlb_load_misses.walk_active,943124412,100.00,,
+1791932100,,cycles,943124412,100.00,,
+1629167243,,instructions,943124412,100.00,,

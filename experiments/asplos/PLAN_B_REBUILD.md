@@ -1800,3 +1800,59 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > **Hygiene list gains four items:** Sec3:48's 170 MB/53% -> 256 MiB/80% plus an
 > audit of every `HOT_BYTES`-derived size; n and CoV for `tab:fused`; randomized
 > arm order before either runner is reused; D2/D3 fixed first.
+
+> **2026-08-24 (T3 run 2) — runner defects fixed, rerun under a balanced design:
+> verdict CONFIRMED, and the position confound found, measured, and shown to
+> explain run 1's sign.**
+> Registered in the T3 prereg's Addendum 1 before running; analyzer committed at
+> `722694e` before the data existed; outcome in the T3 outcome doc's Addendum 2.
+> n=12, randomized Latin square, every arm in every position exactly 3 times,
+> 48/48 records parseable, stderr archived.
+>
+> **R = +0.0897, inside the registered excluded band.** Stream-side TLB pressure
+> is excluded under a design where position cannot confound it. Primary evidence
+> agrees with run 1 and is tighter: A-arm cyc/access **-0.16%**, walks
+> **-0.24%**, stream's apparent walk contribution **-1.0%** (run 1: -1.8%)
+> against the ~99.8% its 512x page-count cut predicts. Guard 1 held (128 hugetlb
+> pages in every A_2m rep, 0 elsewhere). **The load-induced walks are the
+> victim's, in both runs.**
+>
+> **R's verdict is stable; R's value is noise.** Run 1 gave -0.0877, run 2 gives
+> +0.0897 -- both inside the band, straddling zero, which is what a true-zero
+> effect looks like through a noise-dominated denominator. Report the verdict,
+> not the number, for run 2 as well as run 1.
+>
+> **The position confound was real and is now quantified.** It is confined to the
+> quiescent arm and acts by **mode selection**, not as a slowdown: Q arms land in
+> the slow (~64.1) mode 4/6, 3/6, 2/6, 1/6 of the time across positions 1-4,
+> monotone, while the A arms are position-insensitive (means within 0.59 cyc,
+> walks within 0.14%). That explains run 1's negative R exactly: Q_4k was always
+> position 1 (mode-inflated) and Q_2m always position 3, so Delta_4k was
+> understated and Delta_2m overstated. The audit predicted it, run 2 measured it,
+> and it accounts for the sign.
+>
+> **Bimodality confirmed, and n=12 is not enough.** Pooled Q (n=24, the two
+> labels being the same execution): 14 low (55.79) / 10 high (64.05), spread
+> **16.8%** against run 1's 16.3%. The two Q labels still differ by 2.85 cyc
+> because their mode splits differ (3/9 vs 7/5); the registered replicate check
+> passes (2.849 <= pooled sd 3.817) but averaging a bimodal variable needs far
+> more than 12 samples. This **sharpens** the `tab:fused` problem: the published
+> quiescent **61.71 falls in the sparse region between** the two observed modes
+> (55.4-56.2 and 62.9-64.7), matching neither, and with `--reps 1` there is no
+> way to know which state it sampled -- it is the denominator of the 1.4737x tax.
+>
+> **F9 now recorded in-band:** `hot_table_instantiated_bytes = 268435456` =
+> 256 MiB = **80.0%** of the 320 MiB LLC. Residual gap, visible only because
+> stderr is archived now: `run_hot_probe()` emits no `HOT_TABLE` line, so the one
+> mode that measures the victim alone is the one that does not record the
+> victim's instantiated size.
+>
+> **Two further defects found by running the fix** (audit Addendum 1): a
+> `grep -c` fallback that split every JSON record across two lines -- the same
+> class as the known defect at `run_t5.sh:161-163`, which I had read the same day
+> and then reproduced; that run was quarantined rather than hand-repaired, and
+> records are now validated as JSON before being appended. And the built binary
+> is dated Aug 11 while `fef3e5e` (which added `HOT_TABLE_ROUNDED`) landed Aug
+> 15, so archiving stderr could never have caught F9 by itself. **Both T3 runs
+> and the whole clos_split panel came from binaries that no longer match the
+> source tree** -- a provenance item to sit beside `tab:fused`'s missing runner.

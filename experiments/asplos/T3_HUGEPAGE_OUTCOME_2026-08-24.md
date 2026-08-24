@@ -151,3 +151,97 @@ Guard 2 is also restated correctly: since Q_2m ≡ Q_4k, it was never a test of 
 manipulation. It is a **10-sample variance estimate of one configuration** —
 range 55.46–64.48, 16.3% spread, 4 low (~55.6) / 6 high (~63.2) — which is why
 the `tab:fused` bimodality finding is stronger than the body states, not weaker.
+
+---
+
+# Addendum 2 — 2026-08-24: run 2, balanced design. Verdict confirmed; the position confound found and quantified.
+
+Pre-registration Addendum 1 (`671a62c`), runner `run_t3_hugepage_v2.sh`
+(`671a62c`, defect-fixed at `6a194fb`), analyzer `t3_v2_analyze.py` committed at
+`722694e` **before run 2's data existed**. Raw:
+`benchmarks/e2e/hash_join/artifacts/t3_hugepage_v2/`, 48/48 records parseable,
+per-arm stderr archived. n=12, randomized Latin square, **every arm in every
+position exactly 3 times** (verified).
+
+## Verdict: confirmed
+
+> **R = +0.0897, inside the registered "excluded" band (R ≤ 0.10). Stream-side
+> TLB pressure is excluded, now under a design in which arm position cannot
+> confound the estimate.**
+
+| arm | n | cyc/access | sd | walks (M) | CoV% | hugetlb |
+|---|--:|--:|--:|--:|--:|--:|
+| Q_4k | 12 | 57.807 | 3.514 | 23.340 | 0.10 | 0 |
+| A_4k | 12 | 91.208 | 2.319 | 31.281 | 0.10 | 0 |
+| Q_2m | 12 | 60.656 | 4.119 | 23.338 | 0.09 | 0 |
+| A_2m | 12 | 91.061 | 1.869 | 31.205 | 0.11 | **128** |
+
+`Δ_4k = 33.401`, `Δ_2m = 30.405`, **R = +0.0897**.
+
+**Primary evidence, and it agrees with run 1:** A-arm cyc/access **−0.16%**,
+walks **−0.24%**, and the stream's apparent walk contribution falls **1.0%**
+(run 1: 1.8%) against the ~99.8% its 512× page-count reduction predicts. Guard 1
+holds — 128 hugetlb pages in every A_2m rep, 0 elsewhere. **The load-induced
+page walks are the victim's, in both runs.**
+
+## R's verdict is stable; R's value is noise
+
+Run 1 gave **R = −0.0877**; run 2 gives **R = +0.0897**. Both sit inside the
+excluded band and they **straddle zero** — which is what a true-zero effect looks
+like when the estimator's denominator is dominated by a noisy quantity. This
+retroactively justifies withdrawing run 1's `R` as a point estimate rather than
+defending it, and it applies equally to run 2's: **report the verdict, not the
+number.**
+
+## The position confound was real, and it explains run 1's sign
+
+Run 2 can test what run 1 could not. The effect exists, and it is **confined to
+the quiescent arm, acting through mode selection rather than as a slowdown**:
+
+| | pos 1 | pos 2 | pos 3 | pos 4 |
+|---|--:|--:|--:|--:|
+| Q arms in the **high** (slow, ~64.1) mode | **4/6** | 3/6 | 2/6 | **1/6** |
+| Q arms in the low (~55.8) mode | 2/6 | 3/6 | 4/6 | 5/6 |
+| A arms, mean cyc/access | 91.21 | 91.46 | 91.00 | 90.87 |
+| A arms, page walks (M) | 31.267 | 31.240 | 31.223 | 31.243 |
+
+The earlier an arm runs in a rep, the more likely the quiescent configuration
+lands in its slow mode — monotone across all four positions. The **A arms are
+position-insensitive** (means within 0.59 cyc, walks within 0.14%), so this is
+not a general warm-up drift affecting everything.
+
+**This quantitatively explains run 1's negative R.** There, `Q_4k` was *always*
+position 1 (mode-inflated) and `Q_2m` *always* position 3 (less so), giving
+Q_4k 61.645 > Q_2m 58.672. That understates `Δ_4k`, overstates `Δ_2m`, and
+drives R negative — exactly what was observed. The audit predicted the confound;
+run 2 measured it; it accounts for the sign.
+
+## The bimodality is confirmed, and n=12 is still not enough
+
+Pooled Q (n=24, both labels being the same execution): **14 low (mean 55.79) /
+10 high (mean 64.05), spread 16.8%** — run 1 gave 16.3% on 10 samples. Even
+under a balanced design at n=12 the two Q labels differ by 2.85 cyc, because
+their mode splits differ (Q_4k 3 high / 9 low; Q_2m 7 high / 5 low). The
+registered replicate check passes — 2.849 ≤ pooled sd 3.817 — but the lesson for
+anyone sizing future runs is that **averaging a bimodal variable needs far more
+than 12 samples**, and reporting its mean without the mode split hides the
+structure.
+
+This sharpens the `tab:fused` finding rather than softening it. The published
+quiescent **61.71** falls in the *sparse region between* the two modes observed
+here (55.4–56.2 and 62.9–64.7), matching neither cleanly. With `--reps 1` there
+is no way to know which state it sampled — and it is the denominator of the
+1.4737× same-core tax.
+
+## F9 confirmed in-band, with a residual gap
+
+`hot_table_instantiated_bytes = 268,435,456` = **256 MiB = 80.0%** of the
+8592+'s 320 MiB LLC, recorded in this experiment's own data for the first time.
+`HOT_TABLE_ROUNDED` warnings: **0** — because the built binary predates the
+commit that added the warning (audit Addendum 1, D8).
+
+Residual gap: the **Q arms report `NA`**. With stderr now archived it is possible
+to say why — `run_hot_probe()` emits no `HOT_TABLE` line at all, so the mode that
+measures the victim in isolation is the one mode that does not record the
+victim's instantiated size. The size is nonetheless known: same `--hot-bytes`,
+same `table_capacity()`, and the A arms confirm it.

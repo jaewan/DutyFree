@@ -135,3 +135,48 @@ of WB stream bandwidth on local DRAM).
 2. `tab:fused` needs n and CoV, and its quiescent cell is bimodal.
 3. Both runners want randomized arm order before any further use.
 4. D2/D3 fixes before the runners are reused.
+
+---
+
+# Addendum 1 — 2026-08-24: two more defects, found by running the fix
+
+Fixing D1–D3 and re-running surfaced two things the audit above missed.
+
+**D7 — `grep -c` split every JSON record in the first v2 execution.** `grep -c`
+prints its count **and exits 1** when there are no matches, so
+`$(grep -c ... || echo 0)` appended a *second* `0` and the variable held
+`"0\n0"`. Every record was written across two lines and the file was
+unparseable: 48 records, 96 lines. This is the same defect class as the known
+unfixed one at `run_t5.sh:161-163`, which I had read earlier the same day and
+then reproduced.
+
+*Handling:* the measurements were sound and only the serialization broke, so the
+data was recoverable by joining line pairs — and it was **quarantined and
+discarded rather than repaired**, because re-running cost ten minutes and
+repairing a data file by hand is not a habit this project should acquire. The
+real fix is not the `grep -c` correction but the guard added alongside it:
+**every record is now validated as JSON before being appended**, and the runner
+aborts rather than writing an unparseable one. An unparseable record is silent
+data loss, which is exactly what happened.
+
+*Design note:* a plain shuffle was rejected on inspection (D1), and this defect
+was caught only because the record count did not match the arm count. Both
+argue for the same discipline — check the shape of the output before believing
+its contents.
+
+**D8 — the built binary is stale relative to source, and this changes what the
+D2 fix was worth.** `build/cxl_join_bench` is dated **Aug 11**; `fef3e5e`
+("make placement and hot-table sizing self-evidencing"), which added the
+`HOT_TABLE_ROUNDED` warning, landed **Aug 15**. So the warning **cannot fire**
+with this binary, and archiving stderr — the D2 fix — could never have caught
+the F9 quantization on its own. What actually caught it is the older
+`HOT_TABLE … bytes=` line, now captured in-band as
+`hot_table_instantiated_bytes` and confirmed at **268,435,456** across the A
+arms.
+
+The binary is therefore not reproducible from current HEAD. It was deliberately
+**not** rebuilt for run 2, so that run 2 differs from run 1 only in arm order
+and n; rebuilding is a separate decision. Both T3 runs and — more importantly —
+**the whole clos_split panel** were produced by binaries that no longer
+correspond to the source tree. That belongs on the provenance ledger next to
+`tab:fused`'s missing runner.

@@ -1,0 +1,19 @@
+== T3 v2 host state as found @ 2026-08-24T18:52:41+09:00
+mos181
+-- SEED=20260824 REPS=12 (order randomized per rep, reproducible from SEED)
+-- THP
+always [madvise] never
+always defer defer+madvise [madvise] never
+-- hugepages per node
+node0 12288
+node1 0
+node2 22000
+-- governor cpu32
+performance
+-- MSR 0x1A4 cpu32
+0
+-- perf_event_paranoid
+-1
+-- binary
+-rwxrwxr-x 1 domin domin 128992 Aug 11 04:39 /home/domin/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench
+6a194fb
