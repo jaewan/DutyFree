@@ -1445,3 +1445,47 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > **appending** a suffix yields `UNKNOWN ARM … not gated`. Verified. This matters
 > because the artifact is F12-shaped — gem5 exits **0** on SIGINT and left a
 > `stats.txt` with three plausible dump sections; nothing about it looks broken.
+
+> **2026-08-24 — the stock-CHI control, pre-registered before it was built
+> (W8.8).** Lead authorized "run the stock-protocol control" to settle whether
+> our CHI edits cause arm 2's livelock. Our branch modifies
+> `src/mem/ruby/protocol/chi/`, so "upstream's bug, not ours" is not free, and
+> the question outruns W8: if our protocol edits can wedge atomics, every
+> Ruby/CHI number this project owns is in question.
+>
+> Built in a **separate git worktree** (`~/DutyFree-stockchi`, branch
+> `w8-control-stockchi`) with `chi/` reverted to the last upstream commit that
+> touched it, `6386a580d1`, and everything else at `d4fe79a9dd`. The revert is
+> exactly the inverse of our delta — ours is 221 insertions / 15 deletions over
+> 6 files, the revert is 15 / 221 — so nothing rides along. `~/DutyFree/gem5` is
+> **not touched** and stays byte-identical to the tree that produced arm 1's
+> accepted data; `logs/` and `../linux` are symlinks so the control restores the
+> identical checkpoint and kernel.
+>
+> The pre-registration's substance is a **gating audit** done before the run,
+> which is what turns the control from suggestive into interpretable. Every
+> functional change in the delta is gated on `is_streaming` or `sf_finite`, and
+> both are off here — verified from the aborted run's own artifacts, not
+> assumed: all 24 `streamingTranslations`/`streamingAccesses` lines are 0 (the
+> stall precedes `declare_streaming()`), and `config.ini` reports
+> `sf_finite=false`, `enable_H3_streaming_bypass=false` on every controller.
+> Three ungated changes were checked and are provably inert, including the new
+> `if (in_msg.isSFEvict)` arm that now runs first on **every** replacement
+> trigger — an undefaulted bool there would have been exactly this class of bug;
+> it is declared `default="false"`.
+>
+> That leaves **exactly one ungated functional line** in the whole delta:
+> `tbe.dataValid := true` for `initial == State:UD_RU` in
+> `Initiate_Replacement`, our "H3/B2 FIX" for SF-eviction dirty-data loss. It
+> fires on every UD_RU replacement, and UD_RU is the state a contended lock line
+> occupies while bouncing between two cores. Registered prediction: the control
+> **stalls identically** unless that line is the cause.
+>
+> Outcome branches fixed in advance. B1 (reproduces) exonerates our edits and is
+> decisive. B2 (completes) points at that one line, and the gating audit is what
+> makes that inference strong — but it is semantic equivalence, not cycle-exact
+> equivalence, so B2 still requires a one-line-revert confirmation before it may
+> be reported as causation. B3 is anything else, reported as itself: W8.7's
+> discriminator already produced a fourth unenumerated outcome and that must not
+> be smoothed over twice. The control is named so `t5_analyze.py` refuses to gate
+> it, and it licenses no performance comparison.
