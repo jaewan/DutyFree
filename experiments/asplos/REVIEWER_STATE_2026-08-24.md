@@ -683,3 +683,86 @@ document that needed it.
 A5's rule stands and now has a fourth instance. It gains a clause:
 **before declaring any experiment the critical path, `ls` the results tree and
 read what is already there.**
+
+---
+
+# Addendum 3 — 2026-08-24: two objections to the execution plan, and A2's table corrected
+
+## C1. A2's scissors table, corrected to print both readings
+
+A2's Branch-B cell reads "≤0.6% measured; ≤31% attributable ceiling." That
+prints only the generous bound, which is the defect T1 exists to fix. Corrected:
+
+| | deployed knobs | STREAMING's measured payoff |
+|---|---|---|
+| reuse thread never touches stream data | CAT12 → 1.00× @ 0.7% (Intel); CAT12+MBA192 → 1.07× @ 96% BW (AMD) | large — 76.3% of 6.484×, silicon |
+| reuse thread also touches stream data | every deployed control makes it worse | **0.00% of the fused tax on the strict L2-fit reference, ≤31% on the generous one** (pre-registered verdict: *"H2 story in trouble"*); **−0.6% measured** in the gem5 fused arm |
+
+## C2. T4's proposed calibration knob is barred by a standing rule of this project
+
+T4 proposes fitting an arrival × residence occupancy model against variation
+induced by "prefetch-distance MSRs, streamer thread count, and MBA caps, which
+W5.3 conveniently just validated as a clean rate knob." Two of the three are
+wrong:
+
+- **MBA is a pacing throttle, and pacing throttles are barred here.**
+  `W3.1_CLOSED_2026-08-23.md:16` and `GPROBE_OUTCOME.md:211` both state the
+  standing rule verbatim: *"Thread count is the honest way to vary this; the
+  `-R` pacing throttle carries a known confound and was not used."* MBA is the
+  same class of intervention — inject delay to reduce rate — and the confound is
+  the same: it perturbs the arrival *distribution*, not only the arrival *rate*.
+  Using it to identify the arrival term of an arrival × residence model is
+  circular.
+- **W5.3 did not validate MBA as a clean knob; it demonstrated the opposite.**
+  Arming without binding does nothing (24.52 GB/s → 13.35×; 24.54 → 12.44×),
+  then recovery appears discontinuously where the cap begins to bind (23.56 →
+  **1.08×**) and stays flat from 96% of bandwidth down to 8%. That is a step
+  function with an unexplained mechanism — the worst available choice for a
+  continuous calibration variable. A fit against it would fit the artifact.
+- **"Prefetch-distance MSRs" need to be shown to exist before they are
+  budgeted.** The documented Intel prefetch-control MSR (`0x1A4`) carries
+  enable/disable bits for four prefetchers, not distance; no architectural
+  prefetch-*distance* control is documented for SPR/EMR. If a knob is intended
+  here, name the register and verify it on the host first.
+
+**Use thread count as the primary lever**, per the standing rule, and add
+hot-set size (the M2 curve already sweeps it) as the second axis. Both vary
+occupancy without touching the arrival distribution. If a rate knob is genuinely
+required to separate the terms, that is a finding to report, not a knob to
+reach for.
+
+## C3. T5 is required, not conditional, and it is larger than "a small n-boost"
+
+T5 says an n-boost rerun is needed "only if the existing n is thin." **It is
+thin: W5.3's family runs n=3 per cell**, and the surrounding campaign documents
+bistability rather than noise — `GPROBE_OUTCOME.md` records per-rep sequences
+like `20.42 / 20.42 / 20.42` beside `22.69 / 20.42 / 22.70` in adjacent arms,
+notes one matrix "happened to sample only the clean state," and elsewhere
+reports three reps of **[166.8, 435.5, 219.8]** — a 2.6× spread. A 3-rep mean
+over a bimodal distribution is not a point estimate.
+
+This matters because W5.3 is now load-bearing *against* us: it is the evidence
+that killed L5 cross-process and closed options B and C. It survived our attack;
+it has not yet survived a statistical one. Before it leads: per-rep values and
+CoV for every cell that carries the argument, an explicit statement of the
+bistability and which state each cell sampled, and enough repetitions to
+characterize a mixture rather than average across it. **If the AMD 1.07× turns
+out to be a mixture, the scissors' Branch-A blade is blunter than A2 states** —
+which would be good news, arrived at honestly, and must not be gone looking for
+selectively. Pre-register the rep count and the mixture test before running.
+
+## C4. What the plan is missing
+
+The 39 adjudicated rows in `W4_PAPER_EDIT_QUEUE_2026-08-23.md` were adjudicated
+under the pre-scissors spine. Some are now wrong rather than merely stale, and
+no item in the plan re-adjudicates them. Add that to T6, before the restructure
+consumes them.
+
+## C5. Done here
+
+T1's non-publishing half: this addendum, and a dated correction appended to
+`W4.3_PROVENANCE_LEDGER_2026-08-23.md` recording that F1 is stale (`tab:fused`
+pinned at `a41df38`), adding the missing `results/mechanism_decomp/` row, and
+stating the decomposition's two reporting defects. T1's publishing half — Sec5
+and the abstract's framing — is held: it is a paper-tree write and the plan
+itself gates those on T0.
