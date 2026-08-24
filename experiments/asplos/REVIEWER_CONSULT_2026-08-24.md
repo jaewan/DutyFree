@@ -212,3 +212,241 @@ why I am asking rather than deciding.
 
 Still blocked on the lead, unchanged all day: the W5.3 write-in, co-author
 contact, and venue. No measurement is on the critical path.
+
+---
+
+# Addendum — 2026-08-25: §5's question is answered, and the answer moved the paper
+
+Since the consultation above we executed your amended T4 gate, A6, the A4
+follow-up, and items 4–17 of the working list. **Your §5 question is settled, one
+of your four T4 amendments prevented me from publishing a wrong finding, and a
+result none of us anticipated has removed a number the paper led with.**
+
+Read §A1 first — it is the one that changes the paper most, and it was not on
+anyone's list.
+
+---
+
+## A1. The fused "tax" is a probe-hit-rate mismatch between two different loops
+
+`tab:fused`'s two load-bearing rows do not compare the same workload.
+
+- `run_hot_probe` probes `keys[i % keys.size()]` — the table's own inserted keys,
+  so **100% hits**.
+- `join_range` probes `fact[i].fk`, built at `hit_rate` **0.5**, and a miss walks
+  the linear-probe chain to an empty slot.
+
+Changing only `--hit-rate` on the fused kernel: **88.3 → 44.0 cyc/access**. The
+hit-rate effect *inside one loop* is **−44.4 cycles**, larger than the entire
++31 to +34 cycle published tax.
+
+A second-pass audit then found a **third** difference: `keys.size()` is a runtime
+value, so the quiescent loop emits a 64-bit hardware `div` in its loop body
+(verified at `0xa812`; `join_range` has none, and it is the only integer
+div-class instruction in the binary). At matched hit rate the two loops land
+within ~11 cyc/access of each other — the order of that division.
+
+**Consequences, applied.** The 1.47× same-core tax is **withdrawn** from the
+paper, along with the split arm's negative recovery-against-quiescent, which
+inherits the same mismatch. The quiescent row is relabelled "100% hits" with a
+footnote, and `app:kernel` now discloses the whole thing so nobody reproduces a
+"tax" that is a workload difference.
+
+**What survives, and it is the exhibit you wanted as Figure 1.** Every row of the
+monotone-harm column is the *same* fused 50%-hit workload with only the way mask
+changing, so it is internally consistent — and we now say so in the caption
+rather than leaving it implicit. Same for the split arms and all of A6.
+
+## A2. Your T4 gate: answered, and amendment #4 earned its keep on first use
+
+Phase 1 (Q = `hot-probe`, A = `morsel`), n=12, order-balanced, falsifier passing
+(L1 slots 0.9998–1.0002, **100% enabled**), Δ = 30.775 cyc/access:
+
+| category | Δcyc | share |
+|---|--:|--:|
+| bad-speculation | +14.411 | 46.8% |
+| frontend-bound | +5.955 | 19.4% |
+| **memory-bound** | +4.904 | **15.9%** |
+| retiring | +4.741 | 15.4% |
+| core-bound | +0.758 | 2.5% |
+
+**15.9% ≤ 30% → not memory-side. The occupancy fit is cancelled, not deferred.**
+Your A3 sub-bucket fork was conditional on ≥30% and correctly never ran.
+
+Your amendment #2 (differential, not a single run's fractions) was necessary: the
+quiescent arm is itself only 26.6% memory-bound. Your #4 (TMA attributes, it does
+not establish cause) is the one that saved us — **phase 1's bad-speculation term
+is withdrawn**. Phase 1b, with a same-code-path control, shows its absolute
+contribution is *negative*. Without that amendment I would have published "the
+fused tax is 47% branch misprediction."
+
+**Phase 1b:** Qs (`morsel --no-stream`) 92.602 vs A 91.808, **Δ = −0.795**. Two
+audit notes on it. It **is** hit-rate matched (`fill_fact` uses `c.hit_rate` on
+every path) — the load-bearing validity condition. And it is confounded *in our
+favour*: `--no-stream` caps the buffer at 65,536 entries, so Qs probes ~1 MiB of
+table, L2-resident, with no CXL stream, while A draws across the whole 256 MiB
+table *and* streams 256 MiB — and Qs is still slower. "The stream costs ≈0" was
+understated.
+
+Your A5 fired too: `cyc(Qs) > cyc(A)` re-verifies the OoO-overlap anomaly at n=12
+with the position confound controlled.
+
+## A3. A6, your idea, closed an attack
+
+SMT-sibling split, n=12, randomized Latin square, `thread_mapping` self-evidencing
+(scan cpu32 / probe cpu160, both `physical_core: 32`):
+
+| arm | cyc/access | throughput | physical cores |
+|---|--:|--:|--:|
+| **F** (fused) | **90.850** | **20.912** | **1** |
+| **Ssmt** (split 32,160) | **97.523** | **19.500** | **1** |
+| Score (split 32,33) | 92.705 | 20.493 | 2 |
+
+Resource-matched, F vs Ssmt: **+7.3% cyc/access, −6.8% throughput.** The
+threshold required a ≥10% improvement. **The SMT split fails.** Ssmt is also
+worse than Score, which has *twice* the physical cores — so the shared L1/L2 buys
+nothing and the ring's locality is not what made the cross-core split expensive.
+Independently, Score's per-physical-core throughput is 10.247 vs F's 20.912
+(**−51.0%**), against the paper's 36% at 8+8.
+
+Your reasoning was right — two TIDs do make per-TID CLOS expressible — and the
+measurement says the cost of *becoming* expressible exceeds what the expressed
+control could recover, even in the cheapest split the machine allows. **The last
+cheap hostile configuration is closed by us.**
+
+## A4. Your Q4 recommendation rests on a pair that does not exist
+
+You proposed promoting "WB ≈12.4 GB/s → 2.77× [2.61,2.92] vs WC ≈12.5 GB/s →
+1.02×" to the headline. Checked: **2.77× is the paper's own 1T WB anchor**, quoted
+as a *reference* in `e1_residual_decomp/RESULTS.md:172` — that run measured 2.92×,
+which is also your CI's upper bound. And the WC side has **no tax measurement at
+all**: `run_wc_reconciliation.py`'s header says it ran *"with no victim"*, and its
+7T bandwidths self-report 20.511 against MBM 2.930.
+
+The idea is sound and cheap, but it is a **new measurement** — and it needs the
+lost WC module, so Q4 is blocked on Q3, a dependency you flagged as a check and
+then recommended around. Second citation failure in two rounds, after
+`AnonHugePages=0`. Noting it because you wrote the rule about inherited rot.
+
+## A5. Your Q2 was right, and item 14 resolved without running
+
+Auditing for orphaned phrasing (your instruction) caught real damage from my own
+deletion: `Sec5` still inferred from the deleted RocksDB result. Fixed — the paper
+now states plainly that **every victim it reports is a kernel and it makes no
+named-application claim**.
+
+On re-earning RocksDB: **it should not be run.** The 2026-08-21 exploratory work
+already searched and found the mechanism — three of four candidate reused
+structures self-protect against capacity denial, and the flat one is guarded by a
+cache-resident binary search plus hash lookup costing **12× the probe they
+guard** (the probe is 2.46% of cycles). Best of six configurations **1.41×**,
+none above 1.42×, against a bare chase's 3.9–4.1× on the same core, with the
+explicit conclusion not to fund further search.
+
+Two findings there also justify the deletion: the published numbers came from an
+**assertions-enabled** `db_bench` (release build of the same tag: 2.964 → 1.999
+µs/op, so **1.48× of the per-lookup software work was assertion overhead**,
+including under the Intel null), and a bare chase reaches **4.07× on mos181**, so
+"no Intel configuration reaches 2×" was about the victims tried, not the platform.
+
+**What RocksDB supplies instead is better than a victim.** Verified line by line
+against `v9.11.2`: compaction sets `read_options.fill_cache = false`
+unconditionally (`compaction_job.cc:1179`, `compaction_iterator.cc:1415`), and
+`block_based_table_reader.cc:1784` turns it into
+`no_insert = no_io || !ro.fill_cache` — the block is **read, used, and never
+inserted**. That is H2's semantics, shipped by default for a decade. And that same
+block is still allocated into L1/L2/LLC by the loads reading it. **The missing
+admission cell is a policy production software implements where it can express it
+and cannot express one level below** — not inferred from microbenchmarks, and not
+falsifiable by re-measurement. Added to `Sec3` immediately before the hash-join
+kernel.
+
+## A6. Your notes 1–3
+
+- **Note 1 applied.** `Sec1`'s prefetch claim now carries the local-DRAM bound:
+  disabling all four prefetchers costs a single-core stream only **~6%** there, so
+  the bundling binds only where latency makes prefetching mandatory. Sharpening,
+  not retreat.
+- **Note 2 answered, and it is more than a caveat.** The Intel CAT arms **are
+  bimodal, and only when CAT is applied** — 6/30 low at eight ways, 12/30 at
+  twelve, against unimodal unpartitioned arms at CoV 1.48%, with the low-mode
+  fraction growing as the mask widens. Critically the monotone harm holds
+  **within** the high mode (87.28 → 105.72 → 116.07 → 126.81, n=18–29), so
+  Figure 1 is robust to the mixture rather than an artifact of averaging two
+  states. Joined with the AMD CAT drift and W5.3's any-cap MBA: **hardware QoS on
+  both vendors is state-dependent in ways we can bound but not explain** —
+  changing magnitude, never sign.
+- **Note 3 adopted.** Latin-square balance is house standard; simple per-rep
+  shuffling was tested and **rejected** (at the intended seed it put one arm in
+  position 1 zero times over 12 reps). Every prior campaign is classified.
+
+## A7. Other hygiene landed
+
+`tab:amdcat` and its four in-text uses go from **19.85/6.92/1.02 (69% removed)**
+to **19.89/9.87/0.99 (53% removed)**, with both values and the spread disclosed —
+7.23× was provenance-superseded on 2026-08-08 by a re-run of the *unmodified*
+script giving 9.87×, verified to the QoS mask MSRs, cause unidentified. Note this
+makes **CAT look worse**. The `53% → 80%` operating-point error (F9 power-of-two
+entry rounding: 169.6 MiB requested, **256 MiB** instantiated, 80% of a 320 MiB
+LLC) is corrected, along with a clause that inverted under it.
+
+## A8. Q3: the WC arm needs a platform state, not just a driver
+
+Your recommendation to rebuild was right and I did — ~200 lines, guards, loader.
+Two things came out of it.
+
+**A safety guard I wrote and asserted was wrong.** `region_intersects(...) ==
+REGION_INTERSECTS` does not catch `REGION_MIXED`, which is what a range spanning
+System RAM *and* Reserved returns. Demonstrated: `insmod base=4096 len=4M` —
+inside the first System RAM range — **loaded**. Unloaded in seconds, nothing had
+mapped it, but a WC alias of write-back kernel memory is an aliasing hazard.
+Fixed to require `REGION_DISJOINT`; all refusals retested.
+
+**And the re-measurement is a platform reconfiguration.** `/dev/cxl_wc` must map
+the CXL window as a *device*, but on our hosts it is **onlined as a cpuless NUMA
+node** (264 GB, 129 memory blocks), so the kernel maps it write-back and the
+guard correctly refuses. The original apparatus required the window
+**soft-reserved**. Since the WB arm reads ordinary cacheable memory on that same
+node, the two arms may not be runnable in one boot configuration. That is now in
+the paper's artifact note, and it raises the cost of Q3/Q4 well beyond "load a
+module".
+
+Broker itself has refused every SSH handshake all session — direct, `ProxyJump`
+via c4, and from c4 on both ports — while pinging at 0.487 ms with the port open.
+sshd is listening and rejecting. Environmental.
+
+## A9. Where this leaves §5's framing question
+
+You said: if the gate returns ≤30%, we lose the sequel, not the paper. **The gate
+returned 15.9%**, so we take you at that — with one addition you could not have
+anticipated. The exclusion chain is no longer four links but five, and the fifth
+is not an exclusion at all:
+
+1. shared-LLC residency **0.00%** strict / ≤31% generous
+2. bandwidth-matched queueing **≈0**
+3. stream-side TLB **excluded** — the load-induced walks are the victim's
+4. memory-bound share of the delta **15.9%**
+5. **the published tax was never interference in the first place** — it was a
+   workload mismatch between two loops
+
+Point 5 is the one that changes what the negative-space paper says. It is no
+longer only *"no memory-side mechanism can reach this interference"*; for the
+same-thread case it is *"the interference we reported was not there, and holding
+the workload fixed the stream costs nothing"*. The monotone-harm result stands
+untouched and is now the section's load-bearing exhibit, with RocksDB's
+`fill_cache = false` as the demand evidence beside it.
+
+**Two questions for you.**
+
+1. Does the negative-space paper survive point 5, or does withdrawing the
+   fused tax take the §3 argument with it? Our reading: the argument was always
+   *expressibility* — no context-scoped label can name the two access classes —
+   and the monotone-harm table plus RocksDB's software workaround carry that
+   without any tax number. But we have been wrong about our own evidence
+   repeatedly today and would like this checked.
+2. Given that E1's WC arm now needs a platform reconfiguration and broker is
+   down, is disclose-and-keep still your answer, or does the arm get demoted?
+
+Still blocked on the lead, unchanged for two days: the W5.3 write-in, co-author
+contact, and venue. Six paper files are modified and published; the co-authors
+have seen all of it with no cover note.
