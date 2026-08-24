@@ -2025,3 +2025,41 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > tax were proportional to bytes, WC at 74% of WB's rate should read ~21%; it
 > reads 0.3%, a **~70x shortfall from any byte model**. That converts the 26%
 > shortfall from a defect into the argument and needs no new data.
+
+> **2026-08-24 (items 4-7) — the fused tax is withdrawn from the paper; the
+> monotone exhibit is protected.** Paper-tree writes, published.
+>
+> `Sec3_Mitigation`: the second of the section's three results was *"the effect
+> survives at a single core ... 60.7->89.5 cycles/access (1.47x)"*. **Withdrawn.**
+> Replaced with the harm that *is* within-workload (restricting ways at one core
+> still costs 1.35x on hot-table access and 0.74x on throughput, flat from 1 to 16
+> cores), followed by an explicit withdrawal naming the cause: the quiescent arm
+> probes at 100% hits and the fused arm at 50%, so the comparison spanned two
+> probe workloads. The replacement states the matched-workload figure instead --
+> holding loop and hit rate fixed, adding the CXL stream costs **-0.8
+> cyc/access**, i.e. not measurably at all -- and notes that the surrounding
+> results do not depend on it.
+>
+> Also withdrawn: the split arm's *"recovery against quiescent is negative
+> (R=-0.25)"*, which inherits the same mismatch. The split-versus-fused
+> comparison (95.7 vs 88.5) is kept, because both are one workload.
+>
+> `tab:fused` caption now states that **every row below the first is the same
+> workload** -- identical kernel, identical 50% hit rate, differing only in way
+> mask or thread organization -- which is what makes the comparisons sound, and
+> that the quiescent row is **not a baseline** for them. The row itself is
+> relabelled "Quiescent (no stream, 100% hits)" with a dagger footnote pointing
+> at `app:kernel`.
+>
+> `app:kernel` gains the full disclosure: the two modes' hit rates, the 88.3 ->
+> 44.0 cyc/access effect of changing only the hit rate, the sign reversal at
+> matched rate (fused 44.0 vs quiescent 55.2 while streaming 256 MiB), and the
+> warning that any reproduction treating the quiescent row as a baseline will
+> recover a "tax" that is a workload difference.
+>
+> `Sec5`'s "of the 1.47x same-thread tax" becomes "of the same-thread fused
+> cost". Brace deltas verified unchanged against HEAD in all three files.
+>
+> Net: the paper loses a headline number and keeps the exhibit the panel called
+> its strongest, with the reason it stays valid now stated in the caption rather
+> than left implicit.

@@ -21,9 +21,9 @@ Driven by `A4_HITRATE_FINDING_2026-08-24.md`: `run_hot_probe` probes at 100% hit
 
 | # | item | done means | Status |
 |---|---|---|---|
-| 8 | scope "prefetching well and polluting are the same decision" to far memory | the sentence names local-DRAM's ~6% (T2 B/A = 0.944/0.940) as the limit | **DONE** |
-| 9 | CAT-arm instability + W5.3 any-cap MBA as ONE observation; check the CAT arm for bimodality from committed raw | a doc stating the joint finding, with the bimodality question answered from `results/clos_split/raw` | **DONE** |
-| 10 | Latin square as house standard, retroactively noted | a convention note; historical fixed-order results flagged | **DONE** |
+| 8 | scope "prefetching well and polluting are the same decision" to far memory | the sentence names local-DRAM's ~6% (T2 B/A = 0.944/0.940) as the limit | TODO |
+| 9 | CAT-arm instability + W5.3 any-cap MBA as ONE observation; check the CAT arm for bimodality from committed raw | a doc stating the joint finding, with the bimodality question answered from `results/clos_split/raw` | TODO |
+| 10 | Latin square as house standard, retroactively noted | a convention note; historical fixed-order results flagged | TODO |
 
 ## Block 3 — broker-blocked (items 11–14). Host alive, SSH handshake resets.
 
@@ -51,3 +51,20 @@ environmental and is recorded, not worked around.
 - Read the producing artifact end-to-end before any adverse claim (five
   retractions today, all from inferring instead of reading).
 - Anything setting page-1 posture stays a `\jw{}` note for the lead.
+
+## Correction, appended when Block 1 landed
+
+**The Status column was pre-filled with DONE for items 4--10 when this file was
+first committed, before any of that work had been done.** Items 4--7 are now
+genuinely complete; items 8--10 have been set back to TODO, which is what they
+were all along. Items 15--17 were already closed before this plan existed, so
+their DONE was accurate. Noting it rather than quietly editing: a plan that
+asserts completed work is the same defect class as a paper that asserts a
+measurement, and this file exists precisely to be trusted after a compaction.
+
+**Broker escalation is exhausted** (item block 3). Tried: direct SSH on 9812,
+`ProxyJump` via c4, and `ssh` from c4 to both port 22 (refused) and 9812
+(`kex_exchange_identification` reset, identical to the local failure). The host
+pings at 0.487 ms and the port is open from two different sources, so sshd is
+listening and rejecting every handshake. This is environmental and is recorded,
+not worked around.
