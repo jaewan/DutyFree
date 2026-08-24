@@ -32,7 +32,12 @@ def parse(errfile):
 
 def main(argv):
     d = Path(argv[1] if len(argv) > 1 else "../artifacts/t4_tma")
-    rows = [json.loads(l) for l in (d / "t4_tma.jsonl").read_text().splitlines() if l.strip()]
+    cand = sorted(d.glob("t4_tma*.jsonl"))
+    if not cand:
+        print(f"no t4_tma*.jsonl in {d}"); return 2
+    jf = cand[0]
+    print(f"data: {jf.name}")
+    rows = [json.loads(l) for l in jf.read_text().splitlines() if l.strip()]
     ok = [r for r in rows if r.get("status") == "ok"]
     print(f"records={len(rows)} ok={len(ok)}")
     by = {}

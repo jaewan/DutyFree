@@ -1,0 +1,14 @@
+== T4 TMA gate, host state as found @ 2026-08-24T22:16:10+09:00
+mos181
+-- metrics: -M TopdownL1,TopdownL2  -e l1d_pend_miss.fb_full,cycles,instructions
+-- governor cpu32
+performance
+-- MSR 0x1A4 cpu32
+0
+-- SMT sibling of cpu32
+32,160
+-- perf_event_paranoid
+-1
+-- binary
+-rwxrwxr-x 1 domin domin 128992 Aug 11 04:39 /home/domin/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench
+82b0af1

@@ -1,0 +1,31 @@
+HOT_TABLE pid=2243167 base=0x72b0033ff010 bytes=268435456 entries=16777216 anon_huge_kb=0 kernel_page_kb=4 mmu_page_kb=4
+HOT_TABLE_WARMED pid=2243167 warmups=2 pre_measure_sleep_s=0
+
+ Performance counter stats for '/home/domin/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench --mode morsel --policy wb --fact-node 2 --hot-node 0 --no-stream --fact-bytes 256m --hot-bytes 177838489 --cpu-list 32 --morsel 1m --warmups 2 --reps 1 --threads 1':
+
+        37,243,363      l1d_pend_miss.fb_full                                                 
+     2,499,863,990      cycles                                                                
+     1,753,240,486      instructions                                                          
+    14,998,981,374      TOPDOWN.SLOTS                    #     36.1 %  tma_bad_speculation    
+                                                         #     20.1 %  tma_frontend_bound     
+     1,735,915,111      topdown-retiring                 #     32.3 %  tma_backend_bound      
+     3,084,186,493      topdown-fe-bound                                                      
+     2,313,818,998      topdown-mem-bound                #     16.9 %  tma_core_bound         
+                                                         #     15.3 %  tma_memory_bound       
+     4,871,246,075      topdown-be-bound                                                      
+       123,252,806      topdown-heavy-ops                #     11.5 %  tma_retiring           
+                                                         #      0.8 %  tma_heavy_operations   
+                                                         #     10.7 %  tma_light_operations   
+     5,359,188,009      topdown-br-mispredict            #     35.5 %  tma_branch_mispredicts 
+                                                         #      0.6 %  tma_machine_clears     
+     1,385,443,275      topdown-fetch-lat                #     11.3 %  tma_fetch_bandwidth    
+                                                         #      8.9 %  tma_fetch_latency      
+     5,403,793,041      topdown-bad-spec                                                      
+        47,794,281      INT_MISC.UOP_DROPPING                                                 
+
+       1.318956386 seconds time elapsed
+
+       1.132585000 seconds user
+       0.184769000 seconds sys
+
+
