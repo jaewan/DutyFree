@@ -93,12 +93,26 @@ print(' '.join(perm[(i+j)%4] for j in range(4)))" "$SEED" "$rep")
     wc_act=$(grep -E "dtlb_load_misses\.walk_active" "$e" | head -1 | cut -d, -f1)
     # D2 follow-up: capture the INSTANTIATED hot-table size in-band.
     tbl_inst=$(grep -oE "HOT_TABLE .*bytes=[0-9]+" "$e" | head -1 | grep -oE "bytes=[0-9]+" | cut -d= -f2)
-    tbl_round=$(grep -c "HOT_TABLE_ROUNDED" "$e" 2>/dev/null || echo 0)
+    # D7 (found by the first v2 execution): `grep -c` prints its count AND exits
+    # 1 when there are no matches, so `|| echo 0` appended a SECOND "0" and the
+    # variable held "0\n0", splitting every JSON record across two lines. Same
+    # defect class as the known one at run_t5.sh:161-163. grep -c already prints
+    # 0 on no match, so the fallback was never needed.
+    tbl_round=$(grep -c "HOT_TABLE_ROUNDED" "$e" 2>/dev/null | head -1 | tr -d "\n")
+    tbl_round=${tbl_round:-0}
     if [ -z "$j" ]; then
       echo "{\"arm\":\"$arm\",\"rep\":$rep,\"pos\":$pos,\"status\":\"FAIL\",\"rc\":$rc,\"stderr_file\":\"$(basename "$e")\"}" >> "$JSONL"
       printf '  rep%-3s pos%s %-5s FAIL rc=%s\n' "$rep" "$pos" "$arm" "$rc"
     else
-      echo "{\"arm\":\"$arm\",\"rep\":$rep,\"pos\":$pos,\"status\":\"ok\",\"seed\":$SEED,\"walk_completed\":\"${wc_done:-NA}\",\"walk_active\":\"${wc_act:-NA}\",\"hugetlb_node2_before\":\"${hp_before}\",\"hugetlb_node2_min\":\"${hp_min}\",\"hugetlb_pages_used\":\"${hp_used}\",\"hot_table_instantiated_bytes\":\"${tbl_inst:-NA}\",\"hot_table_rounded_warns\":${tbl_round:-0},\"stderr_file\":\"$(basename "$e")\",\"record\":$j}" >> "$JSONL"
+      REC="{\"arm\":\"$arm\",\"rep\":$rep,\"pos\":$pos,\"status\":\"ok\",\"seed\":$SEED,\"walk_completed\":\"${wc_done:-NA}\",\"walk_active\":\"${wc_act:-NA}\",\"hugetlb_node2_before\":\"${hp_before}\",\"hugetlb_node2_min\":\"${hp_min}\",\"hugetlb_pages_used\":\"${hp_used}\",\"hot_table_instantiated_bytes\":\"${tbl_inst:-NA}\",\"hot_table_rounded_warns\":${tbl_round},\"stderr_file\":\"$(basename "$e")\",\"record\":$j}"
+      # Validate before appending: a record that is not parseable JSON is a
+      # silent data-loss mode, and the first v2 execution hit exactly that.
+      if ! printf '%s\n' "$REC" | python3 -c 'import json,sys; json.loads(sys.stdin.read())' 2>/dev/null; then
+        echo "  FATAL rep$rep pos$pos $arm: record is not valid JSON; aborting rather than writing it" >&2
+        printf '%s\n' "$REC" > "$OUT/BAD_RECORD_rep${rep}_pos${pos}_${arm}.txt"
+        exit 3
+      fi
+      printf '%s\n' "$REC" >> "$JSONL"
       cpa=$(printf '%s' "$j" | sed -n 's/.*"active_cycles_per_access":\([0-9.]*\).*/\1/p')
       printf '  rep%-3s pos%s %-5s cyc/acc=%-10s hugetlb=%-4s tbl_inst=%-10s walks=%s\n' \
              "$rep" "$pos" "$arm" "${cpa:-?}" "${hp_used:-?}" "${tbl_inst:-NA}" "${wc_done:-NA}"
