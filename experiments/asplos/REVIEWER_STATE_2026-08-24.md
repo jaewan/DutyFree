@@ -766,3 +766,17 @@ pinned at `a41df38`), adding the missing `results/mechanism_decomp/` row, and
 stating the decomposition's two reporting defects. T1's publishing half — Sec5
 and the abstract's framing — is held: it is a paper-tree write and the plan
 itself gates those on T0.
+
+---
+
+# Addendum 4 — 2026-08-24: the `tab:fused` n/CoV item is withdrawn
+
+§A3 and Addendum 2 §B3 above list "n/CoV per cell" as owed on `tab:fused`.
+**Withdrawn:** `results/clos_split/summary.csv` has carried n=30, CoV and
+bootstrap CI95 for every label since 2026-07-29, and the panel was
+order-randomized from the start. The monotone-harm column is statistically solid
+— every CAT step is 7–17 standard errors wide — so the exhibit is sound on its
+statistics. Its real outstanding defects are unchanged: the missing bsweep
+runner, the way count carried by filename, and the 53%→80% operating-point
+misstatement. `TAB_FUSED_N_COV_2026-08-24.md` carries the full tables and the
+retraction.

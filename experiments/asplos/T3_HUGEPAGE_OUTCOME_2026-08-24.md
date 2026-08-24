@@ -245,3 +245,20 @@ to say why — `run_hot_probe()` emits no `HOT_TABLE` line at all, so the mode t
 measures the victim in isolation is the one mode that does not record the
 victim's instantiated size. The size is nonetheless known: same `--hot-bytes`,
 same `table_capacity()`, and the A arms confirm it.
+
+---
+
+# Addendum 3 — 2026-08-24: the `tab:fused` n=1 claim in this document is RETRACTED
+
+Both the body and Addenda 1–2 above assert that `run_confirmatory_panel.py` runs
+each label once and that the published quiescent 61.71 is a single sample. **That
+is false.** The panel's `N_REPS = 30` invokes each label 30 times in a shuffled
+order, and `results/clos_split/summary.csv` has carried n, CoV and bootstrap CI95
+since 2026-07-29: Q16 is a **median of 30, CoV 4.39%, CI95 [60.65, 62.05]**.
+
+Everything else above stands — the stream-side TLB exclusion, the walk arithmetic,
+the position-effect measurement, and the observation that this host's quiescent
+arm is bimodal *today*. What changes is the inference drawn from that bimodality:
+it is a **current property of `mos181`** (July's `panel_Q_1c` was unimodal at CoV
+1.64%), not a defect in the published table. Authoritative record and the full
+n/CoV tables: `TAB_FUSED_N_COV_2026-08-24.md`.

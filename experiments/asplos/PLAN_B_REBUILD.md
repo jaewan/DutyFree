@@ -1856,3 +1856,37 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > 15, so archiving stderr could never have caught F9 by itself. **Both T3 runs
 > and the whole clos_split panel came from binaries that no longer match the
 > source tree** -- a provenance item to sit beside `tab:fused`'s missing runner.
+
+> **2026-08-24 (tab:fused n/CoV) — the item was never open. Retracting a claim I
+> propagated into four documents today.**
+> `TAB_FUSED_N_COV_2026-08-24.md`. `run_confirmatory_panel.py:41` sets
+> `N_REPS = 30` and `run_sequence()` shuffles every `(label, rep)` pair under a
+> fixed seed, so the panel invoked **each label 30 times in randomized order**;
+> `results/clos_split/summary.csv` has carried `n`, `*_cov` and bootstrap
+> `*_ci95` for both metrics since **2026-07-29**. The 660 raw files are 22 labels
+> x 30, corroborating it independently of the code. So the published quiescent
+> **61.71 is a median of 30, CoV 4.39%, CI95 [60.65, 62.05]** -- not a single
+> sample, and the "+/-7% from the denominator" figure I quoted was wrong by ~6x.
+> I misread the benchmark's internal `--reps 1` as the panel's rep count without
+> reading the function that runs the sequence. **Third F11 of the day by me**,
+> after the unread decomposition and the stale ledger F1, all the same shape.
+>
+> **What the exercise did contribute.** The three `bsweep_*` cells are in `raw/`
+> but absent from `summary.csv` (theirs is the runner the ledger records as
+> missing), so they had n but no published dispersion; computed from raw at n=30:
+> CAT 20/20 **87.653, CoV 1.48%**; 12/20 **105.123, CoV 5.29%**; 8/20 **115.814,
+> CoV 5.24%**. With those, the monotone-harm column is **statistically solid** --
+> steps of +17.47, +10.69, +11.05 cyc against pooled SEs of ~1.05/1.50/1.31, i.e.
+> **7-17 standard errors each**, and `PREFETCHNTA` vs unrestricted is ~27 SE.
+> Figure 1 is sound on its statistics; its outstanding defects are the missing
+> bsweep runner, the filename-carried way count, and the 53%->80% operating point.
+>
+> **And one real finding.** July's `panel_Q_1c` was **unimodal**, 58.0-62.0, CoV
+> 1.64%. The same configuration today is **bimodal**, 55.4-64.7, 16.8% spread;
+> July's `panel_Q16` already had a low cluster (8 of 30 at 55.1-57.4) beside a
+> high one. So the two-state behaviour existed at 16 cores in July and has since
+> appeared at 1 core -- a change in **mos181's state**, not in the benchmark.
+> Consequences: T3's absolute values are not comparable to the panel's (its
+> internal, same-session, balanced comparisons are unaffected, so its verdict
+> stands), and any future re-run of the panel will measure different variance
+> than the July CoV column and must say so rather than call it a replication.

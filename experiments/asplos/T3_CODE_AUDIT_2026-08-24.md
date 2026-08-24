@@ -180,3 +180,21 @@ and n; rebuilding is a separate decision. Both T3 runs and — more importantly 
 **the whole clos_split panel** were produced by binaries that no longer
 correspond to the source tree. That belongs on the provenance ledger next to
 `tab:fused`'s missing runner.
+
+---
+
+# Addendum 2 — 2026-08-24: hygiene item 2 of this audit is RETRACTED
+
+This audit's consequent-additions list includes *"`tab:fused` needs n and CoV,
+and its quiescent cell is bimodal"*. **The first half is false** — the table has
+had n=30, CoV and bootstrap CI95 since 2026-07-29; I misread the benchmark's
+internal `--reps 1` as the panel's rep count without reading `run_sequence()`,
+which invokes each label 30 times in shuffled order. The second half is true of
+this host *today* but not of the July measurement. See
+`TAB_FUSED_N_COV_2026-08-24.md`.
+
+This is the audit's own failure mode turned on itself: **D6 was "the analysis was
+not pinned", and the deeper defect was that the analysis rested on an unread
+function.** Three F11 instances by me in one day — the unread decomposition, the
+stale ledger F1, and this — all with the same shape: read part of an artifact,
+infer the rest.
