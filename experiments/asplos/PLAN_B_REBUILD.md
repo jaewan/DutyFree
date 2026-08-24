@@ -2132,3 +2132,41 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > cannot express one level below** -- not inferred from microbenchmarks, and not
 > falsifiable by a re-measurement. Added to `Sec3_Mitigation` as its own heading
 > immediately before the hash-join kernel.
+
+> **2026-08-25 (second-pass audit) — three corrections, two of which strengthen
+> the conclusion.** `AUDIT_OF_TODAYS_INTERPRETATIONS_2026-08-25.md`.
+>
+> **C1, published sentence corrected.** `run_hot_probe` indexes
+> `keys[i % keys.size()]` with a runtime size, so the compiler emits a 64-bit
+> hardware `div` **inside the loop** -- verified at `0xa812` within hot-probe's
+> worker (entry `0xa6c0`, enclosing backward branch `jb a800`), against **no**
+> divide in `join_range`; it is the only integer div-class instruction in the
+> binary. The two loops therefore differ in three ways, not one: hit rate, key
+> source, and a per-probe division. My published sentence "at a matched hit rate
+> the fused kernel is faster (44.0 vs 55.2)" left that 11.2 cyc gap unattributed,
+> inviting the reader to credit it to the stream being free. `Appendix` now names
+> the division and says the two land within ~11 cyc, the order of that division;
+> `Sec3_Mitigation` now says the comparison spanned two different **loops**. The
+> headline is strengthened -- three independent code-path differences, not one.
+>
+> **C2.** `panel_B16`'s "low mode" is a single outlier out of thirty and should
+> not have been in a column headed low mode. The genuinely bimodal arms are CAT
+> 8/20 (6/24) and 12/20 (12/18). The monotone-within-mode claim now rests on the
+> **high-mode** sequence (n=18-29); the low-mode sequence is supported only across
+> 20/20 -> 12/20 -> 8/20.
+>
+> **C3, and it strengthens 1b.** `--no-stream` caps `local_n` at 65,536 entries,
+> so `Qs` probes ~65k distinct keys -- about **1 MiB of table, L2-resident** --
+> with no CXL stream, while `A` draws 16.7M times across the whole 256 MiB table
+> *and* streams 256 MiB. `Qs` has both advantages and is still **slower** (92.602
+> vs 91.808). So "the stream costs ~0" was understated, and the asymmetry must be
+> disclosed before a referee finds it. It also explains the TMA magnitude: a 256x
+> larger probe footprint could not come out ahead if those probes were dominated
+> by memory.
+>
+> **Verified correct:** 1b is hit-rate matched (`fill_fact` uses `c.hit_rate` on
+> every path, including `--no-stream`) -- the load-bearing condition for 1b; the
+> TMA differential arithmetic, independently confirmed by phase 1's four shares
+> summing to exactly 100.0%; the TMA falsifier and the multiplexing exclusion;
+> T3's walk arithmetic; A6's resource matching; the RocksDB source references; and
+> item 14's closure rationale.

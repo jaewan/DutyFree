@@ -11,7 +11,7 @@ detected where the largest gap exceeds 8× the median gap:
 
 | arm | n | mean | CoV | low mode | high mode |
 |---|--:|--:|--:|---|---|
-| CAT 4/20 (`panel_B16`) | 30 | 126.129 | 2.99% | 1 rep @ 106.38 | 29 @ 126.81 |
+| CAT 4/20 (`panel_B16`) | 30 | 126.129 | 2.99% | **1 rep** @ 106.38 — a single outlier, *not* a mode | 29 @ 126.81 |
 | CAT 8/20 (`bsweep_B_8way`) | 30 | 113.165 | 5.24% | **6 @ 101.56** | 24 @ 116.07 |
 | CAT 12/20 (`bsweep_B_12way`) | 30 | 101.433 | 5.29% | **12 @ 95.01** | 18 @ 105.72 |
 | CAT 20/20 = unrestricted | 30 | 87.283 | 1.48% | — **unimodal** | — |
@@ -26,8 +26,14 @@ looser the partition, the more often a run lands in a state where it costs less.
 
 | | 20/20 | 12/20 | 8/20 | 4/20 | monotone? |
 |---|--:|--:|--:|--:|---|
-| low mode | 87.28 | 95.01 | 101.56 | 106.38 | **yes** |
-| high mode | 87.28 | 105.72 | 116.07 | 126.81 | **yes** |
+| low mode | 87.28 | 95.01 (n=12) | 101.56 (n=6) | 106.38 (**n=1**) | yes |
+| high mode | 87.28 | 105.72 (n=18) | 116.07 (n=24) | 126.81 (n=29) | **yes** |
+
+**Corrected on audit:** the low-mode row's 4/20 entry is a *single sample*, so
+the low-mode sequence is well supported only across 20/20 → 12/20 → 8/20 and its
+final step should not be leaned on. The high-mode sequence is populated
+throughout (n=18–29) and is the one that carries the claim. Both are monotone;
+only the second is well sampled.
 
 Tightening CAT makes the fused victim monotonically worse **in both states**. So
 the exhibit the panel wants as Figure 1 is robust to the bimodality: it is not an
