@@ -1412,3 +1412,36 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > from inferred to observed via a live `bindpool called outside SE mode` warning,
 > which simultaneously proves G5's mechanism works for runtime warnings before
 > arm 3 is spent on it.
+
+> **2026-08-24 — T5 arm 2 livelocked in the guest; W8's capability arm has no
+> result (W8.7).** Killed after 6 h 44 m. The guest console stops mid-word inside
+> the `HOT_TABLE` print at `cxl_join_bench.cpp:1537`, **eleven lines before**
+> `declare_streaming()` at `:1548`, so arm 2 never reached its declaration. Not a
+> stalled simulator: gem5 serviced two `SIGUSR1` dumps in ~2 s each and committed
+> 17.2 M instructions between them. It is a **livelock** — between the two dumps
+> both cores' instruction-mix deltas were byte-identical (`IntAlu 7,657,333`,
+> `MemRead 957,167`, no stores, exactly 8:1), i.e. two cores lockstepped in one
+> store-free polling loop, having burned 23× arm 1's entire completed run.
+>
+> This implicates the declaration path in **neither** direction: the code that
+> hung is byte-identical to arm 1's, which passed, but `CONFIG_PAT_STREAMING=y`
+> means the STREAMING kernel's mm hooks were live on every fault, so the kernel
+> is not exonerated either. **The cause is unknown and must not be asserted.**
+>
+> A naive retry is a 7-hour no-op: gem5 is deterministic and `RUBY_RANDOMIZATION`
+> runs off fixed seed 5489, so an identical re-run reproduces the hang bit-for-bit
+> — and that same determinism is the one asset here, since the hang lands 18 m 23 s
+> in, making a diagnostic reproduction cost ~20 min rather than 7 h. `GEM5` is
+> overridable and expands unquoted in the launcher's `exec`, so
+> `--listener-mode=on` can restore the gdb socket (`remote_gdb.cc:418` reported it
+> disabled) **without editing committed apparatus**. Escalated to the lead, not
+> decided: arm 2 underpins L4, and the alternatives (editing the hardcoded
+> `RUBY_RANDOMIZATION=1`, or perturbing the pre-registered rcS) are blind re-rolls
+> that spend a 7-hour arm on a guess.
+>
+> Arm 3 is **not started** — arm 2's gate did not pass. The aborted directory was
+> quarantined by exploiting `t5_analyze.py`'s suffix matching: `arm_spec()` uses
+> `name.endswith(k)` so directories may be freely prefixed, and the dual is that
+> **appending** a suffix yields `UNKNOWN ARM … not gated`. Verified. This matters
+> because the artifact is F12-shaped — gem5 exits **0** on SIGINT and left a
+> `stats.txt` with three plausible dump sections; nothing about it looks broken.
