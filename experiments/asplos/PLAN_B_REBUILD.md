@@ -1969,3 +1969,59 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > `benchmarks/bench/aggressor/stream_wc.c`**, whose name caused this error and
 > will cause it again -- the `instrument` aggressor already uses the correct
 > label `wb_ntdqa`.
+
+> **2026-08-24 (panel round 4) — two orphans repaired, and the panel's headline
+> recommendation does not have data behind it.**
+>
+> **Repaired (paper tree, published).** The RocksDB deletion left two dangling
+> references, exactly the inherited-rot class the panel told us to audit for.
+> `Sec5` still inferred from the deleted result ("per-lookup software cost is
+> apparently enough, on a different vendor, to move a real application across
+> that line entirely"); replaced with the honest statement that **every victim we
+> report is a kernel and the paper now makes no named-application claim**.
+> `Appendix`'s platform table dropped its "$n{=}10$ for RocksDB" row. The
+> abstract/intro SSTable mentions are motivational examples, not claims, and are
+> left.
+>
+> **Q4's headline pair does not exist.** The panel proposed promoting a
+> "byte-rate-equalized same-CCX pair: WB ~12.4 GB/s -> 2.77x [2.61,2.92] vs WC
+> ~12.5 GB/s -> 1.02x [1.00,1.02]". Checked: **2.77x is the paper's own 1T WB
+> anchor point** quoted as a *reference* in `e1_residual_decomp/RESULTS.md:172`
+> (that run measured 1T = 2.92x -- which is also the upper bound of the CI they
+> quote, suggesting the ladder was read as an interval). And the WC side has **no
+> tax at all**: `run_wc_reconciliation.py`'s own header says *"No victim needed
+> here -- this is pure aggressor-side bandwidth characterization, run alone (no
+> victim)"*. Its `wc_7t` bandwidths are also unreliable -- self-report 20.511 vs
+> MBM 2.930, with the file's own caveat that self-report diverges wildly.
+> So there is **no WC arm at a matched rate with a victim.** The *idea* is sound
+> and cheap (WB 1T sits at 12.43 GB/s; WC at ~4 threads lands near 12.8), but it
+> is a **new measurement** -- and it needs the lost `/dev/cxl_wc` module, so Q4 is
+> **blocked on Q3's rebuild**, a dependency the panel flagged as a "check" and
+> then recommended around.
+>
+> **Blast radius of the lost module, confirmed larger than E1.** Eight runners use
+> `wc_ntdqa`: `run_e1_gate.py` (which produces `tab:amdcat`'s A3_wc 0.99x),
+> `run_matched_bw_pair.py`, `run_wc_reconciliation.py`, `run_wc_isolation_check.py`,
+> `run_amd_matched_warmup{,_v2}.py`, `run_clean_ccx_session.py`, and
+> `run_amd_cross_process.py`. **The entire AMD WC evidence family is
+> non-rerunnable.**
+>
+> **But the flush-behind chain is outside the radius.** `amd_flushbehind_aggressor.c`
+> is WB + `clflushopt`-at-distance with no WC mapping, so the 76.3% / 2.82x result
+> -- our best-provenanced number -- does not depend on the lost module.
+>
+> **Adopted from the panel without reservation:** the four T4 gate amendments
+> (register the 30-60% band; use the *differential* memory-bound share of the
+> 27.3-cycle delta rather than a single run's TMA fractions; register the
+> sub-buckets, since FB-full lands under Memory Bound -> L1 Bound and a single
+> >=60% cannot make the four-way call; and pair TMA with the two dilution
+> interventions, since TMA attributes rather than establishes cause);
+> re-verifying the OoO-overlap anomaly under Latin square before anything rests
+> on it; and the **SMT-sibling split** arm, which is the cheapest remaining
+> hostile configuration against Branch B inexpressibility and should run
+> regardless of the TMA verdict.
+>
+> **Also adopted, and free:** the panel's byte-model arithmetic for E1 -- if the
+> tax were proportional to bytes, WC at 74% of WB's rate should read ~21%; it
+> reads 0.3%, a **~70x shortfall from any byte model**. That converts the 26%
+> shortfall from a defect into the argument and needs no new data.
