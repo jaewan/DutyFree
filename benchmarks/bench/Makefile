@@ -9,6 +9,7 @@ VICTIM_BINS = victim/pointer_chase victim/pointer_chase_nocap
 AGGR_BINS   = aggressor/stream_wb    \
               aggressor/stream_wb_nopf \
               aggressor/stream_wc    \
+              aggressor/stream_wc_nopf \
               aggressor/stream_nt    \
               aggressor/random_chase \
               aggressor/forced_turnover \
@@ -42,6 +43,12 @@ aggressor/stream_wb_nopf: aggressor/stream_wb_nopf.c $(LIB_OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 aggressor/stream_wc: aggressor/stream_wc.c $(LIB_OBJS)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+# stream_wc_nopf: MOVNTDQA on WB with the four HW prefetchers disabled (MSR 0x1A4,
+# read-back verified). Added 2026-08-24 for T2; the honest WC proxy, since
+# stream_wc leaves the prefetchers ON. Additive -- no existing arm changed.
+aggressor/stream_wc_nopf: aggressor/stream_wc_nopf.c $(LIB_OBJS)
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
 
 aggressor/stream_nt: aggressor/stream_nt.c $(LIB_OBJS)
