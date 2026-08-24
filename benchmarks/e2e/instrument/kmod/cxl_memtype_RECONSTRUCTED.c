@@ -87,7 +87,7 @@ static struct miscdevice uc_dev = {
 
 static int __init cxl_memtype_init(void)
 {
-	int rc;
+	int rc, ri;
 
 	if (!base || !len) {
 		pr_err("cxl_memtype: base= and len= are both required; refusing to load\n");
@@ -97,13 +97,19 @@ static int __init cxl_memtype_init(void)
 		pr_err("cxl_memtype: base and len must be page aligned\n");
 		return -EINVAL;
 	}
-	/* Refuse a range that is not actually device/reserved memory. A typo here
-	 * would otherwise hand out a WC alias of ordinary system RAM, which is
-	 * both wrong as a measurement and unsafe. */
-	if (region_intersects(base, len, IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE)
-	    == REGION_INTERSECTS) {
-		pr_err("cxl_memtype: [%#lx,%#lx) intersects System RAM; refusing\n",
-		       base, base + len);
+	/* Refuse anything not PROVABLY disjoint from System RAM. A WC alias of
+	 * memory the kernel maps write-back is an architectural aliasing hazard,
+	 * not merely a bad measurement.
+	 *
+	 * This originally tested `== REGION_INTERSECTS` and that was a real bug,
+	 * caught by testing the guard instead of assuming it: a range spanning
+	 * System RAM *and* Reserved returns REGION_MIXED, which the old check let
+	 * through. Loading base=0x1000 len=4M -- squarely inside System RAM --
+	 * succeeded. Only REGION_DISJOINT is safe, so that is what we require. */
+	ri = region_intersects(base, len, IORESOURCE_SYSTEM_RAM, IORES_DESC_NONE);
+	if (ri != REGION_DISJOINT) {
+		pr_err("cxl_memtype: [%#lx,%#lx) is not disjoint from System RAM "
+		       "(region_intersects=%d); refusing\n", base, base + len, ri);
 		return -EINVAL;
 	}
 

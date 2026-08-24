@@ -29,9 +29,9 @@ Driven by `A4_HITRATE_FINDING_2026-08-24.md`: `run_hot_probe` probes at 100% hit
 
 | # | item | done means | Status |
 |---|---|---|---|
-| 11 | load + validate the reconstructed `/dev/cxl_wc` | module loaded, devices present, a read succeeds | **BLOCKED** |
-| 12 | frozen-vs-rerun stability check on the WC family | E1 tax re-measured vs 1.2877/0.9996 | **BLOCKED** |
-| 13 | Q4's matched-dose pair (WB 1T vs WC ~4T at ~12.5 GB/s) | a WC arm at a matched rate *with a victim* | **BLOCKED** |
+| 11 | load + validate the reconstructed `/dev/cxl_wc` | module loaded, devices present, a read succeeds | **PARTIAL** — guards validated, one was broken and is fixed; mmap path blocked on platform state (see E1_WC_APPARATUS_REBUILD) |
+| 12 | frozen-vs-rerun stability check on the WC family | E1 tax re-measured vs 1.2877/0.9996 | **BLOCKED** — broker, *and* the CXL window must be soft-reserved, not onlined |
+| 13 | Q4's matched-dose pair (WB 1T vs WC ~4T at ~12.5 GB/s) | a WC arm at a matched rate *with a victim* | **BLOCKED** — same two blockers |
 | 14 | RocksDB re-earn | pre-registered, run, reported | **BLOCKED** |
 
 Escalation attempted: direct SSH, and jump via `c4`. If both fail the block is
