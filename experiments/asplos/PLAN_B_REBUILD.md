@@ -1643,3 +1643,60 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > page-1 evidentiary posture. Three documents' spines die on it and the
 > reviewers argue it can no longer wait; it remains the lead's call, and the
 > co-author conversation should lead with it.
+
+> **2026-08-24 (T2 executed) — the intro's WB/WC contrast is falsified on three
+> hosts; delete it, do not re-source it.**
+> Pre-registered at `d1a0c6b` before any measurement, analyzer at `76eeea3`
+> written while the runs were in flight, outcome in
+> `T2_WBWC_OUTCOME_2026-08-24.md`. n=5 per cell, 2 GB region, one pinned core,
+> local DRAM, arms interleaved within each rep, CoV <= 1.31% everywhere and no
+> bimodality.
+>
+> **A/C = 1.252 / 1.289 / 1.283** on EMR 8592+, SPR 8462Y+ and EPYC 9754 against
+> the ~3.76 the introduction's numbers imply. The registered falsifier fired on
+> all three. The **WB** half was roughly right (14.755 / 16.040 GB/s vs a claimed
+> 15.8); the **WC** half was wrong by ~3x. The derived "five WC cores to match
+> two WB cores" also falls -- it is ~2.6 cores measured, ~3.7 with the honest
+> proxy. And no silicon arm reads anywhere near the claimed 4.2 GB/s: the lowest
+> is 8.04. gem5's SE model reports **4.17 GB/s for its WB pure-stream ceiling**,
+> which is almost certainly the source, mislabelled as silicon WC -- the A6
+> misattribution hypothesis, now measured.
+>
+> **Two findings that hold regardless of the numbers.** (1) `stream_wc.c` is
+> `MOVNTDQA`-on-WB *with the hardware prefetchers left ON* -- not the WC memory
+> type and not prefetch-free -- and `stream_nt.c` is the same program plus an MSR
+> warning (load loops md5-identical; C and D agree to three decimals on all three
+> hosts). So `stream_nt.c`'s pre-registered "if D ~ C the NT hint is honored"
+> reading is **circular and void**, and arm C is evidence about the taxonomy's
+> *advisory* plane, not its *enforced* one. Registered replacement wording:
+> "non-temporal (`MOVNTDQA`) loads on write-back pages". (2) A new additive arm
+> `stream_wc_nopf` (same load loop, prefetchers off, read-back verified) gives
+> **C'/C = 0.682 / 0.708**, so **every published "WC" bandwidth figure is an
+> overestimate of WC by ~1.4x.**
+>
+> **One adverse result to scope rather than bury:** disabling all four hardware
+> prefetchers costs only **~6%** of WB stream bandwidth on local DRAM
+> (B/A = 0.944 / 0.940). The paper's "demand misses sustain only ~4-5 GB/s per
+> core" is a *CXL-latency* claim and CXL was pre-registered out of scope here, so
+> this does not refute it -- but the sentence must be explicitly scoped to far
+> memory, because on local DRAM a sequential stream barely needs prefetching.
+>
+> **Platform state, newly documented.** mos182 runs with **MSR 0x1A4 = 0x20
+> machine-wide** (an extra prefetcher disabled; cpu8 and cpu9 agree), and
+> `stream_wb` *refused to measure* rather than report a non-default machine --
+> correct instrument behaviour and an undocumented difference between our two
+> Intel hosts that belongs in `tab:appplat`. moscxl had **zero** 2 MB hugepages,
+> independently confirming the ledger's `tab:appplat` defect where the paper
+> asserts pre-allocated hugepages there. Both were normalised for the run and
+> **restored to as-found**, verified. `kill -9` defeats these binaries' `atexit`
+> prefetcher restore -- use SIGTERM.
+>
+> Two contaminated windows were quarantined rather than used: a mos182 run where
+> I relaunched the host while its first run was still live (two processes pinned
+> to cpu8), and a mos181 partial killed mid-rep2 by a wrapper-shell timeout. The
+> two `*_FAILED_nohugepages.jsonl` files are kept deliberately as evidence.
+>
+> **T2 status: the bandwidth-pair item is closed.** What remains on T2 is the
+> rest of the hygiene batch (the five superseded AMD triples, the RocksDB prose,
+> the 9.6x/19.85x arm identity, F9.4 labels), and those are paper-tree writes
+> gated on T0.
