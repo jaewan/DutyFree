@@ -242,3 +242,55 @@ net tax sits atop a gross displacement partly offset by an overlap benefit.
 **Unchanged:** A4's dilution arms are still required before any strong causal
 sentence reaches the paper. TMA plus a controlled code path is still attribution,
 not cause.
+
+---
+
+# Addendum 3 — 2026-08-24: A6's concrete arms, registered before the run
+
+A6 was registered in principle in Addendum 1 and runs regardless of the gate
+(the gate has since returned "not memory-side"; A6 is unaffected by that, since
+it tests **expressibility**, not mechanism). No new code is needed: the committed
+binary's `split` mode pins scan thread `tid` to `cpus[tid]` and probe thread
+`pid` to `cpus[n_scan + pid]` (`cxl_join_bench.cpp:1389,1411`), so an SMT-sibling
+split is just a two-entry cpu list. Verified: `cpu32`'s
+`thread_siblings_list` is `32,160`, both report `core_id 32`, and cpu160 is
+online.
+
+## Arms (n=12, randomized Latin square, every arm in every position 3×)
+
+| arm | configuration | physical cores | logical CPUs |
+|---|---|--:|--:|
+| **F** | `morsel --threads 1 --cpu-list 32` — fused, one thread | 1 | 1 |
+| **Ssmt** | `split --scan-threads 1 --probe-threads 1 --cpu-list 32,160` — **SMT siblings**, SPSC ring in the shared L1/L2 | **1** | 2 |
+| **Score** | `split --scan-threads 1 --probe-threads 1 --cpu-list 32,33` — distinct physical cores, same L3 | 2 | 2 |
+| **Q** | `morsel --no-stream --threads 1 --cpu-list 32` — same-code-path probe reference | 1 | 1 |
+
+All other arguments identical to the campaign's 1-core operating point
+(`--fact-bytes 256m --hot-bytes 177838489 --morsel 1m --fact-node 2 --hot-node 0
+--warmups 2 --reps 1`), `--queue-depth 16` for the split arms.
+
+**The resource-matched comparison is F vs Ssmt: both occupy exactly one physical
+core.** `Score` uses two physical cores and is therefore *not* resource-matched;
+it is included as the reference for the cross-core split organization (the one
+that cost 36% of throughput at 16 cores) and its throughput advantage must never
+be reported without noting it has 2× the physical resources.
+
+## Pre-registered readings
+
+Primary — hot-table cyc/access and throughput, **F vs Ssmt**:
+
+| outcome | verdict |
+|---|---|
+| Ssmt improves hot-table cyc/access by **≥10%** vs F **and** holds throughput **≥90%** of F | **SMT split recovers the fused cost cheaply.** The missing-cell claim narrows: two TIDs exist, per-TID CLOS becomes expressible, and the derived requirement is "already shipped as SMT resource partitioning". This is adverse to us and gets reported as the headline. |
+| Ssmt's cyc/access is **no better** than F's, **or** throughput falls **below 80%** of F | **SMT split fails.** The last cheap hostile configuration against Branch B's inexpressibility is closed by us rather than by a referee. |
+| anything between | partial; report both axes and claim neither |
+
+Secondary — **Ssmt vs Score**: if they are within noise, SMT's shared L1/L2 buys
+nothing and the ring is not the binding cost; if Ssmt is much worse, the ring's
+locality is not what made the cross-core split expensive.
+
+Registered caveat: this measures whether *splitting across SMT siblings*
+recovers the cost. It does **not** measure whether CAT applied to the resulting
+two TIDs helps — that needs a `resctrl` arm and is deliberately out of scope
+here, because the first question is whether the split is viable at all. If Ssmt
+fails, the CAT-on-two-TIDs question is moot.
