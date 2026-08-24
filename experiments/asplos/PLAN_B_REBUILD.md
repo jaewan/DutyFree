@@ -1489,3 +1489,28 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > discriminator already produced a fourth unenumerated outcome and that must not
 > be smoothed over twice. The control is named so `t5_analyze.py` refuses to gate
 > it, and it licenses no performance comparison.
+
+> **2026-08-24, W8.8 stock-protocol control: OUTCOME B1, our CHI edits are
+> exonerated.** The T5 `stream_mprot` livelock reproduces **bit-identically** on
+> a stock-CHI build (`src/mem/ruby/protocol/chi/` reverted to `6386a580d1`, a
+> 15/221 inverse of our delta, in a throwaway worktree so the campaign tree was
+> never touched). Console frozen at exactly 248 bytes with the same tail;
+> `MemWrite` frozen at **64,200** / **3,162,502** -- not merely constant, the
+> *same numbers* as the arm-2 reference -- while `numMemRefs`, `simTicks` and
+> `simInsts` all advance. Three independent checks confirm the reverted protocol
+> is what ran (0 vs 10 `1kB->1KiB` warns, 0 vs 20 `sf_finite`/`H3` config lines,
+> 0 vs 7/3/6/5/3 generated-protocol files carrying our symbols), and upstream's
+> own `UD_T`/`sc_lock` livelock machinery survived the revert identically in
+> both builds. Attribution: **upstream gem5 CHI at v25.1.0.1**, consistent in
+> every observable with issue #3075, which addendum 1 registered before any
+> control datum existed. `W8.8_STOCKCHI_CONTROL_PREREG_2026-08-24.md` addendum 2.
+>
+> Consequence: the blocked arm cannot be unblocked by fixing our protocol,
+> because there is nothing of ours in the failing path. Tuning `sc_lock_*` stays
+> unauthorized. The one route left does not need Ruby at all -- both W8 gate
+> counters are arch-side (`src/arch/x86/pagetable_walker.cc` ->
+> `streamingTranslations`, `src/arch/x86/tlb.cc` -> `streamingAccesses`) and G2
+> is an in-guest debugfs readback, so a **classic-memory FS restore** exercises
+> G1/G2/G3 in full. W8 licenses no performance comparison, so dropping Ruby
+> costs W8 nothing it claims. Recorded as a lead option, **not started**; arm 3
+> stays barred and T2 stays unlaunched.
