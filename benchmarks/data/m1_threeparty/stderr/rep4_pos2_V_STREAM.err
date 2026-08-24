@@ -1,0 +1,5 @@
+[aggressor] mode=wb_load threads=8 bufsz=512MB/thread throttle=0 MBps mem_node=2
+[aggressor] mapped 4096 MB memory at 0x7433ce000000
+[aggressor] GO
+victim: cpu=8 node=0 wss=170 MB trials=6 run_sec=1.0 pf_disable=0
+victim: TSC frequency estimate: 1899983014 Hz (1.90 GHz)
