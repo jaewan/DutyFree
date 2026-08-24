@@ -294,3 +294,59 @@ recovers the cost. It does **not** measure whether CAT applied to the resulting
 two TIDs helps — that needs a `resctrl` arm and is deliberately out of scope
 here, because the first question is whether the split is viable at all. If Ssmt
 fails, the CAT-on-two-TIDs question is moot.
+
+---
+
+# Addendum 4 — 2026-08-24: A4's memory-dilution arm already exists; the instruction arm is nearly a no-op; the real gap is code path
+
+Registered before running, after reading `join_range_local`'s implementation.
+
+**A4's memory-dilution arm has already run.** `join_range_local`
+(`cxl_join_bench.cpp:596+`) is, in its own docstring, *"identical to join_range
+except it indexes a small, cache-resident local buffer via wraparound
+(`fact[i % local_n]`) instead of striding through the real (CXL) fact array"* —
+and the modulus is masked, not divided. So it holds **instruction count and probe
+count fixed** and moves only the stream's **bytes** from CXL to L1/L2. That is
+precisely A4's memory dilution: same instructions, fewer/nearer bytes. It ran as
+phase 1b, and gave **Δ = −0.795 cyc/access**.
+
+This is a stronger control than the T4 outcome credited (which listed
+`join_range_local` as a caveat, "a different inner join"). It is a different
+inner join only in its *addressing*; the work is the same. **T4's outcome is
+corrected by this addendum on that point**, and its conclusion strengthens:
+holding instructions and probes fixed, replacing a 256 MiB CXL stream with a
+cache-resident buffer changes the fused cost by ≈0. **The bytes do not cost.**
+
+**A4's instruction-dilution arm, as specified, is nearly a no-op here.** To
+"replace the stream's loads with an equal-count instruction stream touching no
+memory" I would have to synthesize keys with the same table-hit distribution.
+`fill_fact` draws them from a sequential RNG stream (`keys[rng.next() %
+keys.size()]`), so they are not a closed form of `i`, and `keys` is far too large
+to be resident — synthesizing from it would substitute one stream for another.
+Against `--no-stream`, which already has the load hitting L1, the only thing left
+to remove is a single L1-resident load (~1 uop). That cannot plausibly account
+for a 30-cycle gap, and building it would produce a null that means nothing.
+**Not built, and the reason is recorded rather than the arm quietly skipped.**
+
+**What is actually unexplained, and the zero-code experiment for it.** Phase 1b
+localises the 30.775 cyc/access "fused tax" to the difference between
+`run_hot_probe`'s loop and `run_morsel`'s — not to the stream. `run_morsel`'s
+driver does, per morsel, an atomic `next.fetch_add`, two `rdtsc`s, and a `Result`
+aggregation, around a `join_range` over the morsel. If that driver is the gap,
+**enlarging the morsel amortises it away**; if the gap survives at large morsels,
+the driver is not the cause and the difference is in the inner loop itself.
+
+Registered arms: `F` (`morsel`) and `Q` (`morsel --no-stream`) swept over
+`--morsel` ∈ {256k, 1m, 4m, 16m}, n=6 each, order-balanced within each morsel
+size, everything else at the campaign operating point. Reference: `hot-probe` at
+the same n.
+
+| outcome | reading |
+|---|---|
+| `F` cyc/access falls toward `hot-probe`'s ~60 as morsel grows | the "fused tax" is substantially **morsel-driver overhead**, and the published 1.47× is a harness artifact |
+| `F` stays ~90 at every morsel size | the driver is **not** the cause; the gap is in `join_range` vs `run_hot_probe`'s inner loop, and remains to be explained |
+| non-monotonic | report the curve, claim neither |
+
+This does not rescue a memory-side mechanism either way — the gate already
+returned 15.9% and 1b returned ≈0 for the stream. It determines **what the
+published fused tax actually is**, which the paper needs regardless.
