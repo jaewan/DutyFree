@@ -1514,3 +1514,43 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > G1/G2/G3 in full. W8 licenses no performance comparison, so dropping Ruby
 > costs W8 nothing it claims. Recorded as a lead option, **not started**; arm 3
 > stays barred and T2 stays unlaunched.
+
+> **2026-08-24 — external-reviewer state memo written; three of our own numbers
+> failed their own provenance check while writing it.**
+> `REVIEWER_STATE_2026-08-24.md` states the case for and against submitting at
+> all, for a reader outside the project. Its spine: the harm is measured on
+> silicon and is large, the benefit is measured in simulation and is small, and
+> **those are not the same experiment** -- W1 established the two meet in *kind*
+> (both capacity-class) but never in *magnitude*. Six thought experiments; the
+> load-bearing one is TE-3, which explains W7's failure structurally rather than
+> as bad luck: **batching a probe is adding MLP, and adding MLP is what makes a
+> victim immune.** The knob chosen to make the cell realistic is the knob that
+> destroys the effect, so no re-tuning of that 2x2 recovers the number. W5.4
+> then converts "small magnitude" into "correctly scoped": elasticity of runtime
+> to cache traffic is 0.18 on mos181 -- 8.44x of a victim's DRAM traffic removed
+> returns 1.54x in time -- because independent misses overlap. The harmable class
+> is latency-bound, low-MLP, LLC-resident victims, which is exactly the
+> pointer-chase victim the decisive cell uses.
+>
+> Verifying every cited figure against its committed source before committing
+> caught three defects **in the memo's own first draft**, all F12 in miniature:
+> (1) it quoted the paper's `tab:amdcat` **19.85 / 6.92 / 1.02**, which W4.2
+> superseded -- the verified files read 19.886/7.225/0.989 (n=12) and
+> 20.545/**9.867**/1.006 (n=6), so CAT removes 67% or 55% depending which you
+> believe, not 69%; (2) it quoted a RocksDB "CAT recovers 54% [50,56]" that the
+> provenance ledger marks **UNTRACEABLE**; (3) it attached an unsourced
+> "20.9 GB/s" to E1's matched-bandwidth dissociation. All three corrected, and
+> the memo now carries **N7** disclosing the provenance defects to the reviewer
+> rather than hiding them. It also caveats the W5.4 three-host elasticity ladder
+> as host-confounded, which W5.4 itself insists on.
+>
+> Consequence for the plan: **no new measurement is on the critical path, and
+> the memo says so.** The decisive missing datum (TE-6) is a *silicon*
+> experiment -- one real, named, economically important workload whose victim is
+> demonstrably low-MLP and whose harm is large, with CAT failing on it. That
+> would convert section 5's limitation into the paper's scoping contribution.
+> Option (B) "submit as a scope-and-abstraction paper with a cheap mechanism" is
+> what the evidence currently supports; option (C) is (B) plus TE-6. Lead
+> decisions 1 (venue/date) and 3 (co-author communication) still gate the
+> 39-row edit queue, and W4.2's superseded-number substitution is now also
+> blocking, because a referee who pulls on N7 finds it in five places.
