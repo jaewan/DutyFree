@@ -2063,3 +2063,35 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > Net: the paper loses a headline number and keeps the exhibit the panel called
 > its strongest, with the reason it stays valid now stated in the caption rather
 > than left implicit.
+
+> **2026-08-24 (items 8-10) — the prefetch claim is scoped, and hardware QoS is
+> state-dependent on both vendors.**
+>
+> **Item 8 (paper, published).** `Sec1:23-24`'s "only aggressive stream
+> prefetching fills the pipe" was already conditioned on CXL latency, so the fix
+> is a sharpening rather than a retreat: it now adds that on **local DRAM,
+> disabling all four hardware prefetchers costs a single-core sequential stream
+> only ~6% of its bandwidth** (T2, n=5, two Intel parts), so near memory does not
+> need the prefetcher to reach its rate and the bundling costs nothing there --
+> it binds only where latency makes prefetching mandatory. That is the why-now
+> stated as a measurement instead of an assertion.
+>
+> **Item 9 (`QOS_STATE_DEPENDENCE_2026-08-24.md`).** The Intel CAT arms **are
+> bimodal, and only when CAT is applied**: 6/30 low at eight ways, 12/30 low at
+> twelve, while both unpartitioned arms are unimodal at CoV 1.48%. The low-mode
+> fraction grows as the mask widens. **The monotone harm survives within each
+> mode separately** (low: 87.28->95.01->101.56->106.38; high:
+> 87.28->105.72->116.07->126.81, both monotone), so Figure 1 is robust to the
+> mixture -- but its CoV column at 8 and 12 ways reports a mixture's width and
+> should say so. Joined with the AMD CAT drift (7.23 -> 9.87 on re-run, verified
+> to the QoS MSRs, cause unidentified) and W5.3's any-cap MBA discontinuity, the
+> single honest statement is: **hardware QoS enforcement on both vendors is
+> state-dependent in ways we can bound but not explain.** Not a wash for the
+> argument -- the state-dependence changes magnitude, never sign.
+>
+> **Item 10.** Latin-square balance adopted as house standard (alternation for
+> two arms), with simple per-rep shuffling explicitly rejected as insufficient,
+> and every existing campaign classified: `tab:fused` already protected by
+> `run_sequence()`'s shuffle (say so in the caption), T3 run 1 superseded, the
+> current campaigns compliant, the E1 pair interleaved-not-balanced and flagged,
+> W5.3/GPROBE flagged at n=3 with per-rep values still owed.

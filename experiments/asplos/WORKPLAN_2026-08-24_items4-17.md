@@ -21,9 +21,9 @@ Driven by `A4_HITRATE_FINDING_2026-08-24.md`: `run_hot_probe` probes at 100% hit
 
 | # | item | done means | Status |
 |---|---|---|---|
-| 8 | scope "prefetching well and polluting are the same decision" to far memory | the sentence names local-DRAM's ~6% (T2 B/A = 0.944/0.940) as the limit | TODO |
-| 9 | CAT-arm instability + W5.3 any-cap MBA as ONE observation; check the CAT arm for bimodality from committed raw | a doc stating the joint finding, with the bimodality question answered from `results/clos_split/raw` | TODO |
-| 10 | Latin square as house standard, retroactively noted | a convention note; historical fixed-order results flagged | TODO |
+| 8 | scope "prefetching well and polluting are the same decision" to far memory | the sentence names local-DRAM's ~6% (T2 B/A = 0.944/0.940) as the limit | **DONE** |
+| 9 | CAT-arm instability + W5.3 any-cap MBA as ONE observation; check the CAT arm for bimodality from committed raw | a doc stating the joint finding, with the bimodality question answered from `results/clos_split/raw` | **DONE** |
+| 10 | Latin square as house standard, retroactively noted | a convention note; historical fixed-order results flagged | **DONE** |
 
 ## Block 3 — broker-blocked (items 11–14). Host alive, SSH handshake resets.
 
