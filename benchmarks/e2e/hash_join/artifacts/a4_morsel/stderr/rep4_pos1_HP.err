@@ -1,0 +1,29 @@
+
+ Performance counter stats for '/home/domin/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench --mode hot-probe --policy wb --fact-bytes 256m --hot-bytes 177838489 --morsel 16m --warmups 2 --reps 1 --cpu-list 32 --threads 1':
+
+        25,438,506      l1d_pend_miss.fb_full                                                 
+     1,805,500,048      cycles                                                                
+     1,631,189,364      instructions                                                          
+    10,833,000,288      TOPDOWN.SLOTS                    #     29.7 %  tma_bad_speculation    
+                                                         #     10.5 %  tma_frontend_bound     
+     1,686,855,129      topdown-retiring                 #     44.3 %  tma_backend_bound      
+     1,171,720,023      topdown-fe-bound                                                      
+     2,011,510,700      topdown-mem-bound                #     25.8 %  tma_core_bound         
+                                                         #     18.5 %  tma_memory_bound       
+     4,826,402,986      topdown-be-bound                                                      
+       190,546,757      topdown-heavy-ops                #     15.5 %  tma_retiring           
+                                                         #      1.7 %  tma_heavy_operations   
+                                                         #     13.7 %  tma_light_operations   
+     3,149,404,261      topdown-br-mispredict            #     28.9 %  tma_branch_mispredicts 
+                                                         #      0.8 %  tma_machine_clears     
+       552,270,602      topdown-fetch-lat                #      5.7 %  tma_fetch_bandwidth    
+                                                         #      4.8 %  tma_fetch_latency      
+     3,211,054,620      topdown-bad-spec                                                      
+        27,523,687      INT_MISC.UOP_DROPPING                                                 
+
+       0.952827029 seconds time elapsed
+
+       0.778983000 seconds user
+       0.172774000 seconds sys
+
+
