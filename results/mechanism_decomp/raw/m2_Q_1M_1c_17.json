@@ -1,0 +1,68 @@
+{
+  "mode": "hot-probe",
+  "policy": "wb",
+  "fact_bytes": 0,
+  "hot_bytes": 1048576,
+  "fact_node": 2,
+  "hot_node": 0,
+  "threads": 1,
+  "pf_distance": 0,
+  "stream_count": 4,
+  "seed": 13835551735702238294,
+  "hit_rate": 0.5,
+  "fact_base": "0x0",
+  "fact_end": "0x0",
+  "thread_mapping": [
+    {
+      "thread": 0,
+      "cpu": 32,
+      "physical_core": 32
+    }
+  ],
+  "samples": [
+    51.8205682
+  ],
+  "median": 51.8205682,
+  "cov": 0,
+  "seconds": 0.323755925,
+  "probe_mops_per_s": 51.8205682,
+  "active_cycles_per_access": 36.5914543,
+  "sink": 274886295552,
+  "status": "ok",
+  "label": "Q_1M_1c",
+  "rep_index": 17,
+  "returncode": 0,
+  "cmd": [
+    "perf",
+    "stat",
+    "-x,",
+    "-e",
+    "cycles,ref-cycles,cpu-migrations",
+    "--",
+    "/home/domin/tmp_dutyfree_exp/DutyFree/benchmarks/e2e/hash_join/build/cxl_join_bench",
+    "--mode",
+    "hot-probe",
+    "--policy",
+    "wb",
+    "--fact-bytes",
+    "256m",
+    "--hot-bytes",
+    "1m",
+    "--cpu-list",
+    "32",
+    "--morsel",
+    "1m",
+    "--warmups",
+    "2",
+    "--reps",
+    "1",
+    "--threads",
+    "1"
+  ],
+  "stderr": "618345627,,cycles,325487665,100.00,,\n618306816,,ref-cycles,325487665,100.00,,\n1,,cpu-migrations,325487665,100.00,,",
+  "perf": {
+    "cycles": 618345627,
+    "ref-cycles": 618306816,
+    "cpu-migrations": 1
+  }
+}

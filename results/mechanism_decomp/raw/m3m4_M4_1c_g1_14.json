@@ -1,0 +1,47 @@
+{
+  "mode": "morsel",
+  "policy": "wb",
+  "fact_bytes": 268435456,
+  "hot_bytes": 177838489,
+  "fact_node": 2,
+  "hot_node": 0,
+  "threads": 1,
+  "pf_distance": 0,
+  "stream_count": 4,
+  "seed": 13835551735702238294,
+  "hit_rate": 0.5,
+  "fact_base": "0x74f05e400000",
+  "fact_end": "0x74f06e400000",
+  "thread_mapping": [
+    {
+      "thread": 0,
+      "cpu": 32,
+      "physical_core": 32
+    }
+  ],
+  "placement": "sampled_pages=4096 node2=4096",
+  "no_stream": false,
+  "local_n": 16777216,
+  "samples": [
+    21.3780627
+  ],
+  "median": 21.3780627,
+  "cov": 0,
+  "seconds": 0.784786545,
+  "join_mtuples_per_s": 21.3780627,
+  "stream_bandwidth_gbps": 0.342049004,
+  "active_cycles_per_access": 88.7925615,
+  "matches_last_rep": 8355779,
+  "sum_last_rep": 72057594037915783,
+  "result_hash": 0,
+  "status": "ok",
+  "label": "M4_1c",
+  "group": 1,
+  "rep_index": 14,
+  "returncode": 0,
+  "perf": {
+    "unc_cha_tor_occupancy.ia_miss_drd_local_ddr": 711878318,
+    "unc_cha_tor_inserts.ia_miss_drd_local_ddr": 2390174
+  },
+  "stderr": "711878318,,unc_cha_tor_occupancy.ia_miss_drd_local_ddr,223804763162,100.00,,\n2390174,,unc_cha_tor_inserts.ia_miss_drd_local_ddr,223781900092,100.00,,"
+}

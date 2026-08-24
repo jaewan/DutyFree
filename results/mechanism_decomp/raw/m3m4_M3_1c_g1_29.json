@@ -1,0 +1,48 @@
+{
+  "mode": "morsel",
+  "policy": "wb",
+  "fact_bytes": 268435456,
+  "hot_bytes": 177838489,
+  "fact_node": 2,
+  "hot_node": 0,
+  "threads": 1,
+  "pf_distance": 0,
+  "stream_count": 4,
+  "seed": 13835551735702238294,
+  "hit_rate": 0.5,
+  "fact_base": "0x71fa23400000",
+  "fact_end": "0x71fa33400000",
+  "thread_mapping": [
+    {
+      "thread": 0,
+      "cpu": 32,
+      "physical_core": 32
+    }
+  ],
+  "placement": "sampled_pages=4096 node2=4096",
+  "no_stream": false,
+  "local_n": 16777216,
+  "samples": [
+    21.6275042
+  ],
+  "median": 21.6275042,
+  "cov": 0,
+  "seconds": 0.775735187,
+  "join_mtuples_per_s": 21.6275042,
+  "stream_bandwidth_gbps": 0.346040067,
+  "active_cycles_per_access": 87.7543335,
+  "matches_last_rep": 8355779,
+  "sum_last_rep": 72057594037915783,
+  "result_hash": 0,
+  "status": "ok",
+  "label": "M3_1c",
+  "group": 1,
+  "rep_index": 29,
+  "returncode": 0,
+  "perf": {
+    "cycles": 3267979724,
+    "offcore_requests_outstanding.data_rd": 21063829108,
+    "offcore_requests.data_rd": 211102473
+  },
+  "stderr": "3267979724,,cycles,1720266340,100.00,,\n21063829108,,offcore_requests_outstanding.data_rd,1720266340,100.00,,\n211102473,,offcore_requests.data_rd,1720266340,100.00,,"
+}

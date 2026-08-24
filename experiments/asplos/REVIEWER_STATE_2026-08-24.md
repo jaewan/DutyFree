@@ -308,3 +308,378 @@ express the fix, and that the fix costs no new architectural state — and we
 can prove the fix works, in simulation, on exactly the victim class our own
 data show is narrow. Whether that is an ASPLOS paper depends on whether the
 narrow class can be shown to matter, and that is one silicon experiment away.*
+
+---
+
+# Addendum 1 — 2026-08-24, after three rounds of external review
+
+The body above is left verbatim. **Its §4 is wrong as written and §7's options B
+and C are dead.** This addendum states what replaced them. Everything here was
+verified against committed artifacts; where a reviewer's citation did not
+survive that check, it is said so.
+
+## A1. §4's sharp form is retracted
+
+§4 claimed the harm and the benefit "are not the same experiment, the same
+victim, or the same operating point." That is false, and the counter-evidence
+was already in the draft. `GATE1_STREAMER_COST_OUTCOME.md`: flush-behind on
+AMD Bergamo, hash-join cross-process, victim-first, 256 KiB distance, **n=12,
+frozen at DutyFree `0628e0d`**, recovers **76.3% [76.1, 76.4]** of a **6.484×**
+tax at full prefetch bandwidth — victim **406.25 → 144.21 cyc/access, 2.82×
+faster** — at a measured, non-embargoed streamer cost of **31.34% [31.28,
+31.39]**. Same arm, same provenance record. Silicon, real workload, at the
+operating point of the harm.
+
+So the defensible chain is: **silicon** — non-allocation removes most of a large
+tax; **silicon** — every deployed *single* knob pays for it; **simulation** — a
+translation-carried type achieves it without the self-cost. Only the last link
+is simulated, which is the ordinary condition of an architecture proposal.
+
+Two notes that matter. GATE1 withheld the "H2 does this without the self-cost"
+sentence pending the h1bw anomaly; **that anomaly was resolved 2026-08-18**
+("two misreadings, no model defect"), so the sentence is now writable. And the
+publishable magnitude is **2.82×, not 2.33×** — 2.33× is the untraceable
+RocksDB number (N7), and 2.82× is better *and* sound.
+
+## A2. The scissors — the finding that replaced options B and C
+
+`W5.3_L5_EVIDENCE_2026-08-23.md`, cross-process, with the no-co-runner control
+the 2×2 lacked: Intel SPR 1.62× → **1.00× under CAT12 alone at 0.7%** streamer
+cost; AMD Bergamo 18.73× → **1.07× under CAT12+MBA192 at 96%** of full stream
+bandwidth. Deployed knobs *in combination* occupy the corner for cross-process
+colocation on both vendors. L5 ("no deployed alternative occupies the corner")
+is dead there, and the project's own document says so in its title.
+
+Now set that beside the same-thread evidence, and the two branches invert:
+
+| | deployed knobs | STREAMING's measured payoff |
+|---|---|---|
+| **reuse thread never touches stream data** | CAT12 → 1.00× @ 0.7% (Intel); CAT12+MBA192 → 1.07× @ 96% BW (AMD) | large — 76.3% of 6.484×, silicon |
+| **reuse thread also touches stream data** | **every deployed control makes it worse** (A3) | **≤0.6% measured; ≤31% attributable ceiling** |
+
+**The case where STREAMING is uniquely expressible is the case where its
+measured payoff is smallest. The case where its payoff is large is the case
+shipping knobs already handle at ≤4% cost.** Everything the paper can uniquely
+claim now funnels through one aperture: **the OS thread.**
+
+**Second blade — stated as an inference, not a result.** H1's bandwidth survival
+*depends* on the stream occupying private L1/L2 and MSHRs, which is the same
+occupancy that displaces a hot set sharing that thread. If that is the whole
+story, the same-thread case is reachable only by a **stream-buffer** realization
+(staging outside the private caches), which forfeits "zero new architectural
+state" — our single best fact. Those two cannot headline the same paper. **But
+~69% of the fused tax is undecomposed**, and two mundane causes have never been
+excluded (A5), so "requires new hardware" is not yet earned.
+
+**Do not attempt to reopen the cross-process branch.** It reads as motivated
+reasoning to anyone with a Bergamo box, which is how W5.3 was produced.
+
+## A3. The lead exhibit — and why it cannot lead yet
+
+`results/clos_split/raw/`, silicon, same-thread fused kernel (throughput /
+cyc-per-access):
+
+| arm | thr / cyc-acc | vs unmitigated |
+|---|---|---|
+| Quiescent | 391.93 / 61.71 | — |
+| **Fused, unrestricted** | **336.58 / 88.45** | 1.4737× tax |
+| Fused + CAT 20/20 | 336.99 / 87.65 | no partition applied |
+| Fused + CAT 12/20 | 281.02 / 105.12 | **worse** |
+| Fused + CAT 8/20 | 253.36 / 115.81 | **worse** |
+| Fused + CAT 4/20 | 234.44 / 126.86 | **1.43× worse** |
+| Fused + `PREFETCHNTA` | 298.06 / 98.37 | **worse** |
+| Split threads, no CAT | 214.58 / 95.69 | **worse**, at 0.6375× throughput |
+| Split + CAT 1-way scan | 214.98 / 95.37 | CAT changes nothing |
+
+Read the CAT column downward: **the harm is monotone in how hard the mitigation
+is applied.** The enforced context-scoped control, the advisory address-scoped
+control, and the software restructuring all make the victim worse; tightening
+makes it worse faster. This is L2 — the missing admission cell — on silicon,
+and it is the strongest exhibit the project owns.
+
+**It cannot be Figure 1 today.** Ledger finding F1: this is `tab:fused`, "the
+paper's strongest experiment and its raw data is **not in git**" —
+`.gitignore:3 results/`, 660 files, no commit binds it, the bsweep runner is
+**absent**, and the records carry no `cmd` field and no CAT/way field, so **the
+applied way count is asserted by the filename, not recorded by the instrument.**
+One `/tmp` sweep or disk loss from being the next N7. Mitigation is cheap and
+listed: `git add -f results/clos_split/`, write the runner retrospectively and
+label it a reconstruction, and state in the caption that the way count is
+carried by the filename. **Do this before the exhibit is asked to carry
+anything.**
+
+Also precise: "all 18 cells reproduce exactly" means *recomputed from the same
+raw files matches published* — provenance verification, **not** re-measurement.
+No n or CoV has been established. Both are required before it leads.
+
+## A4. The expressibility boundary is the OS thread, not the process
+
+`resctrl` assigns CLOS **per task** (`IA32_PQR_ASSOC` is context-switched; the
+`tasks` file takes TIDs). So "compaction and serving share a process, therefore
+CAT is structurally inexpressible" — the stated rationale for the RocksDB
+anchor, and a claim of ours, not only a reviewer's — is **false**. Only
+*intra-thread* is inexpressible. Consequences: the LSM shape sits in the
+*expressible* branch, so its argument is operational fragility (per-thread CLOS
+management, vendor-specific knobs), not capability; and any same-thread anchor
+must register **expressibility** as its endpoint, never magnitude.
+
+**Branch B's candidate population, unmeasured but architecturally exact:**
+thread-per-core runtimes (Seastar/ScyllaDB, Redpanda) multiplex compaction,
+streaming and serving on one OS thread per core *by design*, are therefore
+unreachable by per-TID CLOS, and cannot "just split threads" without
+re-imposing the 36.2% our own split measured. Plus fused query engines. That is
+the anchor candidate.
+
+## A5. The new critical path: decompose the fused tax
+
+≤31% of the 1.4737× fused tax is attributed to shared-LLC residency; in
+simulation H2 engaged exactly as specified (HNF fills 1,340,360 → 542,011,
+−59.6%; victim DRAM 12.09 → 10.05 MB, −16.9%) and moved cost **72.428 → 71.993,
+−0.6%**. W7's null, the ≤31% silicon ceiling, and that gem5 result are **three
+instruments agreeing on one cap** — present that convergence as evidence, not
+as three disappointments.
+
+The other ~69% is unknown, and it decides which paper exists:
+
+- **TLB.** A reviewer cited "the campaign records the stream on 4 KiB pages
+  (`AnonHugePages=0`)." **That string is not in this repo** — the citation does
+  not survive checking. The hypothesis survives on better grounds: the hosts run
+  `THP: madvise`, so a plainly-`mmap`ed stream buffer *is* on 4 KiB pages, and
+  separately `tab:appplat` carries a defect where the paper asserts
+  pre-allocated 2 MB hugepages that the live readout reports as **0/0/0 on all
+  three nodes**. A hugepage arm is a one-line change and must run first.
+- **MSHR/LFB occupancy.** If the contended resource is miss-tracking slots
+  rather than lines, a staging buffer does not help — fills into it still
+  consume MSHRs — and the honest mechanism is per-thread MSHR reservation, a
+  different structure with different prior art. `offcore_requests_outstanding`
+  decides it in days. Note this build has **no** MSHR-occupancy stat
+  (`lqAvgOccupancy` is a load-queue ratio and is barred as a substitute), so
+  this is a silicon measurement.
+- Plus the hot-set sweep across the L2/LLC boundary and level-wise hit
+  distribution, both already open in the §3 margin notes.
+
+**Building a buffer model before running this risks a quarter on the wrong
+structure.** The consume-in-place experiment is absorbed here; post-W5.3 its
+"just use more cores" target is moot.
+
+**End-to-end headroom, stated up front:** quiescent 391.93 vs fused 336.58 caps
+pipeline recovery at **~16.4%** even for a perfect fix, and only when the probe
+is on the critical path.
+
+## A6. Corrections owed to the reviewers' own numbers
+
+Three reviewer citations did not survive verification, and the pattern is worth
+more than the corrections:
+
+1. **"15.8 GB/s (WB) / 4.2 GB/s (WC)" per core.** "15.8" appears nowhere in the
+   repo; "4.17 GB/s" exists but is our **WB** pure-stream figure in the gem5 SE
+   model, not WC. The reviewer took the pair from the draft's own prose — so the
+   intro's motivating single-core WB/WC contrast, and the "five WC cores to
+   match two WB cores" claim in the same family, are **N7-class and join the
+   W4.2 repair list.** The qualitative argument survives (MSHRs are
+   timing-critical CAMs stuck in the tens; prefetch-queue depth is cheap SRAM);
+   the arithmetic must be re-derived or dropped.
+2. **"the non-enrolling stream is faster, 3.8 vs 2.5 GB/s."** Unsourced here.
+3. **The `AnonHugePages=0` citation** (A5).
+
+**A review inherits provenance rot from the text it reviews.** That is how N7
+propagates outward, and it is the strongest practical argument for doing the
+hygiene pass before anyone else reads the draft.
+
+**One comparison to pre-empt rather than concede.** A referee will set the
+deployed combination's 1.07× residual against our own non-allocation proxy's
+2.30× and conclude CAT+MBA beats flush-behind. Those are **different victims,
+different workloads, different taxes** (18.73× index-probe vs 6.484× hash-join)
+— comparing their residuals is precisely the arm-identity violation §5.1
+forbids. Name both arms at the point of use and the comparison dissolves;
+concede it and it is fatal.
+
+**W5.3's own reporting obligations, before it carries any argument:** its 18.73×
+is in the *pointer-chase* family, not the hash-join family; victim identity,
+arrival protocol and n must travel with every cell; and the Intel 1.62× sits at
+a different operating point from the earlier 2.03× (CXL-8, 170 MB) — say which.
+
+## A7. The provenance list, complete
+
+This is the honest answer to "is it submittable": no, and not close, before any
+framing question. From `W4.3_PROVENANCE_LEDGER_2026-08-23.md`:
+
+| item | state |
+|---|---|
+| `tab:amdcat` | **UNTRACEABLE** (n=210 file gone); verified replacements exist, unsubstituted in 5 places |
+| RocksDB 2.33% / 54% prose | **UNTRACEABLE**; nearest survivor disagrees (2.29× / 47%) |
+| `tab:fused` | **raw not in git**, runner absent, way count carried by filename (F1) |
+| `tab:h1bw` | artifact found, **ordering not reproduced** (F3) |
+| `tab:h3sf` | data verified, **annotation wrong** — cited commit predates the required one (F4) |
+| `tab:gem5` +H2 column | **declared gap** — not re-instantiated at the WB column's commit |
+| intro WB/WC single-core bandwidth pair | **newly suspected N7** (A6) |
+| `tab:gem5cfg` | verified 13/15; 1 defect, 1 imprecision |
+| `tab:appplat` | verified except 1 defect (hugepages 0/0/0) + 1 unit inconsistency |
+
+## A8. Revised order, and one decision I am not taking
+
+1. **Hygiene** — W4.2's substitution, the RocksDB prose, and the intro
+   bandwidth pair. Days. Unarguable.
+2. **Pin `results/clos_split/`** (`git add -f`), write the runner as a labelled
+   reconstruction, establish n/CoV. Before the exhibit leads anything.
+3. **The fused-tax decomposition** — hugepage arm, `offcore_requests_
+   outstanding`, hot-set sweep, level-wise hits. Days to two weeks, hardware in
+   hand. **This is the new critical path and it replaces every previously
+   proposed anchor**; it decides whether the Branch-B fix is software, a
+   staging buffer, MSHR QoS, or nothing reachable.
+4. Assemble the A1 chain re-scoped to *mechanism attribution*, with W5.3 printed
+   beside it.
+5. Fork on the decomposition. If a mechanism paper: pre-register victim-side
+   endpoints **and** the ~16.4% headroom bound; thread-per-core runtime as the
+   anchor, expressibility registered.
+6. Deferred: the service census, the SHiP port, standalone virtualization and
+   security sections, and the standalone consume-in-place run (absorbed into 3).
+
+**The rule this addendum earns, as process rather than hindsight:** *before
+adopting any spine, enumerate the least expensive configuration a hostile
+referee could run against its central sentence, and run that first.* Three
+rounds, three spines, and each died to a cheap adversarial configuration — the
+knob **combination** (W5.3), the per-TID **scope check** (A4), and next the
+**hugepage arm**. Each was affordable at any point and was run late or not yet.
+
+**The decision I am not taking.** W5.3 is written into this memo, which is
+`~/DutyFree` and authorized. Writing it into `~/STREAMING_Paper/` sets page-1
+evidentiary posture and W5.3 itself records that as a §9 lead-only decision.
+The reviewers argue it can no longer wait, and I think they are right — three
+documents' spines die on it. **It is still the lead's call, and the co-author
+conversation should lead with it.**
+
+---
+
+# Addendum 2 — 2026-08-24, same day: A5 is wrong; the decomposition already ran
+
+Addendum 1's §A5 declared the fused-tax decomposition "the new critical path,"
+said "~69% of the fused tax is undecomposed," and called the second blade "an
+inference, not a result." **All three are wrong.** The decomposition ran on
+**2026-07-29**, pre-registered, three instruments, n=30 per point, with a
+committed 18 KB report (`results/mechanism_decomp/
+MECHANISM_DECOMPOSITION_REPORT.md`) and three committed runners
+(`run_m2_sweep.py`, `run_m3_m4.py`, `run_m5_remote_stream.py`). I did not read
+it before writing A5. That is F11 committed by the person who wrote the F11
+fixes, and the fix that would have caught it — `ls` the results tree before
+writing a memo about the plan item — is fix #5, in my own list.
+
+## B1. What it found
+
+Pre-registered decomposition `Δ_LLC_upper ≈ max(0, Δ_total − Δ_L2fit − Δ_M5 −
+Δ_M3)`, at the 170 MB operating point:
+
+| | 1 core | 16 cores |
+|---|---:|---:|
+| `Δ_total` | 27.31 cyc | 27.63 cyc |
+| `Δ_L2fit` (strict, 256K — unambiguously L2-resident) | 27.80 | 27.32 |
+| `Δ_L2fit` (generous, 1M — minimum of the M2 curve) | 19.25 | 19.31 |
+| `Δ_M5` (bandwidth-matched remote-socket residual) | −0.44 | +0.80 |
+| `Δ_M3` (MSHR/outstanding-miss) | unattributed | unattributed |
+| **`Δ_LLC_upper` strict** | **0.00 (0%)** | **0.00 (0%)** |
+| **`Δ_LLC_upper` generous** | **8.51 (31%)** | **7.52 (27%)** |
+
+> **Verdict, in the report's own words: "`Δ_LLC_upper/Δ_total` is at most ≈0.31
+> and could be as low as 0 … both readings fall at or below the pre-registered
+> 'H2 story in trouble' threshold (≤0.30), and neither approaches the 'sound'
+> threshold (≥0.60)."**
+
+Almost the entire fused tax is **already present at L2-fit scale, with no LLC
+involvement at all.** Memory-path queueing explains essentially nothing
+(`Δ_M5` ≈ 0, mixed sign). `Δ_M3` was set to 0 deliberately — the
+generous-to-H2 choice, since crediting it would push `Δ_LLC_upper` lower still.
+
+Three further findings that bear directly on this discussion:
+
+- **The MSHR candidate has positive evidence, not merely plausibility.**
+  `L1D_PEND_MISS.FB_FULL` grows **3.84×** (1c) and **11.68×** (16c) under load,
+  while *average* outstanding depth is flat (1.01×) / slightly down (0.90×,
+  CoV 14.9%). The report refuses to reconcile them into a cycle cost without a
+  causal model it does not have, and says so.
+- **CHA TOR latency to the hot table's own destination rises +14.2% (1c) /
+  +31.4% (16c)** — misses become more expensive, not just more frequent.
+- A checked microarchitectural aside: removing the stream made the probe
+  *slower* (91.5 vs 84.4 cyc/access), consistent with the real CXL load's
+  latency overlapping the probe's via out-of-order execution. Flagged as a
+  hypothesis, not converted into a number.
+
+## B2. What this does to the scissors, and to the paper
+
+**The second blade is measured, not inferred.** The same-thread tax lives where
+H2 explicitly does not reach — private-cache displacement plus unattributed
+miss-tracking pressure. A2's inference is upgraded to a result, and the panel's
+"not yet earned" is withdrawn on this point.
+
+**And the paper already says so.** `Sec5_Evaluation.tex:382-389`: "\emph{not}
+where H2 pays off: the hardware decomposition attributes $\le$31\% of the
+1.47$\times$ same-thread tax to shared-LLC residency … the hardware
+decomposition is the authority here. The fused kernel is necessity."
+`Abstract.tex:48` carries the same note. **The draft is more honest than this
+memo credited it with being.** What has not propagated is narrower and still
+matters:
+
+1. **Only the generous bound travels.** The paper prints "≤31%"; the strict
+   L2-fit reference reads **0.00%**. Under §5.1 both belong at the point of use,
+   or the sentence must name which reference it is using.
+2. **The pre-registered verdict appears nowhere outside the report** — the
+   string "H2 story in trouble" is absent from every other file in the repo and
+   from the paper. A pre-registered threshold that is crossed and not reported
+   is the same defect as a falsifier that fails and is not printed.
+3. **The report and its 1,402 raw files were not in git** (`.gitignore:3
+   results/`), so the paper's stated *authority* for its fused claim had the
+   same exposure `tab:fused` used to have. Fixed in this commit (B3).
+
+## B3. Done in this commit — and a correction to A3
+
+`git add -f results/mechanism_decomp/` (1,402 files, 24 MB): the report that is
+the paper's stated authority for its fused-case scoping is now pinned in git
+instead of surviving on one host's working tree.
+
+**A3 is out of date and this corrects it.** A3 said `tab:fused`'s raw data is
+"not in git", quoting ledger finding F1. It *was* pinned, at commit `a41df38`
+("F1.1: pin tab:fused's raw data in git, with its four known provenance defects
+stated alongside") — 1,177 files, already tracked. The W4.3 ledger entry that
+A3 quoted was written before that fix and was never amended, so I read a stale
+finding and repeated it. **`tab:fused`'s exposure is closed; only the second
+artifact needed pinning.** Still owed on `tab:fused`: the bsweep runner as a
+labelled reconstruction, the caption stating that the applied way count is
+carried by the filename, and n/CoV. Note `results/` remains in `.gitignore`, so
+both trees are pinned by `-f` and future runs are still unversioned by default.
+
+## B4. Revised order, replacing A8
+
+1. **Hygiene** — W4.2's substitution, the RocksDB prose, the intro WB/WC
+   bandwidth pair. Unchanged, unarguable, days.
+2. **Propagate the decomposition properly** — the strict 0% reading beside the
+   generous 31%, and the pre-registered verdict in the text. Hours, and it is a
+   §5.1 obligation, not a choice.
+3. **The hugepage/TLB arm** — the one candidate the 2026-07-29 decomposition did
+   *not* cover, and still genuinely unexcluded. One-line change. This is what
+   survives of A5's "critical path", and it is now a small task rather than a
+   campaign.
+4. Assemble the A1 chain re-scoped to mechanism attribution, with W5.3 printed
+   beside it.
+5. Fork. Note the fork is better posed than A5 said: the dominant measured term
+   is L2-fit-scale private displacement (which a staging buffer would address)
+   while `FB_FULL` points at miss-tracking pressure (which it would not). The
+   report declines to separate them and names exactly what is missing — "a
+   validated cycles-per-access conversion for `Δ_M3`". That conversion, not a
+   new campaign, is the gate on which structure a mechanism paper would propose.
+6. Deferred as before.
+
+## B5. The process finding, which is worth more than the datapoint
+
+Three rounds of external review, a 550-line memo, and a rebuilt project plan all
+treated the fused decomposition as open. It had been closed for four weeks, by a
+pre-registered experiment with committed runners, and its verdict was harsher
+than anything the reviewers proposed. The number that escaped the report (≤31%)
+reached the paper; the **reference it was conditioned on** (generous, not strict)
+and the **verdict it triggered** ("in trouble") did not. That is §5.1's rule —
+every figure names its arm and operating point — applied to a *threshold*, and
+it is the same failure mode as premise 1's overturn in `PLAN_B_REBUILD.md`:
+not a missing measurement, but a measurement that was never read against the
+document that needed it.
+
+A5's rule stands and now has a fourth instance. It gains a clause:
+**before declaring any experiment the critical path, `ls` the results tree and
+read what is already there.**

@@ -1,0 +1,118 @@
+{
+  "L1fit_16K": {
+    "label": "L1fit_16K",
+    "hot_bytes": "16k",
+    "active_cycles_per_access": 12.3546664,
+    "n_samples": 929,
+    "stderr_tail": "esolved at all.\n\nIf some relocation was applied (e.g. kexec) symbols may be misresolved\neven with a suitable vmlinux or kallsyms file.\n\nCouldn't record kernel reference relocation symbol\nSymbol resolution may be skewed if relocation was used (e.g. kexec).\nCheck /proc/kallsyms permission or run as root.\n[ perf record: Woken up 1 times to write data ]\n[ perf record: Captured and wrote 0.054 MB /home/domin/tmp_dutyfree_exp/DutyFree/results/mechanism_decomp/phase1/L1fit_16K.perfdata (929 samples) ]\n",
+    "histogram": {
+      "L1(<12)": [
+        803,
+        86.44
+      ],
+      "L2(12-30)": [
+        110,
+        11.84
+      ],
+      "LLC(30-100)": [
+        6,
+        0.65
+      ],
+      "mem(100-400)": [
+        7,
+        0.75
+      ],
+      "cxl_or_slow(>=400)": [
+        3,
+        0.32
+      ]
+    }
+  },
+  "L2fit_512K": {
+    "label": "L2fit_512K",
+    "hot_bytes": "512k",
+    "active_cycles_per_access": 33.3223328,
+    "n_samples": 9460,
+    "stderr_tail": "olved at all.\n\nIf some relocation was applied (e.g. kexec) symbols may be misresolved\neven with a suitable vmlinux or kallsyms file.\n\nCouldn't record kernel reference relocation symbol\nSymbol resolution may be skewed if relocation was used (e.g. kexec).\nCheck /proc/kallsyms permission or run as root.\n[ perf record: Woken up 2 times to write data ]\n[ perf record: Captured and wrote 0.445 MB /home/domin/tmp_dutyfree_exp/DutyFree/results/mechanism_decomp/phase1/L2fit_512K.perfdata (9460 samples) ]\n",
+    "histogram": {
+      "L1(<12)": [
+        1277,
+        13.5
+      ],
+      "L2(12-30)": [
+        8174,
+        86.41
+      ],
+      "LLC(30-100)": [
+        6,
+        0.06
+      ],
+      "mem(100-400)": [
+        3,
+        0.03
+      ],
+      "cxl_or_slow(>=400)": [
+        0,
+        0.0
+      ]
+    }
+  },
+  "LLCfit_32M": {
+    "label": "LLCfit_32M",
+    "hot_bytes": "32m",
+    "active_cycles_per_access": 47.9745036,
+    "n_samples": 12830,
+    "stderr_tail": "lved at all.\n\nIf some relocation was applied (e.g. kexec) symbols may be misresolved\neven with a suitable vmlinux or kallsyms file.\n\nCouldn't record kernel reference relocation symbol\nSymbol resolution may be skewed if relocation was used (e.g. kexec).\nCheck /proc/kallsyms permission or run as root.\n[ perf record: Woken up 3 times to write data ]\n[ perf record: Captured and wrote 0.599 MB /home/domin/tmp_dutyfree_exp/DutyFree/results/mechanism_decomp/phase1/LLCfit_32M.perfdata (12830 samples) ]\n",
+    "histogram": {
+      "L1(<12)": [
+        2035,
+        15.86
+      ],
+      "L2(12-30)": [
+        2787,
+        21.72
+      ],
+      "LLC(30-100)": [
+        7854,
+        61.22
+      ],
+      "mem(100-400)": [
+        153,
+        1.19
+      ],
+      "cxl_or_slow(>=400)": [
+        1,
+        0.01
+      ]
+    }
+  },
+  "gtLLC_400M": {
+    "label": "gtLLC_400M",
+    "hot_bytes": "400m",
+    "active_cycles_per_access": 80.9218674,
+    "n_samples": 26789,
+    "stderr_tail": "lved at all.\n\nIf some relocation was applied (e.g. kexec) symbols may be misresolved\neven with a suitable vmlinux or kallsyms file.\n\nCouldn't record kernel reference relocation symbol\nSymbol resolution may be skewed if relocation was used (e.g. kexec).\nCheck /proc/kallsyms permission or run as root.\n[ perf record: Woken up 5 times to write data ]\n[ perf record: Captured and wrote 1.238 MB /home/domin/tmp_dutyfree_exp/DutyFree/results/mechanism_decomp/phase1/gtLLC_400M.perfdata (26789 samples) ]\n",
+    "histogram": {
+      "L1(<12)": [
+        4790,
+        17.88
+      ],
+      "L2(12-30)": [
+        2856,
+        10.66
+      ],
+      "LLC(30-100)": [
+        9560,
+        35.69
+      ],
+      "mem(100-400)": [
+        8351,
+        31.17
+      ],
+      "cxl_or_slow(>=400)": [
+        1232,
+        4.6
+      ]
+    }
+  }
+}

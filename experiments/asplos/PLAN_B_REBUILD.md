@@ -1554,3 +1554,92 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > decisions 1 (venue/date) and 3 (co-author communication) still gate the
 > 39-row edit queue, and W4.2's superseded-number substitution is now also
 > blocking, because a referee who pulls on N7 finds it in five places.
+
+> **2026-08-24 (later) — three review rounds, and the spine changed twice. Net:
+> the scissors, and an F11 I committed myself.**
+> `REVIEWER_STATE_2026-08-24.md` addenda 1 and 2 carry the detail. Summary of
+> what actually changed in the plan:
+>
+> **1. The memo's S4 was wrong and is retracted.** A same-silicon, same-victim,
+> same-operating-point harm-recovery pair already existed and was already in the
+> draft: flush-behind on AMD Bergamo, hash-join cross-process, n=12, frozen at
+> `0628e0d`, recovers **76.3% [76.1,76.4]** of a **6.484x** tax -- victim
+> **406.25 -> 144.21 cyc/access, 2.82x faster** -- at a measured, non-embargoed
+> streamer cost of **31.34%**. The h1bw anomaly that blocked the companion
+> sentence was resolved 2026-08-18, so the three-link chain (silicon harm,
+> silicon single-knob cost, simulated type without the self-cost) is assemblable
+> from committed data with no new measurement. Publish **2.82x**, never 2.33x.
+>
+> **2. The scissors.** W5.3 kills L5 for cross-process: CAT12 alone reaches
+> **1.00x at 0.7%** streamer cost on Intel, CAT12+MBA192 **1.07x at 96%** of
+> full bandwidth on AMD. Meanwhile `results/clos_split/` shows that in the
+> same-thread case *every* deployed control makes the victim **worse,
+> monotonically in how hard it is applied* (CAT 20/20 87.65 -> 12/20 105.12 ->
+> 8/20 115.81 -> 4/20 126.86 cyc/access; `PREFETCHNTA` 98.37; splitting threads
+> 95.69 at 0.6375x throughput). So: **the case where STREAMING is uniquely
+> expressible is the case where its payoff is smallest, and the case where its
+> payoff is large is the case shipping knobs already handle at <=4%.** Every
+> unique claim now funnels through the OS thread. Options B and C as previously
+> written are dead; the cross-process branch must not be reopened.
+>
+> **3. `resctrl` is task-granular.** CLOS is per-TID (`IA32_PQR_ASSOC` is
+> context-switched). "Compaction and serving share a process, so CAT is
+> inexpressible" is **false, and it was ours.** The expressibility boundary is
+> the OS thread. LSM therefore sits in the *expressible* branch; its argument is
+> operational fragility, not capability. Branch B's candidate population is
+> thread-per-core runtimes (Seastar/ScyllaDB, Redpanda) plus fused engines --
+> same-thread by design, unreachable by per-TID CLOS, and unable to split
+> without re-imposing the measured 36.2%.
+>
+> **4. F11, by me.** Addendum 1 declared the fused-tax decomposition "the new
+> critical path" and called the second blade an unearned inference. The
+> decomposition **ran 2026-07-29** -- pre-registered, three instruments, n=30,
+> committed report and three committed runners -- and its verdict is harsher
+> than anything the reviewers proposed: `Delta_LLC_upper/Delta_total` is **at
+> most 0.31 and 0.00 under the strict L2-fit reference**, i.e. the pre-registered
+> **"H2 story in trouble"** band, with the fused tax essentially fully present at
+> L2-fit scale and `Delta_M5` ~ 0. `FB_FULL` grows 3.84x/11.68x while mean
+> outstanding depth stays flat, and the report declines to convert that into
+> cycles for want of a causal model. So the second blade is **measured**, not
+> inferred -- and `Sec5_Evaluation.tex:382-389` already scopes the fused kernel
+> to necessity on this authority. The draft was more honest than the memo
+> credited. What never propagated: the **strict 0% reading** beside the
+> published `<=31%`, and the pre-registered **verdict**, which appears in no
+> other file in the repo. Both are S5.1 obligations applied to a threshold.
+>
+> **5. Artifacts.** `results/mechanism_decomp/` (1,402 files) pinned with
+> `git add -f` in this commit -- it was the stated authority for a paper claim
+> and was unversioned. `results/clos_split/` needed no action: already pinned at
+> `a41df38`, and the W4.3 ledger's F1 entry saying otherwise is **stale and
+> should be amended**; I read it and repeated it. `results/` stays in
+> `.gitignore`, so future runs remain unversioned by default.
+>
+> **6. Three reviewer citations failed verification** -- a 15.8/4.2 GB/s
+> per-core WB/WC pair ("15.8" is nowhere in the repo; 4.17 is our *WB* SE
+> figure), a "3.8 vs 2.5 GB/s" non-enrolling-stream claim, and an
+> `AnonHugePages=0` note. The first came from the draft's own prose, so the
+> intro's motivating single-core bandwidth contrast joins the W4.2 repair list.
+> A review inherits provenance rot from the text it reviews.
+>
+> **Revised order:** (1) hygiene, now including the intro bandwidth pair;
+> (2) propagate the decomposition's strict reading and verdict -- hours, and
+> obligatory; (3) the hugepage/TLB arm, the one candidate the 2026-07-29
+> decomposition did not cover; (4) assemble the chain in 1 re-scoped to
+> mechanism attribution with W5.3 printed beside it; (5) fork on the
+> `Delta_M3` cycles-per-access conversion, which decides whether a mechanism
+> paper proposes a staging buffer or MSHR QoS -- and note that a buffer forfeits
+> "zero new architectural state", so that and "uniquely needed in the same-thread
+> case" cannot headline together. Deferred: census, SHiP, virtualization and
+> security sections, standalone consume-in-place.
+>
+> **Process rule earned, four instances now** (the knob *combination*, the
+> per-TID *scope check*, the *stale ledger entry*, and the *unread
+> decomposition*): before adopting any spine, enumerate the cheapest
+> configuration a hostile referee could run against its central sentence and run
+> that first -- and before declaring any experiment the critical path, `ls` the
+> results tree and read what is already there.
+>
+> **Not taken, still lead-only:** writing W5.3 into `~/STREAMING_Paper/` sets
+> page-1 evidentiary posture. Three documents' spines die on it and the
+> reviewers argue it can no longer wait; it remains the lead's call, and the
+> co-author conversation should lead with it.

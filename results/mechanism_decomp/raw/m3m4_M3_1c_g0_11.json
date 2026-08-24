@@ -1,0 +1,43 @@
+{
+  "mode": "hot-probe",
+  "policy": "wb",
+  "fact_bytes": 0,
+  "hot_bytes": 177838489,
+  "fact_node": 2,
+  "hot_node": 0,
+  "threads": 1,
+  "pf_distance": 0,
+  "stream_count": 4,
+  "seed": 13835551735702238294,
+  "hit_rate": 0.5,
+  "fact_base": "0x0",
+  "fact_end": "0x0",
+  "thread_mapping": [
+    {
+      "thread": 0,
+      "cpu": 32,
+      "physical_core": 32
+    }
+  ],
+  "samples": [
+    31.5701341
+  ],
+  "median": 31.5701341,
+  "cov": 0,
+  "seconds": 0.531426821,
+  "probe_mops_per_s": 31.5701341,
+  "active_cycles_per_access": 60.0944966,
+  "sink": 70368752566272,
+  "status": "ok",
+  "label": "M3_1c",
+  "group": 0,
+  "rep_index": 11,
+  "returncode": 0,
+  "perf": {
+    "cycles": 1822956193,
+    "l1d_pend_miss.pending": 3576672670,
+    "l1d_pend_miss.pending_cycles": 1058978232,
+    "l1d_pend_miss.fb_full": 37847845
+  },
+  "stderr": "1822956193,,cycles,959624997,100.00,,\n3576672670,,l1d_pend_miss.pending,959624997,100.00,,\n1058978232,,l1d_pend_miss.pending_cycles,959624997,100.00,,\n37847845,,l1d_pend_miss.fb_full,959624997,100.00,,"
+}

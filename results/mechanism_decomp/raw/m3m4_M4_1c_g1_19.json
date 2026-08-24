@@ -1,0 +1,41 @@
+{
+  "mode": "hot-probe",
+  "policy": "wb",
+  "fact_bytes": 0,
+  "hot_bytes": 177838489,
+  "fact_node": 2,
+  "hot_node": 0,
+  "threads": 1,
+  "pf_distance": 0,
+  "stream_count": 4,
+  "seed": 13835551735702238294,
+  "hit_rate": 0.5,
+  "fact_base": "0x0",
+  "fact_end": "0x0",
+  "thread_mapping": [
+    {
+      "thread": 0,
+      "cpu": 32,
+      "physical_core": 32
+    }
+  ],
+  "samples": [
+    33.3163879
+  ],
+  "median": 33.3163879,
+  "cov": 0,
+  "seconds": 0.503572477,
+  "probe_mops_per_s": 33.3163879,
+  "active_cycles_per_access": 56.9461526,
+  "sink": 70368752566272,
+  "status": "ok",
+  "label": "M4_1c",
+  "group": 1,
+  "rep_index": 19,
+  "returncode": 0,
+  "perf": {
+    "unc_cha_tor_occupancy.ia_miss_drd_local_ddr": 317945017,
+    "unc_cha_tor_inserts.ia_miss_drd_local_ddr": 1209402
+  },
+  "stderr": "317945017,,unc_cha_tor_occupancy.ia_miss_drd_local_ddr,119303965599,100.00,,\n1209402,,unc_cha_tor_inserts.ia_miss_drd_local_ddr,119280256132,100.00,,"
+}
