@@ -115,3 +115,39 @@ pages, of which 128 were borrowed by the allocator and returned), no MSR was
 written, `setup/*_freeze.sh` was not run, and no source file was edited —
 `--huge2m` is a flag `cxl_join_bench` already had. Host state as found is
 recorded in `t3_state.txt`.
+
+---
+
+# Addendum 1 — 2026-08-24, same day: two corrections from the code audit
+
+The body above is left verbatim. `T3_CODE_AUDIT_2026-08-24.md` has the full
+review; two things in the text above are wrong and are corrected here.
+
+**1. The hot table is 256 MiB, not "~170 MB", and 65,536 pages, not "~43,500".**
+`table_capacity()` rounds entries up to a power of two, so `--hot-bytes
+177838489` (169.6 MiB) instantiates 16,777,216 × 16 B = **268,435,456 B**, a
+1.509× inflation — **80.0%** of the 8592+'s 320 MiB LLC, not 53.0%. Every "170
+MB / ~43,500 pages" figure above describes the *requested* size. The conclusion
+is unchanged and in fact strengthened: a larger victim footprint makes the
+victim-side walk explanation more compelling, not less. This is F9's second
+instance and it also affects `Sec3_Mitigation.tex:48` and `tab:fused`'s stated
+operating point — see the audit.
+
+**2. `R = −0.088` is withdrawn as a quotable number; its verdict stands.** Two
+reasons. `run_hot_probe()` never calls `alloc_bytes()`, so `--huge2m` is a
+**no-op** in the Q arm — `Q_4k` and `Q_2m` are the same execution, and R's
+denominator is one bimodal configuration sampled n=5 twice. And arm order was
+**fixed, not randomized**, so a position effect cannot be separated from
+bistability. Report the verdict (stream-side TLB excluded) and the two
+statistics that do not depend on Q or on arm order:
+
+- paired A-arm: cyc/access **−0.38%**, page walks **−0.45%**;
+- the fact array's pages went 65,536 → 128 (512×, confirmed by 128 consumed
+  hugetlb pages) while the stream's apparent walk contribution fell **1.8%**
+  against an arithmetic prediction of ~99.8%. A measured-vs-predicted contrast,
+  immune to arm order and thermal drift.
+
+Guard 2 is also restated correctly: since Q_2m ≡ Q_4k, it was never a test of the
+manipulation. It is a **10-sample variance estimate of one configuration** —
+range 55.46–64.48, 16.3% spread, 4 low (~55.6) / 6 high (~63.2) — which is why
+the `tab:fused` bimodality finding is stronger than the body states, not weaker.

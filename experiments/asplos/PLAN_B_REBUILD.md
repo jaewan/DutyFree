@@ -1749,3 +1749,54 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > levers, not MBA, which is a pacing throttle barred by the standing rule and
 > which W5.3 showed to be a step function rather than a clean rate knob.
 > No system state was changed by T3 and no source file was edited.
+
+> **2026-08-24 (code audit) — today's apparatus reviewed before trusting it: six
+> defects of mine, one error in my own outcome doc, and F9's second instance in
+> the paper.**
+> `T3_CODE_AUDIT_2026-08-24.md`. Every figure was independently re-derived with
+> code sharing nothing with my analyzers; T2's bandwidths reproduce from
+> `total_bytes/elapsed_sec` to <=2e-3 GB/s, the new arm's load loop is
+> md5-identical to its parent, and host validity (cpu8 on node0, local mbind,
+> `performance` governor) holds on all three hosts.
+>
+> **T2 stands fully.** A/C = 1.252/1.289/1.283 vs a claimed 3.76, CoV <=1.31%;
+> no defect found can move a ratio of 1.27 to >=2.0.
+>
+> **T3's headline stands; its `R` is withdrawn as a number.** `run_hot_probe()`
+> never calls `alloc_bytes()`, so `--huge2m` is a **no-op in the Q arm** --
+> Q_4k and Q_2m are the same execution -- and arm order was **fixed, not
+> randomized**, so R's denominator is one bimodal configuration and a position
+> effect is not separable. What survives untouched is the arithmetic: the fact
+> array's pages went 65,536 -> 128 (512x, confirmed by 128 consumed hugetlb
+> pages) while the stream's apparent walk contribution fell **1.8%** against a
+> predicted ~99.8%. Measured-vs-predicted, so immune to arm order. **The
+> load-induced walks are the victim's.** And because Q_2m == Q_4k, the pooled 10
+> samples are a direct variance estimate of one configuration: 55.46-64.48,
+> **16.3% spread**, bimodal -- so the `tab:fused` n=1 finding is stronger, not
+> weaker.
+>
+> **F9, second instance, on silicon, unfixed.** `table_capacity()` rounds entries
+> to a power of two, so the panel's `HOT_BYTES = 177838489` (169.6 MiB)
+> instantiates **256 MiB** -- **80.0%** of the 8592+'s 320 MiB LLC, not the
+> **53.0%** the paper states at `Sec3_Mitigation.tex:48` and uses for
+> `tab:fused`, the CAT sweep and the split arms. The class was already found on
+> 2026-08-15 in a gem5 arm and fixed at source (`fef3e5e` prints
+> `HOT_TABLE_ROUNDED`), but the clos_split runs predate the warning so it never
+> fired, and the lesson was never carried to the silicon panel. Checked and NOT
+> affected: `Sec2:96` and `Sec5:201`, which describe the pointer-chase victim,
+> and `pointer_chase.c:171` rounds only to a 2 MiB boundary. Note 80% is a
+> *harder* point than 53%, so the tax is not flattered -- but the arm identity is
+> misstated on the exhibit we were about to promote to Figure 1.
+>
+> **My own defects, recorded rather than smoothed:** fixed arm order in both
+> runners (the consequential one); the T3 runner deleted stderr after parsing it,
+> which is how `HOT_TABLE_ROUNDED` was thrown away; a latent F12 where a failed
+> sysfs read would render `hugetlb_pages_used=0` and read as "the manipulation
+> did not take"; `t2_analyze.py` printing "on ALL hosts" while evaluating only
+> the hosts loaded; population sd reported unlabelled as "+/-"; and T3's analysis
+> having been an uncommitted heredoc, now pinned as `t3_analyze.py` with a
+> docstring recording that it postdates the run.
+>
+> **Hygiene list gains four items:** Sec3:48's 170 MB/53% -> 256 MiB/80% plus an
+> audit of every `HOT_BYTES`-derived size; n and CoV for `tab:fused`; randomized
+> arm order before either runner is reused; D2/D3 fixed first.
