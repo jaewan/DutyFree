@@ -2095,3 +2095,40 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > `run_sequence()`'s shuffle (say so in the caption), T3 run 1 superseded, the
 > current campaigns compliant, the E1 pair interleaved-not-balanced and flagged,
 > W5.3/GPROBE flagged at n=3 with per-rep values still owed.
+
+> **2026-08-24 (item 14) — RocksDB closed WITHOUT running it, and it hands the
+> paper a better exhibit than the one deleted.**
+> `ITEM14_ROCKSDB_RESOLUTION_2026-08-24.md`. Reading first prevented a campaign
+> this time rather than correcting one after the fact.
+>
+> `benchmarks/e2e/rocksdb/ROCKSDB_LSM_PANEL_FINDINGS.md` (2026-08-21) already
+> searched for the victim and found the mechanism for its absence: three of the
+> four candidate reused structures self-protect against capacity denial, and the
+> flat one (the filter pool) is guarded by a cache-resident binary search plus
+> hash lookup costing **12x the probe they guard** -- the probe is 2.46% of
+> cycles. Best of six configurations **1.41x**, none above 1.42x, against a bare
+> pointer chase's 3.9-4.1x on the same core in the same minutes, with the explicit
+> conclusion *"I would not fund further RocksDB victim search"*. A pre-registered
+> re-run would spend host time confirming an understood null.
+>
+> Two findings there also bear on the deleted claim. The published RocksDB numbers
+> came from an **assertions-enabled** `db_bench` (Ubuntu 9.11.2-1); against a
+> release build of the identical tag, `readrandom` goes 2.964 -> **1.999 us/op**,
+> so **1.48x of the per-lookup software work was assertion overhead** and the
+> "software dilutes the tax" diagnosis rested on a figure ~32% instrumentation --
+> including the Intel null the paper printed beside the 2.33x. And a bare chase
+> reaches **4.07x on mos181**, so "no Intel configuration reaches 2x" is about the
+> victims tried, not the platform.
+>
+> **What replaces it in the paper (edit applied, published).** RocksDB enforces H2
+> in software one level up and cannot express it one level down. Verified against
+> the v9.11.2 tree: `compaction_job.cc:1179` and `compaction_iterator.cc:1415` set
+> `read_options.fill_cache = false` unconditionally, and
+> `block_based_table_reader.cc:1784` turns it into
+> `bool no_insert = no_io || !ro.fill_cache` -- the block is read, used, and never
+> inserted. Shipped by default for over a decade. Yet that same block is still
+> allocated into L1/L2/LLC by the loads that read it. So the missing admission
+> cell is a policy production software **implements where it can express it and
+> cannot express one level below** -- not inferred from microbenchmarks, and not
+> falsifiable by a re-measurement. Added to `Sec3_Mitigation` as its own heading
+> immediately before the hash-join kernel.

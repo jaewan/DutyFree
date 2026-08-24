@@ -32,7 +32,7 @@ Driven by `A4_HITRATE_FINDING_2026-08-24.md`: `run_hot_probe` probes at 100% hit
 | 11 | load + validate the reconstructed `/dev/cxl_wc` | module loaded, devices present, a read succeeds | **PARTIAL** — guards validated, one was broken and is fixed; mmap path blocked on platform state (see E1_WC_APPARATUS_REBUILD) |
 | 12 | frozen-vs-rerun stability check on the WC family | E1 tax re-measured vs 1.2877/0.9996 | **BLOCKED** — broker, *and* the CXL window must be soft-reserved, not onlined |
 | 13 | Q4's matched-dose pair (WB 1T vs WC ~4T at ~12.5 GB/s) | a WC arm at a matched rate *with a victim* | **BLOCKED** — same two blockers |
-| 14 | RocksDB re-earn | pre-registered, run, reported | **BLOCKED** |
+| 14 | RocksDB re-earn | pre-registered, run, reported | **CLOSED WITHOUT RUNNING** — documented null with a mechanism (best 1.41x over six configs); replaced in the paper by a verified source-level H2 exhibit. See ITEM14_ROCKSDB_RESOLUTION |
 
 Escalation attempted: direct SSH, and jump via `c4`. If both fail the block is
 environmental and is recorded, not worked around.
