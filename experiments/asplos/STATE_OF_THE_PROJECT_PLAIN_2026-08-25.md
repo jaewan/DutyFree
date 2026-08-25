@@ -292,8 +292,11 @@ it.
 
 ## 4.2 The sentence that matters
 
-**Until today we had not found a single configuration where STREAMING uniquely
-helps. That may have changed** — see the reversal noted above and
+**It has now changed. See Part 6, added 2026-08-26.** The statement below was
+the position before the last three experiments, and it is superseded.
+
+**Until 2026-08-25 we had not found a single configuration where STREAMING
+uniquely helps. That has changed** — see the reversal noted above and
 `M2_OUTCOME_2026-08-25.md`. The statement below describes the position as it
 stood before that measurement, and the third bullet is now known to be an
 artifact.
@@ -361,3 +364,86 @@ restructuring one argument onto the two legs that can still be re-run.
 **Stopped on evidence, not on cost:** the mechanism design study, the
 three-party campaign, the end-to-end benchmark harness, and the search for a
 database that gets hurt the way our theory predicted.
+
+
+---
+
+# Part 6 — Added 2026-08-26: the mechanism does work, and the "floor" was a red herring
+
+Part 3 ended with a puzzle. Stopping the streaming program from *keeping* its
+data in the cache removed only about a quarter of the harm to its neighbour. The
+other three quarters seemed to survive no matter what we did — we called it a
+"floor" and guessed it was the cost of moving bytes across the memory system,
+which no cache mechanism could ever fix.
+
+We were wrong, and the test that showed it was pre-registered with a threshold
+that would have proved the guess right.
+
+## What we did
+
+The streaming program in our test does two things: it reads a huge file it will
+never re-read (the stream), and it looks things up in its own **lookup table** —
+256 MB of data it uses constantly and genuinely needs in the cache.
+
+Our flush trick only ever removed the *stream* from the cache. It never touched
+the lookup table, because the program is actively using it. So we shrank the
+lookup table from 256 MB to 4 MB and ran the same test again.
+
+## What happened
+
+| streaming program's setup | neighbour's slowdown |
+|---|--:|
+| stream kept in cache, 256 MB table | 2.78× |
+| stream flushed, 256 MB table | 2.32× |
+| stream kept, **4 MB table** | 2.40× |
+| **stream flushed, 4 MB table** | **0.99× — no harm at all** |
+
+The floor did not shrink. **It disappeared.** With a small lookup table, flushing
+the stream returns the neighbour to exactly its solo speed.
+
+## What that means
+
+The harm was never one thing with an unfixable part. It was two separate things:
+
+1. **The stream sitting in the shared cache.** A page-granular memory type
+   removes this — *completely*, not partly. Measured recovery: **100.5%**.
+2. **The streaming program's own working data sitting in the shared cache.** No
+   cache-admission mechanism should remove this, because the program needs it.
+
+The "quarter" we measured earlier was simply the stream's share of the *total*
+harm in a test where the program also happened to carry a 256 MB working set. It
+was never a limit on the mechanism.
+
+This also explains a result that had contradicted us for two days. In an earlier
+experiment, a *pure* streaming program — one with no lookup table at all — was
+fully neutralised by a cache-partitioning control. Of course it was: all of its
+harm was stream-in-cache, and there was no second working set to leave behind.
+Three separate Intel experiments now agree with one story.
+
+## What still doesn't fit
+
+One AMD measurement leaves a floor our Intel account says should not exist. It is
+a single result on a machine that has been unreachable for three days, against
+three consistent Intel results, and there is an independent reason to expect AMD
+to behave differently (we established earlier that AMD's harm scales with request
+*rate* while Intel's scales with cache *capacity*). We have recorded it as
+unexplained rather than argued it away.
+
+## Where this leaves the project
+
+The mechanism does what it was designed to do, completely, on the thing it
+targets. What it does *not* do is protect a neighbour from a streaming program
+that also has a large working set of its own — and there, the existing
+partitioning controls do help, by squeezing the whole program, at a measured
+19–44% cost to that program's own performance.
+
+So the honest picture is a genuine choice, not a failure:
+
+| | removes | leaves | costs the streaming program | needs tuning |
+|---|---|---|---|---|
+| **new memory type** | the stream's cache footprint, **entirely** | the program's own working data | **nothing** | **no** |
+| existing controls | the program's whole footprint | nothing | 19–44% of its own speed | yes, per chip vendor |
+
+The new memory type is the only one of the two that can tell those apart — which
+is precisely what the project set out to argue, and the first time in three days
+that a measurement has supported it.
