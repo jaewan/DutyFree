@@ -82,3 +82,42 @@ the recovery whatever the recovery turns out to be.
 - The victim metric saturates (78 → ~209, little in between), so a partial
   recovery may read as all-or-nothing. If `recovery` lands mid-range, that is a
   reason to sweep `D` before interpreting it, not to interpolate.
+
+---
+
+# Addendum 1 — the registered sweep, specified before it runs
+
+M3 returned **recovery = 27.4%**, inside the 20–70% band, whose registered
+consequence is *"sweep the flush distance before interpreting, not
+interpolate."* This specifies that sweep.
+
+**The question it separates:** is 27.4% low because the proxy under-flushes at
+16 threads and ~8 GB/s (in which case hardware H2 does better and 27.4% is a
+loose lower bound), or because most of the harm is bytes in flight rather than
+residency (in which case 27.4% is the residency share and the rest is
+unreachable)?
+
+**Arms.** Same victim and same F as M3, hit rate 1.0. Flush distance swept over a
+32× range plus both anchors:
+
+`V` · `V+F_alloc` (D=0) · `V+F_fb32k` · `V+F_fb64k` · `V+F_fb256k` ·
+`V+F_fb1m` · `V+F_ns`
+
+Seven arms, **n=7** so that rotation puts each arm in each position exactly once.
+
+**Registered readings.**
+
+| outcome | verdict |
+|---|---|
+| recovery **rises monotonically** as D shrinks, and exceeds **60%** at 32 KiB | the proxy was leaky; residency is the dominant mechanism and hardware H2 would recover most of the harm. 27.4% at 256 KiB is a lower bound. |
+| recovery **flat within ±10 points** across 32 KiB–1 MiB | 27.4% is the real residency share. **~73% of the harm is bytes in flight and unreachable by any admission-control mechanism**, H2 included. |
+| rises but stays below 60% at 32 KiB | residency matters more than 27.4% suggests but cannot account for the majority; report the curve and the ceiling it implies. |
+
+**Also recorded:** F's own cost and stream rate at each D, since the proxy's price
+grows as D shrinks and the trade-off is part of the result.
+
+**Caveat carried forward:** at 16 threads a 32 KiB distance means the flush
+pointer trails the read pointer by only 512 cache lines per thread, so
+`clflushopt` back-pressure may begin to distort F's own behaviour. If F's stream
+rate collapses at the smallest D, that arm reports the proxy's limit rather than
+the mechanism's.
