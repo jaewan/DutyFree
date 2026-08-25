@@ -2170,3 +2170,35 @@ Phase 1 onward is conditional on W1 passing. **W1 passed 2026-08-24; phase 1 is 
 > summing to exactly 100.0%; the TMA falsifier and the multiplexing exclusion;
 > T3's walk arithmetic; A6's resource matching; the RocksDB source references; and
 > item 14's closure rationale.
+
+> **2026-08-25 (RocksDB layer 2 verified; panel premise corrected).**
+> `PANEL_CORRECTION_STALE_PREMISE_2026-08-25.md`.
+>
+> **Paper edit (published).** The RocksDB exhibit is now two layers. Verified
+> against v9.11.2: `table/sst_file_writer.cc:291` calls `InvalidateCache`, the
+> POSIX backend implements it as `posix_fadvise(POSIX_FADV_DONTNEED)`
+> (`env/io_posix.cc:892`), the comment reads *"Tell the OS that we don't need this
+> file in page cache"*, the intent is documented at `sst_file_writer.cc:64-65`,
+> and `use_direct_io_for_flush_and_compaction` bypasses the page cache for
+> compaction I/O outright. Stated precisely rather than overclaimed: layer 1 is
+> **read-side** (block cache, `fill_cache=false`), layer 2 is **write-side** (page
+> cache) -- different code paths expressing one policy. The paper now closes:
+> production software declines retention at every layer it can name and stops
+> exactly at the hardware boundary.
+>
+> **The panel's sequencing advice was written against stale state.** It advises on
+> a premise check "registered and running"; it had read out, into a branch their
+> two-branch table does not contain -- premise HOLDS (2.7x) and remedy FAILS
+> (stream = 0.11%). Their conclusion "hold the e2e build" survives and hardens,
+> but by their own doctrine ("if the frontier doesn't exist at kernel scale, no
+> DuckDB engineering will create it") the containment e2e is **dead, not
+> deferred**. Their fallback branch undersells the outcome: there *is* a measured
+> victim at 2.7x and CAT does contain it while charging F's reuse structure
+> +19-44%; what is absent is any advantage for a page-scoped *stream* type.
+>
+> **Kept from their advice:** the rate sweep, redesigned -- M1b showed the metric
+> saturates, so the informative axis is F's own stream rate with its probe held
+> fixed, cheaply available via `--hit-rate 1.0` (doubles F's probe speed and hence
+> its stream rate, everything else constant). And the DuckDB spike, repurposed to
+> ask whether a real engine's scan rate pushes the stream's contribution above
+> 0.11%.
