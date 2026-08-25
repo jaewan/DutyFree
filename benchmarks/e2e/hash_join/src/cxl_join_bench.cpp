@@ -92,6 +92,7 @@ struct Config {
   bool result_hash = false;
   bool scan_memcpy = false;
   bool no_stream = false;
+  size_t flush_distance = 0;   // bytes; 0 = off (default, join_range unchanged)
   double pre_measure_sleep_s = 0.0;
   // W7 Knob B (W7_PREREGISTRATION_2026-08-23.md section 2). 0 = off, and off is
   // bit-for-bit the pre-W7 code path: join_range is not touched and the batched
@@ -566,6 +567,42 @@ Result join_range(const std::vector<Entry> &table, const Fact *fact, size_t begi
   return r;
 }
 
+// H2 silicon proxy for the FUSED kernel. Identical to join_range except it issues
+// clflushopt on fact lines more than flush_distance bytes behind the read pointer,
+// bounding the stream's cache residency to ~flush_distance while still READING
+// every byte. That is the distinction M2 could not make: --no-stream removes the
+// bytes, this removes only the retention. Mirrors
+// benchmarks/bench/aggressor/stream_wb_flushbehind.c (same distance convention,
+// same sfence batching). flush_distance == 0 never reaches here; join_range is
+// untouched and remains the default path.
+Result join_range_flushbehind(const std::vector<Entry> &table, const Fact *fact,
+                              size_t begin, size_t end, const std::string &policy,
+                              int pf_distance, size_t flush_distance) {
+  Result r;
+  int pfd = std::max(0, pf_distance);
+  const size_t ents_per_line = 64 / sizeof(Fact);          // 4
+  const size_t flush_ents = std::max<size_t>(ents_per_line, flush_distance / sizeof(Fact));
+  int batch = 0;
+  for (size_t i = begin; i < end; ++i) {
+    if (policy == "nta" && i + static_cast<size_t>(pfd) < end) {
+      _mm_prefetch(reinterpret_cast<const char *>(&fact[i + pfd]), _MM_HINT_NTA);
+    }
+    int64_t payload = 0;
+    if (probe(table, fact[i].fk, &payload)) {
+      (void)payload;
+      r.matches++;
+      r.sum += fact[i].measure;
+    }
+    // one clflushopt per line, once we are flush_ents past the start
+    if (((i + 1) % ents_per_line) == 0 && i >= begin + flush_ents) {
+      _mm_clflushopt(const_cast<void *>(static_cast<const void *>(&fact[i - flush_ents])));
+      if (++batch >= 64) { _mm_sfence(); batch = 0; }
+    }
+  }
+  _mm_sfence();
+  return r;
+}
+
 // Order-independent correctness diagnostic. Identical to join_range except it also
 // XORs a per-match hash of (key,payload) into *xhash, so fused and split runs over the
 // same seed can be compared without depending on morsel processing order. Never called
@@ -943,6 +980,7 @@ void emit_json_prefix(const Config &c, void *fact, uint64_t fact_bytes, const st
   std::cout << "\"declare\":\"" << (g_declare == DeclareVia::MPROTECT ? "mprotect" : "m5op") << "\",";
   std::cout << "\"fact_bytes\":" << fact_bytes << ",";
   std::cout << "\"hot_bytes\":" << c.hot_bytes << ",";
+  std::cout << "\"flush_distance\":" << c.flush_distance << ",";
   std::cout << "\"fact_node\":" << c.fact_node << ",";
   std::cout << "\"hot_node\":" << c.hot_node << ",";
   std::cout << "\"threads\":" << c.threads << ",";
@@ -1568,6 +1606,7 @@ void run_morsel(Config c) {
   std::vector<uint64_t> thread_xhash(c.threads, 0);
   bool want_hash = c.result_hash;
   bool no_stream = c.no_stream;
+  size_t flush_distance = c.flush_distance;
   int probe_batch = c.probe_batch;
   // Silently ignoring one of two mutually exclusive flags is how an arm gets
   // mislabelled. join_range_hashed has no batched twin, so refuse the pair.
@@ -1590,6 +1629,8 @@ void run_morsel(Config c) {
       Result rr;
       if (no_stream) {
         rr = join_range_local(table, fact, local_n, begin, end, c.policy, c.pf_distance);
+      } else if (flush_distance > 0) {
+        rr = join_range_flushbehind(table, fact, begin, end, c.policy, c.pf_distance, flush_distance);
       } else if (want_hash) {
         rr = join_range_hashed(table, fact, begin, end, c.policy, c.pf_distance, &thread_xhash[tid]);
       } else if (probe_batch > 1) {
@@ -1780,6 +1821,7 @@ Config parse(int argc, char **argv) {
     else if (a == "--result-hash") c.result_hash = true;
     else if (a == "--scan-memcpy") c.scan_memcpy = true;
     else if (a == "--no-stream") c.no_stream = true;
+    else if (a == "--flush-distance") c.flush_distance = static_cast<size_t>(std::stoull(need("--flush-distance")));
     else if (a == "--declare") {
       std::string v = need("--declare");
       if (v == "m5op") g_declare = DeclareVia::M5OP;
