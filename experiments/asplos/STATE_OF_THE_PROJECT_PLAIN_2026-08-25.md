@@ -250,6 +250,25 @@ measured the neighbour again:
 
 **The neighbour's cost changed by 0.11%.**
 
+**That turned out to be wrong, and we caught it within the hour.** The test that
+removed the stream still left something else hammering the cache: when the fused
+program looks up a key that *isn't* there, it has to search through the table
+until it finds an empty slot, and those searches scatter across all 256 MB. So
+both the stream and the failed lookups were independently overwhelming the
+neighbour, and removing just one changed nothing — like turning off one of two
+taps filling a sink that is already overflowing.
+
+Re-running with the lookups made to always succeed — which collapses that second
+effect — the picture reverses completely: with the stream the neighbour is 2.77×
+slower, **without it, 0.99× — no harm at all.** The stream, on its own, causes the
+entire problem.
+
+One caveat, and it is the whole question now: our test removed the stream's
+*data*, not just its *caching*. The proposed mechanism would still read every
+byte and simply decline to keep it. So this shows the best H2 could possibly do,
+not what it does do. The experiment that settles it — read all the bytes, keep
+none of them — is the next thing to run.
+
 The harm is real, but the *stream* is not causing it. What hurts the neighbour is
 the fused program occupying the cache at all: its own lookup table (about 13% of
 the effect) and, mostly, sixteen busy cores touching memory. A mechanism that
@@ -273,7 +292,11 @@ it.
 
 ## 4.2 The sentence that matters
 
-**We have not found a single configuration where STREAMING uniquely helps.**
+**Until today we had not found a single configuration where STREAMING uniquely
+helps. That may have changed** — see the reversal noted above and
+`M2_OUTCOME_2026-08-25.md`. The statement below describes the position as it
+stood before that measurement, and the third bullet is now known to be an
+artifact.
 
 Three independent setups, all tested adversarially against our own hypothesis:
 
