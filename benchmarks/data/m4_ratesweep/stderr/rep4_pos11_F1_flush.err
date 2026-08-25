@@ -1,0 +1,5 @@
+HOT_TABLE_ROUNDED requested_bytes=177838489 instantiated_bytes=268435456 entries=16777216 ratio=1.50943  (--hot-bytes must be a power of two times 16 to be honoured exactly)
+HOT_TABLE pid=2884900 base=0x77c1d23ff010 bytes=268435456 entries=16777216 anon_huge_kb=0 kernel_page_kb=4 mmu_page_kb=4
+HOT_TABLE_WARMED pid=2884900 warmups=0 pre_measure_sleep_s=0
+victim: cpu=8 node=0 wss=170 MB trials=6 run_sec=1.0 pf_disable=0
+victim: TSC frequency estimate: 1899987984 Hz (1.90 GHz)
