@@ -147,3 +147,83 @@ RocksDB's demand evidence, W5.3's boundary map, H3's capability claim and the
 gem5 bounds are all untouched. What is gone is the multi-tenant necessity
 framing on Intel, and what is newly exposed is that the surviving cross-vendor
 refutation rests on one mask width we did not vary.
+
+---
+
+# Addendum, same day: M7--M9 forced a second narrowing. Edit list 2.
+
+The rewrite above survived about six hours. M7 (`10d1455`), M8 (`07f28ef`) and
+M9 (`207b352`) each moved something in it. Recording what is now in the paper, on
+top of edits 1--7 above.
+
+## What changed in the claim
+
+Claim **(b)** --- "a context-scoped mask cannot let one thread keep its reused
+structure resident while denying residency to its own stream" --- is **still
+true as a mechanism statement**, and is now supported by *no hardware exhibit on
+Intel*:
+
+- Its magnitude is not hit-rate specific (M7 --- the caveat I wrote this morning
+  was wrong and is withdrawn).
+- It is **zero** below a capacity boundary: a reused structure that fits the mask
+  pays 1.00--1.04x (M8).
+- Above the boundary, the penalty **survives a non-allocating stream** at a 117%
+  capacity share, so the exhibit measures a 169.6 MiB table against a 64 MiB
+  mask, not the conflict (M9).
+- With the mask removed entirely, non-allocation changes the tenant's own
+  hot-table cost by ~1 cyc/access in **either** direction across two hit rates
+  --- inside the spread (M9, derived).
+
+So claim (b) now rests on the taxonomy plus the 36% restructuring cost, both of
+which stand. It does not rest on a measured Intel penalty, because there is not
+one.
+
+## Edit list 2 (all applied, paper builds at 21 pages, no undefined refs)
+
+9. **`tab:fused` caption** --- replaced this morning's hit-rate caveat (wrong per
+   M7) with the two measured scope conditions, and added that the penalty
+   survives a non-allocating stream (1.26x vs 1.22x, n=10), so the 1.43x is a
+   table against a mask "and we do not use it as one." (done)
+10. **§3 body** --- the section's "three results" become two plus a stated
+    negative, reported **first** because it is ours. The way sweep is presented
+    as a table-geometry result and explicitly withdrawn as a measurement of
+    scope, with both controls in the text. The surviving conditional statement is
+    kept. (done)
+11. **Sec1 contribution (2)** --- now states that this half of the argument rests
+    on the taxonomy and the restructuring cost and *not* on a hardware exhibit,
+    and that the way sweep is withdrawn as evidence. (done)
+12. **Sec5 fused paragraph** --- drops the number; reports the ~1 cyc/access
+    result as not measurable under a 13% proxy, and leaves what a zero-cost type
+    would recover to the model's upper bound rather than asserting it from
+    hardware. (done)
+13. **Abstract** --- still deferred, and now more clearly right to defer. It
+    leads on CAT-insufficiency, which on Intel is false for the neighbour case
+    (M6) and unmeasured for the fused case (M9). It should be written once, after
+    the AMD narrow cell resolves.
+
+## Where the paper's case now lives
+
+Entirely on: the taxonomy and expressibility argument; the 36% restructuring
+cost; RocksDB's demand evidence; H3's capability claim; the gem5 upper bounds
+(with their stated inability to model congestion); and **AMD's 9.87x fill-path
+residual at its one measured mask width**.
+
+The last of those is the only surviving quantitative refutation of partitioning
+anywhere in the paper, and AMD's harm is fill-path rather than capacity (E3), so
+none of M8's or M9's capacity reasoning transfers to it in either direction. That
+makes the narrow-aggressor cell on the 9754 the single experiment that decides
+what this paper claims. It has never been run, and
+`BROKER_OUTAGE_DIAGNOSIS_2026-08-26.md` establishes there is no network path to
+that host.
+
+## Two things I got wrong today, for the record
+
+1. I published a hit-rate caveat to the co-authors and into the paper without
+   having swept the hit rate. M7 swept it and it was wrong in the direction
+   opposite to what I claimed.
+2. I set M7's arm-identity window at +/-0.05 absolute while allowing the same
+   arm's instrument check +/-5%. P2 then failed by 0.005 and voided a gate that
+   would otherwise have been drawn. M8 re-ran the control at a consistent +/-5%
+   and it passed. The registration defect was mine; honouring it cost a decision
+   I had already done the work for, which is the correct outcome and not a
+   pleasant one.
