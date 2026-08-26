@@ -450,3 +450,155 @@ untouched and is now the section's load-bearing exhibit, with RocksDB's
 Still blocked on the lead, unchanged for two days: the W5.3 write-in, co-author
 contact, and venue. Six paper files are modified and published; the co-authors
 have seen all of it with no cover note.
+
+---
+
+# Addendum — 2026-08-26: the campaign ran, and three exhibits moved in one day
+
+Your order was: register and run the 2x2xmask campaign, rewrite the claim from
+its outcome, e2e after, AMD queued, cover note today. All five were actioned.
+The campaign came back against us, and following it honestly cost us two more
+exhibits. Everything below is committed with pre-registrations that predate the
+data.
+
+## 1. The 2x2xmask campaign: the hostile control won
+
+`M6_OUTCOME_2026-08-26.md`. n=10, order-rotated, 100/100 records, registered
+instrument check passed, resctrl clean. A 2-of-20-way CAT mask on the streaming
+tenant returns an L3-resident victim to ~0.99x in **all four** cells --- 4 MiB and
+256 MiB tenant tables, stream retained or non-allocated --- at a cost to the
+tenant of +2.9% and +7.5%.
+
+Head to head: at 4 MiB the label reaches 0.9928x for +18.7% while the mask
+reaches 0.9924x for +2.9% (**dominated on both axes**); at 256 MiB the label
+leaves the victim at 2.2776x while the mask reaches 0.9899x. **The label has no
+winning cell.** Your R1 branch fired, but harder than "division of labour."
+
+One registered prediction was falsified outright: under a narrow mask I predicted
+non-allocating the stream would *help* the tenant. It makes it 18.0% worse.
+
+## 2. The claim, rewritten
+
+`CLAIM_REWRITE_2026-08-26.md`. The word *necessary* was doing two jobs and M6
+separates them. **(a) Neighbour protection --- fails on Intel.** **(b) The fused
+tenant's self-protection --- survives.** Contribution (2) now reads that the
+missing piece is the label and its scope is the tenant's own object, not its
+neighbour's protection; that where the harm is capacity and the tenant has its
+own cores a shipped bitmask already does the neighbour's job, and we price it;
+and that where the harm is on the fill path no bitmask sheds any of it (AMD's
+9.87x). Six paper files edited, builds at 20 pages, no undefined references.
+
+## 3. Answering your §5 expectation: it is suspended, not confirmed
+
+You wrote that either outcome leaves a mechanism paper on the table. Writing up
+the rewrite exposed why that is not yet safe to assume. **`tab:amdcat`'s 9.87x is
+now the paper's only surviving hardware refutation of partitioning, and it was
+measured at an 8/8 equal split.** On Intel the geometry that works is a *narrow*
+mask --- 2 or 3 ways to the streamer, complement enforced to the victim --- and that
+cell has never been run on the 9754. Our AMD sweep squeezes the aggressor only
+as a side effect of enlarging the victim.
+
+If a 1-of-16-way aggressor mask on the 9754 leaves a large residual, the
+cross-vendor argument is *sharper* than what is written: AMD's harm is fill-path
+and no bitmask reaches it, Intel's is capacity and a bitmask does, and only an
+OS-level type covers both. If it returns the victim to ~0.99x, no platform in
+this paper needs the mechanism for neighbour protection.
+
+**We are blocked on it and it is not our client.** `BROKER_OUTAGE_DIAGNOSIS_
+2026-08-26.md`: 25/25 attempts complete the TCP handshake, receive zero bytes,
+and are reset after a constant 5.10--5.11 s, identically from a second source
+host. That eliminates our key (failure precedes version exchange), any
+per-source ban including `PerSourcePenalties`, `MaxStartups` overflow
+(deterministic, not probabilistic), and firewall rules (we are held, not dropped
+or refused). Either `sshd` cannot fork or 9812 is a forwarder with a dead
+backend. Every remaining avenue is out-of-band.
+
+## 4. The e2e: gate registered, then voided by its own rule
+
+The e2e exists to produce a second instance of claim (b), at 5--8 engineer-days.
+Whether that is worth it depends on how big claim (b) is, so we registered a
+hit-rate sweep with the go/no-go written down first (`M7_HITRATE_PREREG`).
+
+M7, n=15, 210/210, instrument check passed, masks verified per record. **All four
+predictions failed.** The penalty does not collapse at high hit rate --- it is
+largest there:
+
+| hr | 0.0 | 0.1 | 0.25 | 0.5 | 0.75 | 0.9 | 1.0 |
+|---|--:|--:|--:|--:|--:|--:|--:|
+| R | 1.155 | 1.216 | 1.383 | 1.379 | 1.248 | 1.464 | **1.465** |
+
+So the hit-rate caveat we added to `tab:fused` that morning was **wrong** and is
+withdrawn, not softened. The gate's direction was GO, but its arm-identity
+control failed by 0.005 on a window we had set at +/-0.05 absolute while allowing
+the instrument check +/-5% on the same arm. Per the registered rule the gate is
+**not drawn**. We are recording that rather than re-reading the window after
+seeing the number. (M8 re-ran the same control at a consistent +/-5% and it
+passes at 1.3612 vs M7's 1.379, so the arm is `tab:fused`'s and the void was our
+registration defect, not a data defect.)
+
+## 5. What M7's shape exposed, and this is the one we need you on
+
+`M8_OUTCOME_2026-08-26.md`. The LLC is 20 ways x 16 MiB = 320 MiB.
+`tab:fused`'s hot table is 169.6 MiB. Four of twenty ways is **64 MiB**. So the
+restricted arm moves the table from a mask it fits inside to one it cannot. n=8,
+224/224:
+
+| table | fits 64 MiB? | R @ 0.5 | R @ 1.0 |
+|--:|:--|--:|--:|
+| 4 MiB | yes | **0.999** | **0.999** |
+| 16 MiB | yes | 1.007 | 1.004 |
+| 32 MiB | yes | 1.041 | 1.026 |
+| 64 MiB | boundary | 1.223 | 1.057 |
+| 128 MiB | no | 1.400 | 1.301 |
+| 169.6 MiB | no | 1.361 | 1.195 |
+| 256 MiB | no | 1.366 | 1.405 |
+
+**Restricting the fused class costs it nothing while its reused structure fits
+the mask.** §3's sentence --- "any mask narrow enough to constrain the stream
+constrains the reused structure with it" --- is *exactly* the mechanism M8
+measures, so this is not a refutation. It is the discovery that the claim is
+**conditional and we never stated the condition**: it binds when the tenant's
+reused structure is larger than the mask its stream needs, and not below.
+
+Combined with M6 (2 of 20 ways protects a neighbour) and M8 (a <=32 MiB reused
+structure pays 2--4% at 4 ways): **for any tenant whose reused working set fits
+the mask its stream needs, shipped CAT is sufficient and free.** The label's case
+is confined to tenants above that line. Defensible --- 169.6 MiB structures
+exist --- but far narrower than "one thread, two access classes, one label," which
+is how the paper currently reads. The boundary is now in §3's body and caption.
+
+## 6. Running now: the control that decides whether §3 has an exhibit at all
+
+`M9_STREAMCONTROL_PREREG_2026-08-26.md`, registered before M8 finished so the
+control was not chosen after seeing M8's numbers. M8 cannot separate "the table
+cannot fit 64 MiB" from "the table cannot fit 64 MiB *alongside the stream*."
+
+The control is `--flush-distance`, **not** `--no-stream` --- that flag rounds the
+fact array to 65536 entries and reallocates it on the local node, collapsing the
+stream from 1 GiB on CXL to ~1 MiB on DRAM, the footprint-collapse confound that
+voided M1b and M2. Flush-behind holds footprint, node, loop and byte count fixed
+and moves only residency, at a known 14--19% proxy cost that lands on both arms.
+
+- Penalty **survives** a non-allocating stream -> `tab:fused` is a
+  table-geometry result, disqualified as evidence for label scope, and the
+  surviving claim has **no hardware exhibit sizing it on Intel**.
+- Penalty **does not survive** -> the exhibit stands with the table-size
+  condition attached, and M6 pass A's backwards +7.5% is explained (it streamed
+  256 MiB where M8 streams 1 GiB).
+
+## Three questions
+
+1. **Is (b) publishable at its true scope?** "Context scope fails when the
+   tenant's reused structure exceeds the mask its stream needs" is narrower than
+   what we have written but is measured, conditional, and honest. Is that an
+   ASPLOS contribution or a workshop note?
+2. **Does the AMD narrow cell now gate submission?** Our read is yes: it is the
+   only surviving refutation of partitioning and it sits at one unvaried mask
+   width. We would rather find that ourselves than have a reviewer with a
+   `resctrl` man page find it.
+3. **Have we over-corrected?** Four withdrawals and three moved exhibits in one
+   day is either unusual rigour or a lost prior. We cannot tell from inside.
+
+The cover note went to the co-authors today with all of the above, including the
+recommendation not to submit on the current claim structure until the AMD cell
+resolves. The lead-only items (W5.3 write-in, venue) remain open.
