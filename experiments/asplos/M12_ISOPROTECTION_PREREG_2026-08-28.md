@@ -227,3 +227,75 @@ the biased direction would have looked like a finding.
   before P2 is read, and if M12a's CoV exceeds the 8.0% worst case that
   calibration assumed, P2 is reported as unreadable rather than evaluated.
 - **P4, P5 (pass B) unchanged.**
+
+---
+
+# Amendment 2, 2026-08-28: P1 is not evaluable from total occupancy, and a cell is added to fix that
+
+Written with 26 of pass A's 120 records in hand and **before any amended-cell data
+exists**. Pass A's own cells are unaffected and continue as registered.
+
+## The defect in P1, which is mine
+
+P1 predicted that under the 8-way mask, `flush` occupancy would be **at least
+25% below** `retain`. The interim medians go the other way at every table size:
+
+| table | occ retain | occ flush | flush/retain |
+|--:|--:|--:|--:|
+| 32 MiB | 54.4 MiB | 57.6 MiB | 1.06 |
+| 64 MiB | 76.4 MiB | 98.3 MiB | 1.29 |
+| 128 MiB | 78.3 MiB | 118.2 MiB | 1.51 |
+
+This is **not** the duration artifact amendment 1 fixed --- the median estimator is
+stable (CoV 0.0--4.6%), samples are post-delay, and wall times are comparable
+across the pair. The defect is conceptual: **`llc_occupancy` is a total, and the
+label moves its two components in opposite directions.** Non-allocating the
+stream should *lower* stream residency and *raise* table residency, because the
+table now has the mask to itself. At a 128 MiB table in a 128 MiB mask, the
+second effect is much the larger, and total occupancy rises. So the metric cannot
+answer the question I pointed it at.
+
+That is my error in specifying P1, not a property of the data. I registered a
+total as a test of a component.
+
+## The cell that fixes it
+
+Occupancy isolates stream residency only where the table is small enough to be
+certainly resident, so that `occupancy − table ≈ stream residency`.
+`--mode stream-smoke` would be cleaner still, but it does not honour
+`--flush-distance`, and adding that would introduce a new arm rather than reuse a
+verified one. So:
+
+- **M12c**: identical to pass A in every flag, with `table` in
+  **{4194304 (4 MiB), 8388608 (8 MiB)}** --- at most 1/16 of the 128 MiB mask, so
+  table residency is pinned and the remainder is stream.
+- Mask `b8` and `none`, stream {`retain`, `flush`}, `--reps 20`, n=10, amendment
+  1's post-delay median estimator, schemata and instantiated size per record,
+  aborts on rounding.
+
+## Registered prediction
+
+- **P1' (proxy validity).** At the 4 MiB table under `b8`,
+  `occ(flush) <= 0.60 x occ(retain)`. Rationale, stated so it can be judged: the
+  32 MiB cell implies ~22 MiB of stream residency under `retain`, so occupancy
+  there should be ~26 MiB; flush-behind retains 256 KiB per thread x 16 threads
+  = 4 MiB of stream by construction, so occupancy should fall to ~8 MiB, a ratio
+  near 0.3. A 0.60 threshold is deliberately generous, and it is far above the
+  8% resolution floor established for this instrument.
+
+## Registered consequences
+
+- **P1' holds** --- the proxy does remove stream residency, P1's original failure
+  was purely my metric-specification error, and pass A's occupancy numbers are
+  reinterpreted as *table* residency rising (which is itself the mechanism, seen
+  from the other side).
+- **P1' fails** --- **the flush-behind proxy does not reduce the streaming
+  tenant's LLC residency in this benchmark.** That is the largest finding of the
+  campaign and it stops everything else until investigated. Scope it correctly
+  when reporting: it would indict `join_range_flushbehind` in
+  `cxl_join_bench.cpp`, i.e. **M9, M6's flush arms and pass A**, but **not**
+  automatically M3/M3b/M5, whose flush arms ran the separate `aggressor` binary
+  on a pure streamer and were validated by a 32x flush-distance sweep. The two
+  implementations must then be compared directly before any wider claim is made.
+- Either way, **P2 and P3 continue to be read from pass A's cost data**, which
+  amendment 2 does not touch.

@@ -43,10 +43,13 @@ for t in tables:
               f"{100*(st.median(f)/st.median(r)-1):+9.1f}% {cv(r):5.1f}/{cv(f):.1f}")
 
 allcv = [100*st.stdev(v)/st.mean(v) for v in cost.values() if len(v) > 2]
-worst = max(allcv) if allcv else 0
-print(f"\ncost CoV: median {st.median(allcv):.2f}%, worst {worst:.2f}%  "
-      f"(P2's threshold was calibrated against a worst case of 8.0%)")
-readable = worst <= 8.0
+worst = max(allcv) if allcv else 0.0
+if allcv:
+    print(f"\ncost CoV: median {st.median(allcv):.2f}%, worst {worst:.2f}%  "
+          f"(P2's threshold was calibrated against a worst case of 8.0%)")
+else:
+    print("\ncost CoV: not enough reps yet")
+readable = bool(allcv) and worst <= 8.0
 if not readable:
     print("  !! worst CoV exceeds 8.0% -> per amendment 1, P2 is UNREADABLE, not evaluated")
 
