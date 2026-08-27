@@ -10,6 +10,8 @@ FUSED=$B/../e2e/hash_join/build/cxl_join_bench
 CLOS=$B/../e2e/hash_join/scripts/resctrl_clos.sh
 OUT=${1:-$B/../data/e4_wedge}; REPS=${REPS:-12}
 TBL=33554432; WIDTHS=(2 4 8 12 14)
+TCPUS=${TCPUS:-16-31}   # mos182 L3 domain 0
+VCPU=${VCPU:-8}
 mkdir -p "$OUT"; J="$OUT/e4.jsonl"
 [ -e "$J" ] && { echo "FAIL $J exists (A6.19)" >&2; exit 2; }
 echo "== as-found resctrl clos groups: $(ls /sys/fs/resctrl 2>/dev/null | grep -c clos_ || true)"
