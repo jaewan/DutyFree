@@ -54,7 +54,7 @@ look it up here. If it is not here, add it here first.
 | tenant cost across widths 2/4/8/12/16 | **+43.2 / +41.5 / +16.9 / +2.1 / +0.3%** | `E1_OUTCOME_2026-08-28` addendum | **`E1a`'s +32.7/+24.7/+8.7/+1.3/+0.0% VOID**; M10/M10b's sweep used `--reps 1` and a different statistic | partly (17--41%) |
 | **bimodality of the masked arm** | two stable modes at widths 2--8; spreads 19.0 / 15.4 / 7.9%; unimodal at 12--16 | `E1_OUTCOME_2026-08-28` addendum | --- | **no --- must be disclosed** |
 | tenant's own table: what the label recovers | **0.9 of 16.7 points** | `M12_OUTCOME_2026-08-28` pass A (CoV 0.28%) | supersedes M9's unresolvable difference-of-differences | yes |
-| split-restructuring cost | **36% of throughput** | `results/clos_split/` via `W4.3` (VERIFIED, but raw data **not in git** --- F1) | --- | yes |
+| split-restructuring cost | **36% of throughput** | `results/clos_split/` --- **in git** (`a41df38`), 8/8 cells recomputed by `A1_PROVENANCE_LEDGER_2026-08-28` | --- | yes |
 | the 2/3 occupancy knee | **free below ~2/3 full, binding above ~3/4** | `E1_OUTCOME_2026-08-28` --- derived independently from **both** sides | --- | **no --- should be the central figure** |
 | free-split condition | tenant WS + neighbour WS <= ~2/3 x LLC | `E1_OUTCOME_2026-08-28` addendum | E1's first derivation used the voided column | **no --- should be** |
 
@@ -128,8 +128,14 @@ Compiling it surfaced five things, which is the point of compiling it:
    individual runs of a published cell do not reproduce even though medians do.
 3. **MBA's knife edge is not in the paper**, though it is one of the three legs
    the surviving case rests on.
-4. **`tab:fused`'s raw data is still not in git** (F1, open since 08-23) while its
-   36% restructuring cost remains load-bearing.
+4. ~~**`tab:fused`'s raw data is still not in git**~~ --- **WRONG WHEN WRITTEN.**
+   F1 was closed on 2026-08-23 by commit `a41df38`, hours after W4.3 opened it:
+   660 raw records plus a `PROVENANCE.md` stating four defects at the data. I read
+   W4.3's finding and did not check for a later commit closing it --- **the exact
+   failure this index exists to prevent, committed inside this index.** Corrected
+   by `A1_PROVENANCE_LEDGER_2026-08-28`, which also recomputes all eight of
+   `tab:fused`'s quantitative cells from that data and finds them exact. What
+   remains open there is the *runner* and *binaries*, not the numbers.
 5. ~~**The victim decomposition mixes two stream sizes**~~ --- **CLOSED** by
    `E2B_OUTCOME_2026-08-28`: five points, one stream size, one hit rate, all four
    registered predictions held. The paper's dagger can come out.
