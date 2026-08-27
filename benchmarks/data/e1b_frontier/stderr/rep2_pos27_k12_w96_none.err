@@ -1,0 +1,2 @@
+victim: cpu=8 node=0 wss=96 MB trials=6 run_sec=1.0 pf_disable=0
+victim: TSC frequency estimate: 1899976456 Hz (1.90 GHz)
