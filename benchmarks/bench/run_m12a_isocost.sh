@@ -36,27 +36,42 @@ for r in $(seq 1 "$REPS"); do
     [ -z "$sch" ] && sch="ROOT:$(grep -m1 L3 /sys/fs/resctrl/schemata 2>/dev/null | tr -d ' ')"
     err=$(mktemp)
     "$FUSED" --mode morsel --policy wb --fact-node 2 --hot-node 0 --fact-bytes 1g \
-         --hot-bytes "$tbl" --cpu-list 32-47 --morsel 1m --warmups 2 --reps 1 \
+         --hot-bytes "$tbl" --cpu-list 32-47 --morsel 1m --warmups 2 --reps 20 \
          --threads 16 --hit-rate 0.5 --flush-distance $fd >"$err.out" 2>"$err" &
     fpid=$!
-    # sample occupancy while the measured window is live, take the max
-    omax=0
+    # Amendment 1: discard the first START_SKIP seconds (build + warmups) and take
+    # the MEDIAN of the remainder. A max over a variable-length window is biased by
+    # duration -- the defect that voided the first 37 records.
+    t0=$(date +%s.%N); SKIP=${START_SKIP:-1.5}
+    osamples=""; omax=0; nsamp=0
     while kill -0 $fpid 2>/dev/null; do
-      v=$(occ); [ -n "$v" ] && [ "$v" -gt "$omax" ] 2>/dev/null && omax=$v
+      el=$(python3 -c "print(1 if $(date +%s.%N)-$t0 >= $SKIP else 0)")
+      if [ "$el" = 1 ]; then
+        v=$(occ)
+        if [ -n "$v" ]; then
+          osamples="$osamples $v"; nsamp=$((nsamp+1))
+          [ "$v" -gt "$omax" ] 2>/dev/null && omax=$v
+        fi
+      fi
       sleep 0.15
     done
     wait $fpid 2>/dev/null
+    wall=$(python3 -c "print(f'{$(date +%s.%N)-$t0:.3f}')")
+    omed=$(python3 -c "
+import statistics as st
+v=[int(x) for x in '$osamples'.split()]
+print(int(st.median(v)) if v else 0)")
     o=$(grep -o '{.*}' "$err.out" | tail -1)
     inst=$(sed -n 's/^HOT_TABLE .*bytes=\([0-9]*\) entries.*/\1/p' "$err" | head -1)
     rounded=$(grep -c HOT_TABLE_ROUNDED "$err" || true); rm -f "$err" "$err.out"
     [ -z "$o" ] && { echo "  FAIL $mask tbl=$tbl $sm rep=$r" >&2; continue; }
     [ "$rounded" != "0" ] && { echo "FATAL table silently rounded (F9) -- aborting" >&2; exit 4; }
-    REC="{\"mask\":\"$mask\",\"table\":$tbl,\"table_instantiated\":${inst:-null},\"stream\":\"$sm\",\"rep\":$r,\"pos\":$((k+1)),\"llc_occupancy_max\":$omax,\"schemata\":\"$sch\",\"record\":$o}"
+    REC="{\"mask\":\"$mask\",\"table\":$tbl,\"table_instantiated\":${inst:-null},\"stream\":\"$sm\",\"rep\":$r,\"pos\":$((k+1)),\"llc_occ_median\":$omed,\"llc_occ_max\":$omax,\"llc_occ_nsamp\":$nsamp,\"proc_wall_s\":$wall,\"schemata\":\"$sch\",\"record\":$o}"
     printf '%s\n' "$REC" | python3 -c 'import json,sys;json.loads(sys.stdin.read())' 2>/dev/null \
       && printf '%s\n' "$REC" >> "$J" || { echo "FATAL bad JSON" >&2; exit 3; }
     cpa=$(printf '%s' "$o" | sed -n 's/.*"active_cycles_per_access":\([0-9.]*\).*/\1/p')
-    printf '  rep%-2s pos%-3s %-4s tbl=%-10s %-6s cyc/acc=%-9s occ=%s MiB\n' \
-      "$r" "$((k+1))" "$mask" "$tbl" "$sm" "${cpa:-?}" "$((omax/1048576))"
+    printf '  rep%-2s pos%-3s %-4s tbl=%-10s %-6s cyc/acc=%-9s occ_med=%-4s occ_max=%-4s n=%-3s wall=%s\n' \
+      "$r" "$((k+1))" "$mask" "$tbl" "$sm" "${cpa:-?}" "$((omed/1048576))" "$((omax/1048576))" "$nsamp" "$wall"
   done
 done
 sudo bash "$CLOS" teardown >/dev/null 2>&1

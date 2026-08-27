@@ -161,3 +161,69 @@ proxy with a known charge, so **no net-cost claim for the real memory type can
 come out of this experiment** --- only the mechanism, and the size of the harm the
 type would be removing. It also says nothing about AMD, whose harm is fill-path
 rather than capacity.
+
+---
+
+# Amendment 1, 2026-08-28: the occupancy instrument as first written was invalid
+
+Written after 37 records of pass A existed and **before any amended data exists**.
+Those 37 records are quarantined as
+`benchmarks/data/m12a_isocost/m12a_VOID_duration_biased.jsonl` and are not used
+for anything.
+
+## The defect
+
+The runner sampled `llc_occupancy` every 150 ms for the lifetime of the
+benchmark process and kept the **maximum**. Measured directly:
+
+| | |
+|---|--:|
+| the benchmark's measured scan window | **0.180 s** |
+| the whole process wall time | **2.333 s** |
+| fraction of the lifetime that is the window we care about | **7.7%** |
+
+So 92% of the samples came from table construction and the two warm-up scans,
+not from the measured window. Worse, **a maximum over a variable-length window is
+biased by duration**: the flush arm is slower, runs longer, is sampled more times,
+and therefore reports a higher maximum for that reason alone. The first cells
+showed exactly that signature --- `b8`/64 MiB reported occupancy of 66 MiB under
+`retain` and 115 MiB under `flush`, the opposite of P1's direction --- and it is an
+artifact of the estimator, not a result.
+
+I am recording this rather than silently fixing it because the pattern matters:
+this is the fourth instrument defect in this campaign found by asking "what is
+this number actually measuring?" after the run had started, and the second where
+the biased direction would have looked like a finding.
+
+## The fix
+
+1. **Make the measured window dominate.** `--reps 20` instead of `--reps 1`:
+   the scan phase becomes ~3.6 s against ~1.1 s of build and warm-up, i.e. ~77%
+   of the lifetime instead of 7.7%.
+2. **Sample after a startup delay and take the median, not the maximum.**
+   Samples in the first 1.5 s are discarded; the statistic is the **median** of
+   the remainder, which is duration-robust. The max, the sample count and the
+   process wall time are recorded alongside it so duration bias remains auditable
+   from the data.
+3. **`--reps 20` applies to every M12a cell**, cost and occupancy alike. M12's
+   cost claim is a difference of differences *within* M12, so internal
+   consistency is what it needs. The consequence is stated plainly: **M12a's
+   absolute cyc/access are not comparable to M9's or M10's**, which used
+   `--reps 1`, and no cross-experiment cost comparison will be drawn. M11 measured
+   the reps term at up to 14 pp, which is why this is called out rather than
+   assumed harmless.
+4. The 1 GiB fact array is 3.3x the whole LLC, so re-reading it 20 times does not
+   make it resident and does not reintroduce M11's footprint confound. Stream
+   bandwidth is recorded per run so this is checkable rather than asserted.
+
+## Consequences for the registered predictions
+
+- **P1 (occupancy) is unchanged in substance** but now reads on the amended
+  statistic: under `b8`, median post-delay occupancy under `flush` is at least
+  25% below `retain` at the 32 MiB table.
+- **P2, P3 unchanged.** Their thresholds were set against M10/M10b variance at
+  `--reps 1`; a longer measured window should reduce variance, so an 8% threshold
+  stays conservative rather than becoming too fine. This is checked from the data
+  before P2 is read, and if M12a's CoV exceeds the 8.0% worst case that
+  calibration assumed, P2 is reported as unreadable rather than evaluated.
+- **P4, P5 (pass B) unchanged.**
