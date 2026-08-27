@@ -82,15 +82,20 @@ look it up here. If it is not here, add it here first.
 | what the model structurally cannot represent | congestion latency (`SimpleMemory`, `latency_var=0`) | `GEM5_TRANSPORT_CHECK_2026-08-26` | --- | yes, as a caveat |
 | `tab:gem5` +H2 column | **DECLARED GAP** --- never re-instantiated at the WB column's commit | `W4.3_PROVENANCE_LEDGER_2026-08-23` | --- | yes, with the gap disclosed |
 
-## The victim decomposition --- three points, two stream sizes
+## The victim decomposition --- **one stream size as of E2B**
 
-| tenant's own table | harm removed by non-allocation | owner | note |
-|---|--:|---|---|
-| 4 MiB | **100.5%** | `M5_OUTCOME_2026-08-26` | 256 MiB stream |
-| 128 MiB | **75.3%** | `M12_OUTCOME_2026-08-28` pass B | **1 GiB stream** --- differs from its neighbours |
-| 256 MiB | **28.0%** | `M3B_OUTCOME_2026-08-25` (data) / `M5_OUTCOME` (interpretation) | 256 MiB stream |
+Owner for the whole table: **`E2B_OUTCOME_2026-08-28`** (n=8, 1 GiB stream, hit
+rate 0.5, no mask, instrument check passed).
 
-**Interpretation owner is `M5`, not `M3b`.** M3b's own title claims the residue is
+| tenant's own table | harm removed | superseded value |
+|---|--:|---|
+| 4 MiB | **100.7%** | M5's 100.5% --- reproduces across a 4x stream change *and* a hit-rate change |
+| 16 MiB | **100.7%** | new point |
+| 64 MiB | **96.6%** | new point |
+| 128 MiB | **74.1%** | M12's 75.3% --- matched conditions, reproduces |
+| 256 MiB | **14.3%** | M3b's 28.0% --- **does not reproduce**; two variables differ (stream *and* hit rate), so the gap is recorded unattributed |
+
+**Interpretation owner is `M5`, and the data owner is now `E2B`, not `M3b`.** M3b's own title claims the residue is
 "bytes in flight and no admission-control mechanism can reach it"; M5 shrank the
 tenant's table and the residue vanished, so the residue is **the tenant's own
 resident data**. Citing M3b's framing is failure #2 above. E2 on the agenda would
@@ -125,5 +130,6 @@ Compiling it surfaced five things, which is the point of compiling it:
    the surviving case rests on.
 4. **`tab:fused`'s raw data is still not in git** (F1, open since 08-23) while its
    36% restructuring cost remains load-bearing.
-5. **The victim decomposition mixes two stream sizes** and the paper discloses it
-   with a dagger rather than fixing it. Agenda item E2.
+5. ~~**The victim decomposition mixes two stream sizes**~~ --- **CLOSED** by
+   `E2B_OUTCOME_2026-08-28`: five points, one stream size, one hit rate, all four
+   registered predictions held. The paper's dagger can come out.
