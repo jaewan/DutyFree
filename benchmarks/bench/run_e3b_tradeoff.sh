@@ -13,6 +13,17 @@ WT=$(python3 -c "print(bin(int(open('/sys/fs/resctrl/info/L3/cbm_mask').read().s
 mkdir -p "$OUT/stderr"; J="$OUT/e3b.jsonl"
 [ -e "$J" ] && { echo "FAIL $J exists (A6.19)" >&2; exit 2; }
 for f in "$VIC" "$FUSED"; do [ -x "$f" ] || { echo "FAIL missing $f" >&2; exit 2; }; done
+# PREFLIGHT: a stale tenant binary silently voided this campaign's first attempt
+# ("unknown argument: --flush-distance"), so every flag the arms use is exercised
+# before any measurement is taken. Same class of defect as M1's positive control.
+for fd in 0 262144; do
+  if ! "$FUSED" --mode morsel --policy wb --fact-node 2 --hot-node 0 --fact-bytes 64m \
+        --hot-bytes "$TBL" --cpu-list "$TCPUS" --morsel 1m --warmups 0 --reps 1 \
+        --threads 16 --hit-rate 0.5 --flush-distance $fd 2>&1 | grep -q '"status":"ok"'; then
+    echo "FAIL preflight: tenant rejected --flush-distance $fd (stale binary?)" >&2; exit 6
+  fi
+done
+echo "== preflight OK: tenant accepts every flag these arms use"
 echo "== host $(hostname), $WT ways; tenant table $((TBL>>20))M, victim wss $((WSS>>20))M"
 trap 'sudo bash "$CLOS" teardown >/dev/null 2>&1 || true' EXIT
 
