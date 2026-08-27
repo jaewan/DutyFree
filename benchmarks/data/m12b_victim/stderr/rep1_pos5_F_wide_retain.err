@@ -1,0 +1,4 @@
+HOT_TABLE pid=3945178 base=0x7bdbb49ff010 bytes=134217728 entries=8388608 anon_huge_kb=0 kernel_page_kb=4 mmu_page_kb=4
+HOT_TABLE_WARMED pid=3945178 warmups=0 pre_measure_sleep_s=0
+victim: cpu=8 node=0 wss=170 MB trials=6 run_sec=1.0 pf_disable=0
+victim: TSC frequency estimate: 1899988434 Hz (1.90 GHz)
