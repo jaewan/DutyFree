@@ -74,3 +74,54 @@ everything, so H2 recovers 90.9% there and 28% on the machine.
 The paper gains a two-line explanation for a discrepancy it has been carrying as
 an unexplained defect, and loses the ability to quote gem5 recovery figures
 without a ceiling caveat. Both belong in `Sec5`.
+
+---
+
+## Addendum 2026-08-28: this document's premise was superseded 27 minutes after it was committed
+
+**Withdrawn: the conclusion that "every gem5 recovery figure in the paper is an
+upper bound on what silicon would show."**
+
+This check was committed at `d4a8374`, 08-26 01:08. It reasons from M3b's split
+--- ~27% of neighbour harm is residency, ~73% is "bytes in flight" that no
+admission mechanism can reach --- to conclude that gem5, which cannot model
+congestion, must over-state the recoverable fraction.
+
+**M5 landed at `b9fa9d0`, 08-26 01:35, and dismantled that premise.** The 73%
+was not bytes in flight. It was the streaming tenant's *own* 256 MiB working
+set. Holding everything fixed and shrinking that footprint to 4 MiB, the victim
+returns to baseline: harm 2.403 -> 0.993, **100.5% of the stream's charge
+removed**. Independently reproduced by M6 pass B at n=10 (2.4029 -> 0.9928),
+agreeing with M5's n=7 to 0.01%.
+
+So the corrected picture inverts this document's conclusion:
+
+| | recovery of the stream's charge |
+|---|--:|
+| silicon (Intel EMR, flush-behind proxy) | **100.5%** |
+| gem5 (H2, infinite SF) | 90.9% |
+
+gem5 recovers *less* than the machine, and its absolute tax is 39% low, so its
+recovery is **conservative on both measures** --- a lower bound, which is what the
+paper said before I "corrected" it on 08-26.
+
+**Two further consequences.**
+
+1. **The retrodiction itself is withdrawn, not merely re-signed.** Its content
+   was that a structural inability to model congestion *explains* the 39% tax
+   under-prediction. If the recoverable share on silicon is ~100%, there is no
+   large congestion component in these configurations to explain it with. The
+   39% gap is unexplained, and the paper now says so instead of offering this.
+2. **The structural observation survives and is still worth keeping**:
+   `SimpleMemory` with `latency_var = 0` reproduces a bandwidth ceiling and not
+   congestion latency. That is true, checkable, and a real limit on the model.
+   It just does not license the bound-direction claim built on top of it.
+
+**Process note.** This document was never revisited after M5 contradicted it,
+and 48 hours later I cited it in a red-team review to "correct" the paper in the
+wrong direction --- propagating the error into the abstract, Sec1, Sec5 in three
+places, and a cover note already sent to co-authors. The failure was not the
+original reasoning, which was sound on the evidence it had. It was that a
+superseding result did not trigger a re-read of what depended on it. Anything
+this project supersedes now needs its dependents listed at the moment of
+supersession.
