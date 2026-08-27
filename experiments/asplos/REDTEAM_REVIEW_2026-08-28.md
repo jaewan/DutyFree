@@ -299,8 +299,51 @@ re-read over `--reps 4` is small enough to be partly LLC-resident, so M6's
 voided M1b and M2.
 
 **This is not cosmetic.** M6 pass A's +2.9%/+7.5% is the "price of the shipped
-knob" quoted in the rewritten contribution (2). If it is understated, CAT's
-dominance is overstated. Registered as the next thing to run.
+knob" quoted in the rewritten contribution (2). Registered as M11 and M11b and
+**run**; the answer is worse than the contradiction suggested.
+
+**M6 pass A ran n=3.** And at its operating point (hit rate 1.0) this quantity has
+about **+/-15% run-to-run resolution at n <= 10** --- established twice
+independently: M8's duplicated cell (17.5%) and the same M11/M11b cell measured
+minutes apart (16.6%). So M6's +7.5% (n=3), M11's +21.3% (n=8) and M11b's
++41.6%/+25.9% (n=10) are **one badly-conditioned quantity measured four times**,
+not four results. M11 localised a real fact-size term (15--21 pp: a 256 MiB fact
+array is not a one-pass stream in a 320 MiB LLC) and a smaller warm-up term
+(1--14 pp), but no combination of them is quotable at this operating point.
+
+**Both M6 pass A's and M11's F-cost figures are therefore withdrawn**, and
+contribution (2) is re-priced from hit rate 0.5 --- `tab:fused`'s own operating
+point, where the overlapping M10/M10b cells reproduce to **0.3--4.4%**:
+
+| reused table | 32 MiB mask | 64 MiB mask | 128 MiB mask |
+|---|--:|--:|--:|
+| 32 MiB | +21% | **+2%** | **0%** |
+| 128 MiB | +51% | +39% | +17% |
+| 256 MiB | +41% | +37% | +28% |
+
+The consequence for the claim is substantive and it moves **toward** the paper.
+The head-to-head becomes:
+
+- **Small reused structure:** CAT dominates on both axes --- same protection, an
+  order of magnitude cheaper (2% vs the proxy's 18.7%).
+- **Large reused structure:** **neither mechanism wins both axes.** CAT protects
+  the neighbour and takes ~37--41% of the tenant's throughput; non-allocation
+  costs the tenant nothing and leaves the neighbour at 2.28x.
+
+So **"the label has no winning cell," my headline on 08-26, was too strong** --- it
+rested on an n=3 arm. The panel's original R1 branch ("division of labour, not
+sole rescue") was closer than my overshoot of it, and §5 and contribution (2) now
+say so.
+
+**One registered consequence I declined to execute.** M11b's P1 (helpers agree
+within 5 pp) "failed" at 15.6 pp, and its registered consequence was to open an
+investigation into `setup_c` affecting every experiment that uses it, M6 pass B
+included. The difference is not established --- permutation **p = 0.443**,
+bootstrap 95% CI **[-13.7, +13.9]** spanning zero --- because I had set the
+threshold below the instrument's resolution. Opening that investigation and
+re-auditing M6 pass B on a p=0.44 result would be precisely the error this review
+exists to catch. `setup_c` is also **not** exonerated: failing to detect an effect
+at +/-14 pp is not showing there is none.
 
 ## S3-13. §3.5 claims a victim we no longer have evidence for
 
@@ -342,6 +385,18 @@ validation, instrument checks with stated actions on miss. Where this week went
 wrong it was almost entirely in **interpretation running ahead of what the
 instrument could support**, and in **corrections not propagating** from the
 section where they were made to the four other places that state the same number.
+
+**The process finding, and it is about me.** Four registered thresholds this week
+were set finer than the instrument resolves: M7's P2 (missed by 0.005), M10's
+apparatus control, M11's P2 (missed by 0.016 pp) and M11b's P1 (a 15.6 pp
+"failure" with a CI of +/-14 pp). Three voided readings I had already done the
+work for, and the fourth nearly triggered a spurious audit of M6 pass B. The
+common cause is choosing round numbers near the expected effect instead of
+justifying a threshold against measured reproducibility. **Pre-registration
+without a power calculation is discipline theatre.** Every future registration in
+this project should state the cell's measured CoV and the n required, and should
+prefer hit rate 0.5 (0.3--4.4% reproducibility) over hit rate 1.0 (16--18%) for
+any quantity we intend to quote.
 
 Two of the four S1 findings (the gem5 bound direction, the abstract's withdrawn
 claim) are cases where the paper contradicts a correction the project had already
