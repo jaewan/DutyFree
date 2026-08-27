@@ -12,6 +12,12 @@ will find. **S3** overreach in an interpretation we published.
 
 ---
 
+> **S1-1 IS WITHDRAWN (2026-08-28, later the same day).** The finding below is
+> wrong, and the correction I applied to the paper on the strength of it has been
+> reverted. See **S1-1R** immediately after it. I have left the original in place
+> rather than delete it, because the way it went wrong is the most useful thing in
+> this document.
+
 ## S1-1. The gem5 bound points the wrong way, in five places
 
 The paper says, in five live locations, that the gem5 model **bounds the benefit
@@ -57,6 +63,61 @@ is the epistemic licence for the whole gem5 half of the paper --- contribution
 is not fatal: gem5 establishes that non-allocation *does not collapse bandwidth*
 --- the half that could have failed --- and bounds the capacity benefit **from
 above**, with M3b's 27% as the silicon-side ceiling.
+
+## S1-1R. Correction to S1-1: the paper was right and I was wrong
+
+S1-1 rests on "residency is 27% of silicon harm," taken from
+`GEM5_TRANSPORT_CHECK_2026-08-26.md`, which took it from M3b. **M5 superseded
+that number 27 minutes after the transport check was committed** (`d4a8374`
+01:08, `b9fa9d0` 01:35) and I did not notice, because nothing made me re-read
+what depended on it.
+
+M3b's residual 73% was **not** unreachable transport. It was the streaming
+tenant's *own* 256 MiB working set. Shrink that footprint and the victim returns
+to baseline:
+
+| tenant's own working set | stream retained | stream not allocated | removed |
+|---|--:|--:|--:|
+| 4 MiB | 2.403x | **0.993x** | **100.5%** |
+| 256 MiB | 2.770x | 2.274x | 28.0% |
+
+M5 (n=7) and M6 pass B (n=10) are independent runs and agree to **0.01%** on both
+cells. So on Intel silicon, declining to allocate the stream removes **all** of
+the harm the stream causes; the 28% cell's residue is the tenant's own legitimate
+reuse, which no admission mechanism should evict.
+
+**Therefore:** silicon recovers 100.5%, gem5 recovers 90.9%, and gem5's absolute
+tax is 39% low. The model is conservative on **both** measures. *"Bounds the
+benefit from below" was correct as originally written.*
+
+**What I did to the paper and have now undone.** I reversed the bound direction
+in five places, inserted an invented mechanism ("congestion is the part
+STREAMING cannot fix"), put "non-allocation removes 27% of a neighbour's tax"
+into the **abstract**, and shipped the same arithmetic to co-authors in cover-note
+addendum 3. All reverted; the abstract now carries the correct and considerably
+stronger claim.
+
+**What the episode leaves standing.** Two things, both worth more than the
+retracted finding:
+
+1. **The paper was under-selling itself, not over-selling.** The strongest
+   positive hardware result in the project --- non-allocation removes 100% of the
+   stream's harm, measured twice --- **was not in the paper at all.** It is now
+   §5's own heading, and it pairs with the AMD flush-behind result (76.3%
+   capacity, 23.7% not) into a sharper cross-vendor story than either half told
+   alone: Intel's tax is entirely shared-capacity and H2 reaches all of it, AMD's
+   is not, and the part no capacity mechanism reaches is exactly what H3 is for.
+2. **The real defect was process, not reasoning.** Both the transport check and
+   S1-1 were sound on the evidence in front of them. What failed is that a
+   superseding result did not trigger a re-read of its dependents, so a 27-minute-
+   old correction sat unpropagated for two days and then got amplified. The rule
+   this adds: **when a result supersedes another, list what depends on it in the
+   same commit.**
+
+And one caution against over-correcting the other way: the ~100% figure is Intel
+EMR, one victim geometry, and a proxy that flushes lines a hardware type would
+never have allocated. It bounds what the type would do from **below**, but it is
+one platform and one configuration.
 
 ## S1-2. The abstract asserts a claim §2 has already withdrawn
 
