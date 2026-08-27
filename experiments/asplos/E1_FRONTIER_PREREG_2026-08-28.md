@@ -135,3 +135,92 @@ stream size; one hit rate. It prices **static** partitions only --- a dynamicall
 reconfigured mask is a different mechanism and is not tested. And the label is
 still the flush-behind software proxy, so the "$\sim$0 to the tenant" column
 remains an idealisation the proxy cannot demonstrate (M12 pass A).
+
+---
+
+# Amendment 1, 2026-08-28: pass A's tenant-cost column is void, and the redesign
+
+Written after E2 completed and **before any pass A2 data exists**.
+
+## What happened
+
+E1's P4 fired --- E1a read the tenant at +8.7% where M12a read +16.7% --- and I
+attributed it to the resctrl helper. E2 tested that and a second candidate I had
+missed (M12a's occupancy sampler polling inside its own measured window). **Both
+candidates are refuted**, at n=40 with a passing instrument check:
+
+| helper | sampler | tenant's cost |
+|---|---|--:|
+| `setup_b` | off | +17.1% |
+| `setup_b` | on | +16.7% |
+| `setup_c` | off | **+17.1%** |
+| `setup_c` | on | +16.8% |
+
+All four agree. The sampler is worth −0.4 points and the helper +0.0 points, both
+inside the registered 4-point band, so **P1 and P2 are unresolved, not failed**,
+and P4 (no-mask sampler effect +0.1) holds. A fresh interleaved measurement taken
+immediately afterwards, n=10 each arm, reads **none 78.138 / 8-way 91.397 =
++17.0%**, CoV 0.19% and 0.20%.
+
+So **+17.0% is the correct value, established three independent ways, and E1a's
++8.7% is the outlier.**
+
+## Why E1a was wrong, as far as I can establish it
+
+E1a's `b8` samples are **bimodal**: 84.929, 85.091, **91.580**, 84.863,
+**91.724**, 84.982, 84.992, 84.831, 84.845, 85.151. Eight of ten sit in a fast
+mode that does not reproduce; the two slow ones are correct.
+
+Hypotheses tested and rejected:
+
+- **the group's mask was wrong** --- no. E1a captured `schemata` in every record and
+  they are correct at every width (`b8` -> tenant `L3:0=ff`, victim `L3:0=fff00`).
+- **the tenant's CPUs were not associated with the group** --- would produce an
+  intermediate value, which fits, but `setup_c 8 32-47 8` writes `cpus_list =
+  32-47` correctly on three consecutive standalone attempts.
+- **the preceding arm leaked** --- `b8` was preceded by `b4` in all six reps, fast
+  and slow alike, so the predecessor does not separate them.
+- **thermal drift across the session** --- no. The unmasked baseline is stable
+  everywhere: 78.178 (E1a), 78.131 (E2), 78.138 (fresh). Only E1a's *masked* arm
+  moved.
+
+**I do not have the mechanism.** This is the same situation the paper already
+discloses for `tab:amdcat`'s CAT arm --- enforcement verifiable, cause
+unidentified --- and it gets the same treatment: reported, not explained away.
+
+## Consequences, applied
+
+- **E1 pass A's entire $C_T$ column is void.** Every tenant-cost number in
+  `E1_OUTCOME_2026-08-28.md` (+32.7 / +24.7 / +8.7 / +1.3 / +0.0%) is withdrawn,
+  and so is the free-split condition derived from it.
+- **Pass B is unaffected.** It used a different runner, and its $C_V = 13.1\%$ at
+  $k{=}8$ reproduces M12's 13.1% exactly. The victim-side frontier, the
+  occupancy curve, and $H \approx 0.99$ at every split all stand.
+- **P1's conclusion survives and is strengthened, but must be re-derived.** At the
+  corrected +17.0%, the tenant is *not* cheap at 8 ways either, so the cheap
+  regions are further apart than E1 reported, not closer.
+- The tenant-cost figures already in the paper (§5's 16.7%, the abstract's
+  17--41%) are **no longer under suspicion**: E2 vindicates them. The
+  quarantine E1 imposed on them is lifted.
+
+## Pass A2 design --- built so that drift of any cause cannot survive it
+
+The defect's cause is unknown, so the redesign removes the class of error rather
+than the hypothesised mechanism: **every masked measurement is paired with an
+unmasked one taken immediately beside it**, and the reported quantity is the
+**median of per-pair ratios**, not a ratio of campaign-wide medians. Whatever made
+E1a's masked arm drift, a ratio computed from adjacent runs cannot inherit it
+unless the drift is instantaneous and mask-selective.
+
+- Arms: for each width $w \in \{2,4,8,12,16\}$, a pair (`none`, $w$) run
+  back-to-back, order alternating between reps.
+- $n{=}10$ pairs per width. 100 runs, ~11 min.
+- **`cpus_list` captured per record alongside `schemata`**, and the runner aborts
+  if the tenant's CPU list is not exactly `32-47` --- closing the gap that made the
+  defect invisible even though the data was being recorded.
+- Registered check: the per-pair ratio at $w{=}8$ must be within **+/-3%** of
+  1.1697 (the fresh interleaved measurement). On miss, pass A2 is void and the
+  tenant axis is quoted from E2's single point only.
+- Registered expectation, stated so bimodality cannot hide again: **per-pair
+  ratio CoV at each width must be under 3%**; if any width exceeds it, that
+  width's samples are printed individually in the outcome rather than summarised.
