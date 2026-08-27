@@ -18,7 +18,23 @@ will find. **S3** overreach in an interpretation we published.
 > rather than delete it, because the way it went wrong is the most useful thing in
 > this document.
 
-## S1-1. The gem5 bound points the wrong way, in five places
+## S1-1. ~~The gem5 bound points the wrong way, in five places~~ **RETRACTED**
+
+> **RETRACTED 2026-08-28** --- see `REDTEAM_S1-1_RETRACTION_2026-08-28.md`. This
+> finding rested on "residency is 27% of silicon harm", taken from M3b, whose
+> interpretation **M5 overturned the following day**: M3b's aggressor was the
+> fused tenant with a 256 MiB reused table, and shrinking that table drove
+> recovery from 28.0% to 100.5%. There is no 27% ceiling. Configuration-matched,
+> silicon recovers 100.5% where gem5 recovers 90.9%, so the model is
+> **conservative** and the paper's original "lower bound" was right. What survives
+> is only a structural caveat: `SimpleMemory` cannot represent congestion, so in a
+> configuration with a material congestion charge the model's recovery would be
+> optimistic --- not found on Intel, not assumed on AMD. The paper now says that.
+>
+> The finding as written below is preserved unaltered, because a review that
+> quietly edits its own errors is worth nothing.
+
+### The finding as originally written (wrong)
 
 The paper says, in five live locations, that the gem5 model **bounds the benefit
 from below**:
@@ -465,6 +481,15 @@ made and committed. That is a process failure, not a measurement failure, and it
 is the one most likely to be caught by a reviewer, because both are visible
 without any access to our data.
 
-The single most consequential item is **S1-1**. It does not kill the gem5 half
---- the bandwidth result stands and is the half that could have failed --- but it
-inverts what that half is allowed to claim.
+~~The single most consequential item is **S1-1**.~~ **S1-1 is retracted** --- it
+was itself an instance of the failure this review diagnoses, and the most
+consequential item is now S1-3/S1-4, the AMD table's undisclosed 43% rate gap and
+cross-run pairing.
+
+**Added after the retraction.** The review's process finding was that
+pre-registration without a power calculation is discipline theatre. Its companion,
+which S1-1 demonstrates, is that **quoting a committed number without checking for
+a later document that supersedes it** is the same class of error --- F11 in the W4.3
+ledger. That is now its third appearance this week, twice by me: the L5/W5.3
+correction and S1-1 within hours of each other. M3b and M5 are adjacent files in
+one directory with contradictory titles.
