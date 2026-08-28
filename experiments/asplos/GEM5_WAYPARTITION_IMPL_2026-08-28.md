@@ -100,3 +100,60 @@ masks); or any partitioning of the snoop filter.
    one hardware anchor --- so only the shape is checked.
 
 No performance claim is made from this until 1 and 2 pass.
+
+---
+
+# Verification log, 2026-08-28
+
+## Passed
+
+- **Builds and links.** SLICC accepts the interface; `nm` finds `allocateMasked`,
+  `cacheProbeMasked`, `setClosWayMask`; `strings` finds `m_allocsByWay` and both
+  guard messages.
+- **Callable from a config script**, post-instantiation: `hasattr` true for both
+  setters, and `setClosWayMask(1, 0x0ff)` / `setRequestorClos(3, 1)` succeed.
+- **Guards fire.** An all-zero mask aborts with the intended message. Note that
+  gem5's `fatal` terminates rather than raising a catchable Python exception, so a
+  config error here stops the run --- which is the right behaviour and worth knowing
+  when writing config scripts.
+- **The audit stat works** and reports per-way allocations for L1D, L1I, L2 and
+  the HNF.
+
+## A workload obstacle, diagnosed rather than guessed
+
+The first verification workload (a 512 KiB victim) produced **52 HNF accesses and
+zero allocations**. The reason is not the working-set size alone --- it is the
+HNF's allocation policy in `CHI_config_8592.py`:
+
+    alloc_on_readshared = False
+    alloc_on_readunique = False
+    alloc_on_readonce   = False
+    alloc_on_writeback  = True     # <-- the only path that fills the HNF
+
+**This LLC is configured as a victim cache.** Lines enter it when L2 evicts them,
+never on a read fill. That is faithful to a non-inclusive EMR-style LLC, and it has
+a direct consequence for the verification:
+
+> A read-only victim smaller than the 2 MiB L2 produces **no** L2 evictions,
+> therefore no HNF writebacks, therefore no HNF allocations, and the mask has
+> nothing to constrain. The check would have passed vacuously.
+
+So the workload must exceed the L2 to generate writebacks. Re-running with a
+4 MiB victim, which is above the 2 MiB L2 and below the 5 MiB L3.
+
+**And it sharpens what check 2 actually verifies:** in this configuration the way
+mask constrains **where L2 victims may land in the LLC**, not where read fills
+land. That is the correct semantics for this cache and it is what CAT does on a
+non-inclusive part --- but it means the audit must be read as "L2 victims confined
+to the mask", and a future reader of the stat should not expect read fills to
+appear there at all.
+
+## Still open
+
+- **Check 1, null test** --- a no-mask run identical to the pre-change binary.
+  Requires stash, rebuild, re-run, diff. Blocked while the 4 MiB run holds the
+  binary.
+- **Check 2, mask enforcement** --- zero allocations in ways outside the mask,
+  which needs the 4 MiB run first to establish that any allocations occur at all.
+
+No performance claim from the model until both pass.
