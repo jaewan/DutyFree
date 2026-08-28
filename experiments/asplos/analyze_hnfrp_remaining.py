@@ -157,11 +157,20 @@ def main():
         if k not in m:
             print(f"  {arm}_{sf}: no data"); continue
         got_seeds = [m[k][x] for x in sorted(m[k])]
-        ident = (len(got_seeds) == 3 and
-                 all(abs(a - b) < 5e-5 for a, b in zip(got_seeds, ARCHIVED_SEEDS[(arm, sf)])))
         predicted = (conv == "absolute")   # runner uses absolute paths
         b = max(4 * asd, 0.005 * am)
         inband = abs(mean[k] - am) <= b
+        if len(got_seeds) != 3:
+            # Bit-identity is a per-seed claim over the full triple. With fewer
+            # seeds the mean legitimately differs from a 3-seed archived mean, and
+            # calling that a falsified prediction is a false alarm on partial data
+            # -- the same defect class as a criterion a crashed run can satisfy.
+            print(f"  {arm}_{sf}: only {len(got_seeds)}/3 seeds -- bit-identity "
+                  f"NOT EVALUABLE yet (mean {mean[k]:.4f} vs archived {am:.4f}, "
+                  f"{'in band' if inband else 'OUT OF BAND'})")
+            continue
+        ident = all(abs(a - b2) < 5e-5
+                    for a, b2 in zip(got_seeds, ARCHIVED_SEEDS[(arm, sf)]))
         flag = "PASS" if ident == predicted else "** PREDICTION FALSIFIED **"
         print(f"  {arm}_{sf}: archived-{conv:8s} predicted bit-identical="
               f"{str(predicted):5s} observed={str(ident):5s} -> {flag}")
