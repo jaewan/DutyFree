@@ -96,3 +96,64 @@ fixed in advance, per the procedure adopted in `M5_OUTCOME` addendum 1.
 This is the second time an instrument added for one purpose has exposed a defect
 invisible to every prior run --- the pattern argues for keeping `m_allocsByWay`
 enabled rather than treating it as verification scaffolding to be removed.
+
+
+---
+
+# Addendum 1 --- 2026-08-28: the assoc-20 bias is now confirmed directly in gem5's C++, not inferred
+
+The main text derived the bias from the traversal arithmetic and confirmed it
+empirically only at **associativity 12** (the L1D). The HNF's associativity 20 ---
+the case that actually matters, because H2 acts there --- rested on the same
+arithmetic extended by argument. `HNFRP_ROBUSTNESS_PREREG_2026-08-28.md` recorded
+that as an open limitation, because `m_allocsByWay` exists only in the submodule
+binary and adding it to W1's apparatus would have defeated that experiment.
+
+It is now closed by a different route that touches no experiment: **four
+characterization tests added to gem5's own `tree_plru_rp.test.cc`**, driving
+`(getVictim -> touch)` rounds against the real `TreePLRU` and counting
+selections per way.
+
+The expected counts were derived from the traversal arithmetic and **written
+before the tests were run**. All four hold **exactly**:
+
+| assoc | rounds | result | verdict |
+|---|--:|---|---|
+| 8 | 8,000 | 1,000 per way | uniform |
+| 16 | 16,000 | 1,000 per way | uniform |
+| **12** | 16,000 | ways 0--3: **2,000**; ways 4--11: **1,000** | **2.00x biased** |
+| **20** | 32,000 | ways 0--11: **2,000**; ways 12--19: **1,000** | **2.00x biased** |
+
+Not approximately --- exactly, to the unit, with `EXPECT_EQ`. 26/26 tests in the
+file pass, so the additions break nothing.
+
+## What this changes about the claim's standing
+
+Before: "the arithmetic implies a 2x bias at assoc 20, and we measured 2.06x at
+assoc 12." The assoc-20 statement was an extrapolation.
+
+After: **the bias at the HNF's associativity is a demonstrated property of the
+shipped implementation**, established without simulation, without touching W1's
+apparatus, and in a form any reviewer can re-run in four milliseconds.
+
+The two power-of-two cases are the control, and they matter: they show the test
+harness can detect uniformity, so the non-uniform results are not an artifact of
+how the histogram is driven.
+
+## Note on what kind of test this is
+
+These are **characterization** tests --- they record existing behaviour so a
+future change to it is visible, and they are labelled as such in the source. That
+is a different instrument from a pre-registered hypothesis test, and the
+distinction matters here: it is legitimate to read a characterization test's
+expected values off the implementation, and it is not legitimate to set a
+hypothesis test's thresholds after seeing data. In this case the values happened
+to be predicted in advance anyway, so the tests are also a genuine confirmation
+of the arithmetic --- but the licence came from the prediction, not from the test
+format.
+
+## Still not answered
+
+Whether the bias changes the **magnitude** of the H2 bound. That is what the
+`HNF_RP=lru` batch is measuring, and it remains the only question of consequence
+for the paper.
