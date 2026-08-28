@@ -92,7 +92,8 @@ struct Config {
   bool result_hash = false;
   bool scan_memcpy = false;
   bool no_stream = false;
-  size_t flush_distance = 0;   // bytes; 0 = off (default, join_range unchanged)
+  size_t flush_distance = 0;
+  bool line_stride = false;   // bytes; 0 = off (default, join_range unchanged)
   double pre_measure_sleep_s = 0.0;
   // W7 Knob B (W7_PREREGISTRATION_2026-08-23.md section 2). 0 = off, and off is
   // bit-for-bit the pre-W7 code path: join_range is not touched and the batched
@@ -981,6 +982,7 @@ void emit_json_prefix(const Config &c, void *fact, uint64_t fact_bytes, const st
   std::cout << "\"fact_bytes\":" << fact_bytes << ",";
   std::cout << "\"hot_bytes\":" << c.hot_bytes << ",";
   std::cout << "\"flush_distance\":" << c.flush_distance << ",";
+  std::cout << "\"line_stride\":" << (c.line_stride ? "true" : "false") << ",";
   std::cout << "\"fact_node\":" << c.fact_node << ",";
   std::cout << "\"hot_node\":" << c.hot_node << ",";
   std::cout << "\"threads\":" << c.threads << ",";
@@ -992,6 +994,38 @@ void emit_json_prefix(const Config &c, void *fact, uint64_t fact_bytes, const st
   std::cout << "\"fact_base\":\"0x" << std::hex << base << "\",";
   std::cout << "\"fact_end\":\"0x" << (base + fact_bytes) << std::dec << "\",";
   std::cout << "\"thread_mapping\":" << cpu_mapping_json(cpus, c.threads, roles) << ",";
+}
+
+// --line-stride: one 8B load per 64B line instead of a dense scan. Ported
+// verbatim from benchmarks/e2e/hash_join_gem5se (PR #2, branch
+// gem5-hashjoin-forks) so that the fork can be retired rather than
+// maintained as a third copy of this file. Opt-in; default off; the dense
+// stream_read() path is untouched, and run_morsel never calls either.
+// Line-granular stream read: ONE 8-byte load per 64B cache line, 8
+// independent register accumulator chains. Low-uop-density BW probe for gem5
+// builds (gem5 x86 cannot execute the AVX2 path; the scalar full-read loop
+// spills accumulators and costs ~20 uops/line, capping the OoO window at
+// ~10 in-flight lines). Memory-side traffic is identical (full 64B lines are
+// transferred); only touched-word density differs. Disclose in frozen config.
+uint64_t stream_read_lines(const Fact *fact, size_t n) {
+  const unsigned char *base = reinterpret_cast<const unsigned char *>(fact);
+  size_t bytes = n * sizeof(Fact);
+  size_t lines = bytes / 64;
+  uint64_t s0 = 0, s1 = 0, s2 = 0, s3 = 0, s4 = 0, s5 = 0, s6 = 0, s7 = 0;
+  size_t i = 0;
+  for (; i + 8 <= lines; i += 8) {
+    s0 += *reinterpret_cast<const uint64_t *>(base + (i + 0) * 64);
+    s1 += *reinterpret_cast<const uint64_t *>(base + (i + 1) * 64);
+    s2 += *reinterpret_cast<const uint64_t *>(base + (i + 2) * 64);
+    s3 += *reinterpret_cast<const uint64_t *>(base + (i + 3) * 64);
+    s4 += *reinterpret_cast<const uint64_t *>(base + (i + 4) * 64);
+    s5 += *reinterpret_cast<const uint64_t *>(base + (i + 5) * 64);
+    s6 += *reinterpret_cast<const uint64_t *>(base + (i + 6) * 64);
+    s7 += *reinterpret_cast<const uint64_t *>(base + (i + 7) * 64);
+  }
+  for (; i < lines; ++i)
+    s0 += *reinterpret_cast<const uint64_t *>(base + i * 64);
+  return s0 ^ s1 ^ s2 ^ s3 ^ s4 ^ s5 ^ s6 ^ s7;
 }
 
 void run_stream(Config c) {
@@ -1015,7 +1049,7 @@ void run_stream(Config c) {
     std::exit(10);
   }
   uint64_t checksum = 0;
-  for (int i = 0; i < c.warmups; ++i) checksum ^= stream_read(fact, n, c.policy, c.pf_distance, c.stream_count);
+  for (int i = 0; i < c.warmups; ++i) checksum ^= c.line_stride ? stream_read_lines(fact, n) : stream_read(fact, n, c.policy, c.pf_distance, c.stream_count);
   struct rusage ru_before {};
   struct rusage ru_after {};
   getrusage(RUSAGE_SELF, &ru_before);
@@ -1024,7 +1058,7 @@ void run_stream(Config c) {
   double total_sec = 0.0;
   for (int r = 0; r < c.reps; ++r) {
     auto t0 = std::chrono::steady_clock::now();
-    checksum ^= stream_read(fact, n, c.policy, c.pf_distance, c.stream_count);
+    checksum ^= c.line_stride ? stream_read_lines(fact, n) : stream_read(fact, n, c.policy, c.pf_distance, c.stream_count);
     double sec = seconds_since(t0);
     total_sec += sec;
     samples.push_back(static_cast<double>(c.fact_bytes) / sec / 1e9);
@@ -1822,6 +1856,7 @@ Config parse(int argc, char **argv) {
     else if (a == "--scan-memcpy") c.scan_memcpy = true;
     else if (a == "--no-stream") c.no_stream = true;
     else if (a == "--flush-distance") c.flush_distance = static_cast<size_t>(std::stoull(need("--flush-distance")));
+    else if (a == "--line-stride") c.line_stride = true;
     else if (a == "--declare") {
       std::string v = need("--declare");
       if (v == "m5op") g_declare = DeclareVia::M5OP;
