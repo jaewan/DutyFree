@@ -55,8 +55,10 @@ look it up here. If it is not here, add it here first.
 | **bimodality of the masked arm** | two stable modes at widths 2--8; spreads 19.0 / 15.4 / 7.9%; unimodal at 12--16 | `E1_OUTCOME_2026-08-28` addendum | --- | **no --- must be disclosed** |
 | tenant's own table: what the label recovers | **0.9 of 16.7 points** | `M12_OUTCOME_2026-08-28` pass A (CoV 0.28%) | supersedes M9's unresolvable difference-of-differences | yes |
 | split-restructuring cost | **36% of throughput** | `results/clos_split/` --- **in git** (`a41df38`), 8/8 cells recomputed by `A1_PROVENANCE_LEDGER_2026-08-28` | --- | yes |
-| the 2/3 occupancy knee | **free below ~2/3 full, binding above ~3/4** | `E1_OUTCOME_2026-08-28` --- derived independently from **both** sides | --- | **no --- should be the central figure** |
-| free-split condition | tenant WS + neighbour WS <= ~2/3 x LLC | `E1_OUTCOME_2026-08-28` addendum | E1's first derivation used the voided column | **no --- should be** |
+| **tenant's confinement cost vs occupancy** | 0% at 57--67%, **15--17% at 100%**, 41--57% beyond --- **host-invariant** | `E4_OUTCOME_2026-08-28` (mos182) + `E1_OUTCOME_2026-08-28` addendum (mos181) | --- | **no --- this is the claim the paper should carry** |
+| victim's confinement cost vs occupancy | agrees below 60% and above 120%; **diverges in the 75--90% band** (13.1% mos181 vs 0.3% mos182) | `E3_OUTCOME_2026-08-28` + `E1_OUTCOME` pass B | --- | **no --- must name its host wherever used** |
+| ~~the 2/3 occupancy knee as one curve~~ | **WITHDRAWN** --- two curves, two access patterns | `E4_OUTCOME_2026-08-28` | E1's "one curve from both sides"; E3's "platform-specific coefficient" | no |
+| free-split condition | **no split on either host** --- tenant needs 1.5x its table on both, victim 1.6x / 1.15x | `E4_OUTCOME_2026-08-28` | E1's "<= 2/3 x LLC" **as a law** | **no --- should be** |
 
 ## AMD quantities (one unreachable host)
 
