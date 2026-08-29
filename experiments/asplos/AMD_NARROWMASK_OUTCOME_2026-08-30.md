@@ -128,3 +128,78 @@ persistent change is `perf_event_paranoid` 4 -> -1, required for the victim's PM
 and matching the frozen protocol the paper already claims. Governor and boost
 were deliberately left as found so the reproduction matched the published
 conditions.
+
+
+---
+
+# Addendum 1 --- 2026-08-30: my "the residual is latency" reading is incomplete, and one paper claim looks unstable
+
+Written after stress-testing my own interpretation. **Two corrections and one
+open question, none of which the main text above anticipated.**
+
+## 1. The dominant effect under `wb` is that the victim's private-L2 hits *vanish*
+
+Raw counts, victim 4 MB:
+
+| | L2 hits | L2 misses | hit rate |
+|---|--:|--:|--:|
+| quiescent | 25,643,357 | 140,591,463 | 15.4% |
+| under `wb` | **155** | 6,030,663 | **0.003%** |
+
+Not degraded --- **gone**. The victim runs on core 0; its L2 is **private** (1 MiB)
+and the aggressor runs on cores 1--7. **A co-runner on other cores cannot evict a
+private L2 by capacity.** The only cross-core mechanisms that can are
+back-invalidation from L3 shadow tags / probe filter, or coherence probes. Zen's
+L3 is a victim cache with shadow tags tracking L2 contents, so shadow-tag
+pressure forcing L2 back-invalidation is the leading explanation.
+
+**That is the H3 charge --- snoop-filter enrolment --- and this is a machine we can
+reach.**
+
+## 2. Consequences for two things I asserted earlier today
+
+**"CAT restores the victim's residency" was loose.** It rests on an **L2** counter
+while CAT partitions **L3**. What CAT restores is the private-L2 hit rate, which
+is a back-invalidation signal, not an L3-residency one. The better-supported
+reading is **two components** --- back-invalidation (largely mitigated by CAT) and
+miss-service latency (not mitigated at any mask width) --- but I have only L2
+counters, so the attribution is **suggestive, not established**.
+
+**My recommendation to cut H3 is withdrawn.** I argued H3 "removes a charge no
+reachable machine levies." Bergamo may levy exactly that charge. That
+recommendation should not be acted on until this is tested properly.
+
+## 3. The L2-resident control is bimodal, which unsettles a paper claim
+
+`tab:h3sf`'s caption states private-L2-resident victims read **1.000x** on
+Bergamo --- load-bearing, because it is what makes H3 a capability claim rather
+than a measured benefit. Re-measured with a 512 KB victim in a 1 MiB private L2:
+
+| rep | slowdown | L2 hit rate |
+|---|--:|--:|
+| (single earlier run) | **3.04x** | 93.49% |
+| 1 | 2.03x | 96.84% |
+| 2 | 1.73x | 96.83% |
+| 3 | 1.72x | 96.84% |
+| 4 | **0.94x** | 99.83% |
+| 5 | **1.09x** | 99.79% |
+
+**Bimodal**: an unharmed mode at ~1.0x with hits intact (99.8%), and a harmed
+mode at 1.7--3.0x with hits partly lost (96.8%). The published **1.000x is one
+mode of a bimodal distribution**, not a stable result --- and in the harmed mode an
+L2-resident victim loses private-L2 hits to a co-runner on other cores, which
+capacity cannot explain.
+
+**I am not claiming the paper is wrong.** I am claiming the measurement is
+unstable and that a single value does not characterise it. This project has been
+bitten by bimodality before (`E1a`'s tenant column was voided for it), and the
+correct response is a designed experiment, not a louder number.
+
+## What this calls for
+
+1. **Do not cut H3** on the current argument.
+2. A proper Bergamo back-invalidation experiment: L2-resident victim, n>=12,
+   frozen platform, with the mode-selecting variable identified (physical page
+   placement is the first suspect). L3/probe-filter counters if obtainable.
+3. Until then `tab:h3sf`'s "1.000x on Bergamo" should carry the spread, not the
+   point.
