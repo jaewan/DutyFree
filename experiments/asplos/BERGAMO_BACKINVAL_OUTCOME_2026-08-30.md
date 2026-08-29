@@ -94,3 +94,45 @@ reproduced. At 512 KB the median is **1.61x** (`THP=always`) to **2.76x**
 value sits at the bottom of a wide, co-runner-induced distribution. **The claim
 should carry the distribution, not the point** --- and since it is what makes H3 a
 capability claim rather than a measured benefit, that matters.
+
+
+---
+
+# Addendum 1 --- 2026-08-30: the "bimodality" does not reproduce standalone. My reading of it is withdrawn.
+
+The 240-run factorial's 512 KB same-CCX cell alternates almost perfectly by rep
+parity (odd high, even low), in that cell only, at constant CPU frequency. I
+diagnosed a deterministic period-2 process and inferred that small-n experiments
+in that cell would land systematically in one mode --- offering that as the likely
+origin of `tab:h3sf`'s 1.000x.
+
+**Re-run standalone on a verified-idle machine, 12 consecutive reps, identical
+procedure:**
+
+    46.73  35.95  37.01  36.34  36.79  35.35  36.41  35.54  36.72  35.96  36.55  36.01
+
+Rep 1 carried residual load from the preceding experiment. **Reps 2--12 are
+stable at 35.3--37.0 --- there is no alternation.**
+
+So the period-2 pattern is **an artifact of the factorial run**, not a property of
+the workload or the hardware, and its cause is **unidentified**. Two consequences:
+
+- **Withdrawn:** that `tab:h3sf`'s 1.000x is a sample of the low state of an
+  alternating signal. That inference is unsupported.
+- **Withdrawn:** the median/IQR summaries for that one cell in the main text, and
+  the P3 verdict built on them. P3 tested the dispersion of a signal whose
+  dispersion was an artifact.
+
+**What survives, and it is simpler and stronger.** On an idle machine the
+L2-resident victim is harmed **stably at ~1.9x** (36.0 against ~19 quiescent) by
+a same-CCX aggressor. `tab:h3sf`'s "private-L2-resident victims read 1.000x on
+Bergamo" still does not reproduce --- but because the harm is a *consistent* 1.9x,
+not because it is bimodal. The L3-locality result (P2) is untouched: it rests on
+same-CCX versus other-CCX medians across all four conditions, and the other-CCX
+arms show no alternation at all.
+
+**Process note.** My first attempt at this re-run returned chaotic values
+(68, 22, 20, 24, 176, 113, ...) and I nearly reported "does not reproduce" from
+it. That run was invalid --- the `l3occ` experiment was still occupying cores 0--7.
+I checked machine state only after the answer surprised me. The rule this earns:
+**verify the machine is idle before a diagnostic, not after it disagrees.**
