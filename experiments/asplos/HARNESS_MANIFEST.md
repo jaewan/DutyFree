@@ -18,7 +18,28 @@ whenever a new experiment lands.
 | Bergamo back-invalidation factorial | `BERGAMO_BACKINVAL_PREREG_2026-08-30.md` | `bergamo_backinval.py` (broker) | (inline) | `data/amd_backinval.jsonl` |
 | **L3 occupancy instrument** | `AMD_L3OCC_PREREG_2026-08-30.md` | `amd_l3occ.py` (broker) | (inline) | `data/amd_l3occ.jsonl` |
 
-## Known gaps, stated rather than hidden
+## Gaps — all three now closed (2026-08-30)
+
+| gap | status |
+|---|---|
+| broker-side runners existed only on `moscxl` (**F10**) | **closed** — recovered into `experiments/asplos/broker/`, with a README recording why their paths are deliberately host-specific |
+| several analyses were inline and unrecoverable | **closed** — `analyze_archives.py` recomputes every headline gem5 number from committed data and checks it against the published value; a campaign-level regression test in `tests/` fails if either drifts |
+| gem5 outputs lived in `/tmp` and would not survive a reboot | **closed** — `experiments/lib/archive_gem5_runs.py` extracts the load-bearing per-run values into `data/gem5/*.jsonl` (187 runs, 124 KB against 375 MB of raw stats) |
+
+Verified at archive time: the archive reproduces the published head-to-head
+recoveries **exactly** — pure stream 88.51 / 89.47 / 88.62, fused 90.61 / 89.47 /
+91.04 — with arm identity (`requestor_masks`, streaming declaration) and realized
+table sizes preserved.
+
+### What the archive deliberately does not keep
+
+Full `stats.txt` (~250 KB × 187 runs). If a future question needs a counter that
+was not archived, the run must be repeated — the runners and their
+pre-registrations are committed, so that is possible. The archived field list is
+in `experiments/lib/archive_gem5_runs.py` and is the union of everything the
+outcome documents cite.
+
+## Historical note — the gaps as originally recorded
 
 - **Broker-side runners live only on `moscxl`** under `~/DutyFree/amd_cat/`. They
   are not in this repo. That is the F10 failure mode (an unpinned apparatus) and

@@ -109,3 +109,33 @@ class TestGem5(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestArchiveReproducesPublished(unittest.TestCase):
+    """The committed archive must reproduce the committed outcome documents.
+
+    This is the campaign-level regression guard: if either the archive or a
+    published number drifts, this fails here rather than in review.
+    """
+    def test_head_to_head_recoveries(self):
+        root = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+        data = os.path.join(root, "experiments", "asplos", "data", "gem5")
+        if not os.path.isdir(data):
+            self.skipTest("archive not present")
+        import collections, re, statistics as st
+        published = {"hh": {"h2": 88.51, "cat4": 89.47, "cat10": 88.62},
+                     "fh": {"h2": 90.61, "cat4": 89.47, "cat10": 91.04}}
+        for pref, want in published.items():
+            path = os.path.join(data, f"{pref}_runs.jsonl")
+            if not os.path.exists(path):
+                self.skipTest(f"{pref} archive absent")
+            g = collections.defaultdict(list)
+            for r in stats.load_jsonl(path):
+                m = re.match(rf"{pref}_(\w+?)_s\d", r["run"])
+                if m and r.get("completed") and r.get("cyc_per_access"):
+                    g[m.group(1)].append(r["cyc_per_access"])
+            q = st.mean(g["qui"]); tw = st.mean(g["wb"]) / q
+            for arm, exp in want.items():
+                got = 100 * (tw - st.mean(g[arm]) / q) / (tw - 1)
+                self.assertAlmostEqual(got, exp, delta=0.02,
+                                       msg=f"{pref}/{arm}: archive {got:.2f} vs published {exp}")
