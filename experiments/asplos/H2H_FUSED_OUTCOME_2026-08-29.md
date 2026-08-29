@@ -99,3 +99,15 @@ scope made explicit and both measurements cited:
 
 That is a **stronger** claim than the current text, because it is bounded, it
 names the regime where shipped knobs suffice, and every number in it is measured.
+
+
+---
+
+# SUPERSEDED (numerically) --- 2026-08-30
+
+The fused-tenant numbers in this document were produced with a probe index whose
+stride was 512 bytes --- a power of two --- which aliased the table onto 1/8 of the
+cache sets and made it behave as though it were eight times larger. See
+`FUSED_INDEX_ARTIFACT_CORRECTION_2026-08-30.md` for the diagnosis and the
+superseding curve. The qualitative conclusions largely survive; **every magnitude
+here is wrong** and must be cited from the correction instead.
