@@ -1,0 +1,130 @@
+# AMD outcome: the way-partitioning refutation survives an aimed mask --- and the residual is a *latency* residual, not a capacity one
+
+Pre-registration `AMD_NARROWMASK_PREREG_2026-08-30.md` (`24664e4`). `broker`
+(moscxl) returned after nine days down. n=6, 36/36 records mask-enforced.
+
+## Result
+
+Victim on core 0, aggressor 7 threads on cores 1--7, same CCX (16 MiB L3, 16 CAT
+ways), aggressor streaming from the CXL node.
+
+| arm | agg ways | victim L2 miss | cyc/access | tax | removed | agg GB/s |
+|---|--:|--:|--:|--:|--:|--:|
+| quiescent | --- | 86.51% | 55.39 | 1.00x | --- | --- |
+| `wb` | 16 | **100.00%** | 1530.05 | 27.62x | --- | 24.81 |
+| `cat8` (**published split**) | 8 | **100.00%** | 710.33 | 12.82x | 55.6% | 24.79 |
+| `cat4` | 4 | 89.41% | 570.56 | 10.30x | 65.1% | 24.65 |
+| `cat2` | 2 | 89.36% | 566.94 | 10.23x | 65.3% | 24.66 |
+| `cat1` | **1** | 89.19% | 569.74 | 10.28x | **65.1%** | 24.67 |
+
+**Registered verdict: 65.1% removed --- the 50--80% "partial" band.** The caption is
+restated quantitatively rather than kept or withdrawn.
+
+## The finding: aiming the mask does not help, and now we know why
+
+Narrowing the aggressor from 8 ways to 4 buys 10 points. From 4 to 2 to 1 buys
+**nothing** (65.1 / 65.3 / 65.1%). A capacity mask that could reach this harm
+would keep improving as it tightened.
+
+The victim's L2 miss rate explains the plateau:
+
+| | miss rate | cyc per **miss** |
+|---|--:|--:|
+| quiescent | 86.51% | **64.0** |
+| `wb` | 100.00% | 1530.0 |
+| `cat1` | 89.19% | **638.8** |
+
+**CAT restores the victim's residency to within 2.7 points of quiescent and the
+victim is still 10.3x slower, because each surviving miss costs 10.0x more to
+service.** Once the mask has restored residency --- which it has, by 4 ways ---
+there is nothing left for a *capacity* mechanism to fix. The residual lives
+entirely in the miss path: the fabric carrying the aggressor's 24.7 GB/s.
+
+This is a direct decomposition of `E3`'s "AMD's harm is rate-class, not
+capacity-class", which until now was an inference from CAT under-performing.
+
+Aggressor bandwidth is flat to **0.63%** across every arm, so the mask constrains
+residency and not rate --- the failure mode that would have produced the right
+answer for the wrong reason.
+
+## What the caption may now say --- stronger than the current text
+
+> On the AMD part a way mask cannot reach the harm, and not for want of aiming:
+> confining the streaming aggressor from 8 of 16 ways down to **1** moves the
+> residual only from 12.8x to 10.3x and is flat below four ways. The mask does
+> restore the victim's cache residency (L2 miss 89.2% against 86.5% quiescent);
+> what it cannot restore is miss *latency*, which remains 10.0x inflated at every
+> mask width.
+
+## Reproduction: the ratio holds, the magnitude does not
+
+| | published | re-measured |
+|---|--:|--:|
+| `wb` slowdown | 19.89x / 20.55x | **27.62x** |
+| removed at 8/8 | 55% | **55.6%** |
+
+The **fraction removed reproduces almost exactly**; the **absolute tax does
+not**. The mechanism ratio survived a host rebuild; the magnitude did not. This
+is consistent with `AMD_PLATFORM_STATE_PROVENANCE_2026-08-21.md`: the published
+runs were taken on an unfrozen platform, and this host is in that same unfrozen
+state (`schedutil`, boost on) after being rebuilt. **Per S6.6 the paper should
+say the absolute AMD magnitudes are not reproducible while its argument is.**
+
+A second reason the published 8/8 figure was a weak place to rest the claim:
+`wb` and `cat8` both pin the victim at **exactly 100.00%** L2 miss --- a saturated
+instrument. Any comparison between those two arms measures the cost of misses,
+not their number.
+
+## Two follow-ons attempted, one answered and one blocked
+
+**(a) Module-free non-allocation at matched rate --- ANSWERED, negative.** The
+published WC row is not rate-matched (13.8 vs 24.1 GB/s), so its 0.99x cannot
+separate non-allocation from moving 43% fewer bytes. Three write-back-memory
+modes all sustain ~25 GB/s:
+
+| mode | victim L2 miss | tax | GB/s |
+|---|--:|--:|--:|
+| `wb_load` | 100.00% | 27.6x | 24.8 |
+| `wb_prefetchnta` | **100.00%** | 27.4x | 24.7 |
+| `wb_ntdqa` | **100.00%** | 27.4x | 25.2 |
+
+`prefetchnta` does **not** avoid L3 allocation on Zen 4c, and `wb_ntdqa` behaves
+as the architecture requires (`movntdqa` on write-back memory is an ordinary
+load) --- included as a null control so that a null would look like one.
+**There is no module-free non-allocating arm on this hardware.**
+
+**(b) The real WC path --- BLOCKED by machine configuration.** `wc_ntdqa` mmaps
+`/dev/cxl_wc` from a kernel module that is itself a documented reconstruction.
+Two independent blockers:
+
+1. The CXL window `[0x18400000000, 0x1c3ffffffff)` is **online System RAM** on
+   this rebuilt host. **37 of 129 memory blocks refuse to offline** (unmovable
+   kernel pages).
+2. More fundamentally, **offlining does not remove a block from the iomem
+   resource tree**. `/proc/iomem` still reports the window as System RAM, so the
+   module's `region_intersects` guard can never be satisfied by offlining alone.
+
+The module refused to load, twice, exactly as designed --- its guard requires the
+range be *provably disjoint* from System RAM, because a WC alias of
+kernel-write-back memory is an architectural hazard, not merely a bad
+measurement. **Defence in depth worked: the guard was the backstop that made the
+attempt safe to make at all.**
+
+Freeing the window needs the memory taken out of system-ram mode: `daxctl` is not
+installed, `cxl list -R` reports no regions, and there is no dax device, so the
+remaining route is a **boot-time** `memmap=`/soft-reserve change. That is a
+reboot of a shared machine and was not done.
+
+**Consequence for the paper: the WC row cannot currently be rate-matched on
+available hardware, so the AMD data refutes way partitioning without yet
+demonstrating that non-allocation succeeds where it fails.** That distinction
+should be stated rather than left for a referee.
+
+## Machine state
+
+Fully restored and verified: node2 back to 264,213,200 kB, **0** offline blocks,
+module not loaded, no resctrl groups, no stray aggressors, load ~0.3. The only
+persistent change is `perf_event_paranoid` 4 -> -1, required for the victim's PMU
+and matching the frozen protocol the paper already claims. Governor and boost
+were deliberately left as found so the reproduction matched the published
+conditions.
