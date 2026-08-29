@@ -88,7 +88,36 @@ These exist because violating them has cost this project real results:
 - **Verify the machine is idle before a diagnostic**, not after the answer
   surprises you.
 
-## 5. Building and running
+## 5. Engineering conventions
+
+```bash
+make help             # all tasks
+make check            # tests + lint (what CI runs); stdlib only, no install
+make gem5             # build the Intel 8592 gem5 target
+make state            # print where the project stands
+make clean-artifacts  # build junk ONLY -- never results or records
+```
+
+- `experiments/lib/dutyfree/` — shared helpers for parsing gem5 artifacts,
+  loading JSONL, robust statistics, and resctrl masks. **Use it for new
+  analyzers.** Existing analyzers are deliberately *not* refactored onto it:
+  they are provenance, and editing code that produced a cited number would
+  change that result's basis.
+- `tests/` — one regression test per failure this project actually committed.
+  Add one when you find a new class of mistake; that is what the directory is
+  for.
+- `experiments/asplos/HARNESS_MANIFEST.md` — which runner and analyzer produced
+  which result, and which apparatus is *not* in this repo.
+- Paths honour `DUTYFREE_GEM5` / `DUTYFREE_W1_GEM5`, defaulting to the original
+  absolute paths so historical behaviour is unchanged.
+
+**The record is append-only.** `experiments/asplos/` is a flat, date-stamped log
+whose documents cross-reference each other by filename. Do not reorganise it into
+subdirectories, and do not delete superseded results — mark them and point at the
+replacement. Unread or lost provenance is this project's characteristic failure
+(`F10`, `F11`), not wrong measurement.
+
+## 6. Building and running
 
 ```bash
 git clone --recursive <url> && cd DutyFree
@@ -112,7 +141,7 @@ Key gem5 environment knobs (read at run time, no rebuild):
 > `HNF_FWD_UNIQUE` and `SEQ_OUT` **changed defaults** after the W1 campaign.
 > Pin them to `0` and `1024` to reproduce W1-era numbers.
 
-## 6. What is currently open
+## 7. What is currently open
 
 See `STATE_2026-08-30.md` for detail. In brief: the §1/§5 rewrite is partially
 done; H3's standing is **unknown** (not "cut", not "supported"); the AMD
