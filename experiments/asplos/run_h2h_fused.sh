@@ -14,7 +14,7 @@
 # config.ini, not inferred: the version assignment is not creation-order-per-CPU
 # (l1i/l1d for both CPUs come first, then the L2s), so a guess gives NodeID 2.
 set -uo pipefail
-G=/home/domin/DutyFree/gem5
+G=${DUTYFREE_GEM5:-/home/domin/DutyFree/gem5}
 cd "$G" || { echo "FAIL no $G" >&2; exit 2; }
 BIN=build_Intel_8592/gem5.opt
 T=$G/testcase/dutyfree

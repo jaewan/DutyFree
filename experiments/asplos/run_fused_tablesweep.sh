@@ -10,7 +10,7 @@
 # infinite SF, DMT off, LRU at the HNF, masks confine only the stream's requestor
 # (NodeID 5 = cpu1.l2).
 set -uo pipefail
-G=/home/domin/DutyFree/gem5
+G=${DUTYFREE_GEM5:-/home/domin/DutyFree/gem5}
 cd "$G" || { echo "FAIL no $G" >&2; exit 2; }
 BIN=build_Intel_8592/gem5.opt
 T=$G/testcase/dutyfree

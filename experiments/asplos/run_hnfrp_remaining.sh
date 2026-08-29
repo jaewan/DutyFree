@@ -13,7 +13,7 @@
 #
 # Longest job first, so the tail is a short job rather than a 79-minute one.
 set -uo pipefail
-cd "$HOME/DutyFree-Gem5" || { echo "FAIL no ~/DutyFree-Gem5" >&2; exit 2; }
+cd "${DUTYFREE_W1_GEM5:-$HOME/DutyFree-Gem5}" || { echo "FAIL no ~/DutyFree-Gem5" >&2; exit 2; }
 G=build_Intel_8592/gem5.opt
 T=$HOME/DutyFree-Gem5/testcase/dutyfree
 V=$T/victim; A=$T/aggressor; D=$T/dummy
