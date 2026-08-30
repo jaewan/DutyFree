@@ -69,7 +69,19 @@ Each exists because violating it cost a result. They are stated in `README.md`
   marked and kept, never deleted — the project's two worst failures were lost and
   unread provenance, not wrong measurement.
 
-## 5. What is not in this repository
+## 5. Updating the paper draft after review
+
+The paper is a **separate repository** at `~/STREAMING_Paper`. Two rules:
+
+- **Never `git push` from it.** Every write there is published to co-authors.
+- **Rebuild and check `undef-ref: 0` after every edit.** This document silently
+  drops tables when text is added — it has done so twice.
+
+[`PAPER_DELTA.md`](PAPER_DELTA.md) is the bridge between this repo and the draft:
+what has already been folded in, the **four findings that have not been**, the
+structural edits recommended, and the commands to re-check both.
+
+## 6. What is not in this repository
 
 - **The paper** — `~/STREAMING_Paper`, deliberately separate.
 - **Broker-side binaries** — the AMD `victim`/`aggressor` that produced the
