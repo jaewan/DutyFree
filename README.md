@@ -12,6 +12,10 @@ it.
 
 ---
 
+> **Auditing or reviewing this work?** Start with [`AUDIT.md`](AUDIT.md) — a
+> guided hour through the repository, including the weaknesses we would rather
+> hand you than have you find.
+
 ## 1. The claim, in one paragraph
 
 A streaming tenant and a latency-critical neighbour cannot currently share a
