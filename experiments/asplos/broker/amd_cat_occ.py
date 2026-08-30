@@ -75,6 +75,21 @@ def occ(g, dom="00"):
     try: return int(open(f"{g}/mon_data/mon_L3_{dom}/llc_occupancy").read().strip())
     except (OSError, ValueError): return None
 
+
+def victim_occ():
+    """Read the victim's occupancy from whichever group currently OWNS cpu0.
+
+    A CPU placed in a CTRL_MON group (our CAT arms) gets that group's RMID, so a
+    monitoring group under root reads ZERO for it. The first version of this
+    experiment did exactly that and reported 0.0 KB for every masked arm --
+    an artifact of reading the wrong RMID, not a measurement. Verified on the
+    machine: with cpu0 in a CTRL_MON group the root mon_group read 0 while the
+    CTRL_MON group's own mon_data read 1,376,256 B.
+    """
+    if os.path.isdir(CV):          # a CAT arm: cpu0 lives in the allocation group
+        return occ(CV)
+    return occ(VG)
+
 def thp():
     s = open("/sys/kernel/mm/transparent_hugepage/enabled").read()
     return next((t.strip("[]") for t in s.split() if t.startswith("[")), "?")
@@ -93,7 +108,7 @@ def one(name, acores, vmask, amask, wss, rep):
     while vp.poll() is None and time.time() - t0 < VDUR + VWARM + 4:
         time.sleep(0.25)
         if time.time() - t0 > VWARM + 0.5:
-            o = occ(VG)
+            o = victim_occ()
             if o is not None: samples.append(o)
     out, _ = vp.communicate()
     line = next((l for l in out.splitlines() if l.startswith("VICTIM")), "")
