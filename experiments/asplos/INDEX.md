@@ -28,8 +28,19 @@ pointing at its replacement. Trust the pointer, not the filename date.
 | `HNFRP_REMAINING_CELLS_OUTCOME_2026-08-29.md` | `tab:h3sf`'s full 2×3; H3's cost 3.45% → **4.53%** |
 | `AMD_NARROWMASK_OUTCOME_2026-08-30.md` | AMD: the residual survives an aimed mask; what is blocked and why |
 | `BERGAMO_BACKINVAL_OUTCOME_2026-08-30.md` | the AMD harm is **L3-domain-local**, not fabric (+ addendum withdrawing the bimodality reading) |
+| `AMD_L3OCC_OUTCOME_2026-08-30.md` | the AMD harm is **L3 eviction**, not back-invalidation — occupancy 5.5% of quiescent |
+| `AMD_CATOCC_OUTCOME_2026-08-30.md` | a way mask **restores 91% of L3 residency** and the victim is **still 9.2x slower** — the residual is on the fill path |
+| `W3.4_H3_PERFORMANCE_CASE_2026-08-24.md` | H3's case assembled from measurement; with `W3.1` (closed negative) this is why H3 is a capability claim |
 | `GEM5_TREEPLRU_NONPOW2_BIAS_2026-08-28.md` | gem5's TreePLRU is 2× biased at non-power-of-two associativity |
 | `CONFIG_FIDELITY_AUDIT_2026-08-29.md` | every geometry/default swept for silent degradation |
+
+## Withdrawn during 2026-08-30 (claims, not documents)
+
+| withdrawn | by | why |
+|---|---|---|
+| back-invalidation as the AMD mechanism | `AMD_L3OCC_OUTCOME` | occupancy showed L3 eviction; the L2-hit collapse is a consequence |
+| the "bimodality" of the L2-resident victim | `BERGAMO_BACKINVAL_OUTCOME` addendum 1 | did not reproduce on an idle machine; stable ~1.9x |
+| reinstating H3 on AMD evidence | `AMD_L3OCC_OUTCOME` | the candidate charge was not a snoop-filter charge |
 
 ## Superseded — kept, do not cite
 
