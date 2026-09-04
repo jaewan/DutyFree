@@ -182,6 +182,7 @@ HAZARD_RETRY_FRAC_BUFFER_CAPPED = 0.50  # above this, an inversion is a home-nod
 HAZARD_HNF_OCCUPANCY_EXPECT_BELOW = 0.60
 
 HNF_RE = re.compile(r"^system\.ruby\.hnf(\d*)\.cntrl\.cache$")
+HNF_CNTRL_RE = re.compile(r"^system\.ruby\.hnf(\d*)\.cntrl$")
 # The L1 controller sections.  PARSER CORRECTION, 2026-09-04, post-launch:
 # this was written as ^system\.ruby\.rnf(\d+)\.cntrl$ on the assumption that
 # CHI names L1 controllers under the rnf node.  It does not.  The realized
@@ -428,7 +429,25 @@ def analyze(outdir, arm, mshr, repl, kind):
     # (CHI_config_8592.py:866-872), which this campaign does not set.  Recorded
     # rather than gated: tab:gem5cfg's 65,536-entry row is annotated
     # "finite-SF runs" and scopes itself to the H3 runs of tab:h3sf.
-    r["hnf_sf_present"] = any("snoop" in s.lower() or s.endswith(".sf") for s in ini)
+    # Reconciliation 5 of the pre-registration.  Section PRESENCE is not the
+    # question and was a misleading thing to record: CHI_config_8592.py always
+    # attaches an `sf` RubyCache to the HNF controller, but it is a placeholder
+    # (assoc 1, block_size 0, size 1024) unless HNF_SF_FINITE=1.  The
+    # load-bearing flag is `sf_finite` on the controller, which gates whether
+    # SLICC enforces directory capacity at all.  Both are recorded; the second
+    # is the one the pre-registration's reconciliation 5 turns on.
+    r["hnf_sf_section_present"] = any(
+        "snoop" in s.lower() or s.endswith(".sf") for s in ini)
+    hnf_cntrl = next((b for n, b in ini.items()
+                      if HNF_CNTRL_RE.match(n)), {})
+    r["hnf_sf_finite"] = hnf_cntrl.get("sf_finite")
+    r["hnf_sf_size"] = ini.get("system.ruby.hnf.cntrl.sf", {}).get("size")
+    # The fill accounting the windowed footprint prediction rests on: a read
+    # must never allocate, so every data-array write is an eviction.
+    r["hnf_alloc_on_read"] = {
+        k: hnf_cntrl.get(k) for k in
+        ("alloc_on_readshared", "alloc_on_readunique",
+         "alloc_on_readonce", "alloc_on_writeback")}
 
     # ---- gates G1-G4, G6, G8-G12 (G5 and G7 below; G5 is cross-run)
     statuses = [x.get("status") for x in inst]
