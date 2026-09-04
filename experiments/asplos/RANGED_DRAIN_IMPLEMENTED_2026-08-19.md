@@ -1,5 +1,19 @@
 # The 48 ms DoS primitive is mitigated in the prototype
 
+**Forward pointer, 2026-09-04: the runtime knob this record describes has since
+been withdrawn.** Kernel commit `888060f6a66e` removes
+`/sys/kernel/debug/streaming/drain_at_exit` **and the exit-drain call site with
+it**, so the two arms below are *not* recoverable by building two kernels: no
+configuration reaches the ranged exit drain, and recovering that arm requires
+reverting code. `streaming_drain_range()` still compiles
+(`mm/streaming.c:383`) but has no caller anywhere in the tree. Entry now needs
+no drain at all under baseline H2 — measured at ~124 µs, not ~48 ms — and the
+machine-wide clean survives only as the default-off
+`CONFIG_PAT_STREAMING_H3_SEAL_ORACLE`. **No measured quantity is lost**, because
+this record already discloses that it carries no performance number (see "What
+is still missing"); what is lost is the runtime selectability of the two
+validated modes.
+
 Written 2026-08-19, answering reviewer item 4. Merged to `DutyFree-Linux` `main`
 via PR #3 (`b9f60fa`).
 

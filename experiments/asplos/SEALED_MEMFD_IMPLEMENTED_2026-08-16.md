@@ -1,5 +1,12 @@
 # Sealed-memfd admission: implemented, boot-tested, merged to main
 
+**Forward pointer, 2026-09-04: this carrier has since been withdrawn.** Kernel
+commit `888060f6a66e` narrows admission to private anonymous and private
+hugetlb, and the tip now asserts `EINVAL` for a sealed single-mapper memfd
+(`tools/testing/selftests/mm/streaming_memfd.c` case 1). This record remains
+true of its own revision (`f2f3a8b`, PR #2 `a9534e5`); it is no longer true of
+the prototype.
+
 Written 2026-08-16. Implements the one-day tier from
 `SEALED_MEMFD_ESTIMATE_2026-08-16.md`. Branch `streaming-sealed-memfd`
 (`f2f3a8b`) on `jaewan/DutyFree-Linux`, merged to `main` via PR #2

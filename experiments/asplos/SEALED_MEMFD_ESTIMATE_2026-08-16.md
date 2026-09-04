@@ -1,5 +1,13 @@
 # Sealed-memfd admission: code-grounded estimate
 
+**Forward pointer, 2026-09-04: the carrier this estimate scopes has since been
+withdrawn.** The one-day tier below was built
+(`SEALED_MEMFD_IMPLEMENTED_2026-08-16.md`) and then removed by kernel commit
+`888060f6a66e`, which narrows admission to private anonymous and private
+hugetlb; the tip asserts `EINVAL` for a sealed single-mapper memfd. The reason
+is the one §3 below already names — a point-in-time mapper count does not
+establish I0 — so the estimate's own analysis stands; the capability does not.
+
 Written 2026-08-16. **Supersedes the first version of this file**, which was
 structural because the prototype appeared to be outside version control. It
 was not — the submodule pointed at an empty default branch (see
