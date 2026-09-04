@@ -557,9 +557,11 @@ was; only `refs/heads/pr4-work` was added. Unpushed count went **9 → 0**.
 
 **Verification, 2026-09-04.** End to end, in a throwaway clone outside the
 workspace, since `git rev-list` alone only proves the local repository believes
-the objects are remote. The superproject is **not yet pushed**, so cloning the
-*published* `DutyFree` would have pinned the old gitlink and tested nothing
-relevant; the **local** repository was cloned instead, with `--no-local` to
+the objects are remote. At the time of this test the superproject was **not yet
+pushed** (see the paragraph after next, which records that changing mid-pass),
+so cloning the *published* `DutyFree` would have pinned the old gitlink and
+tested nothing relevant; the **local** repository was cloned instead, with
+`--no-local` to
 force a real object transfer rather than hardlinks, and it was confirmed to
 have no `.git/objects/info/alternates` — so the submodule's objects could only
 come from GitHub. Checked out at `9aad8a2b8b`, whose recorded gitlink is
@@ -571,18 +573,44 @@ shows no `+`/`-`, `git describe` gives `v6.8-26-gae43f80e6793`, and nine
 commits sit above the base.
 
 **What that does and does not demonstrate.** It proves the nine commits and the
-tree they produce are obtainable from GitHub by a third party, and that the
-gitlink `9aad8a2b8b` records resolves against the remote. It does **not** prove
-a stranger can reach them today, because the pointer naming them is still
-unpublished: `DutyFree` `main` is 95 commits ahead of
-`https://github.com/jaewan/DutyFree.git`, so a clone of the published
-superproject still pins the pre-series gitlink. The kernel is now obtainable;
-the pointer to it is not yet. Consistent with the `gem5` note above, that
-superproject push is sequenced separately and deliberately — it waits on this
-ledger, because publishing the pre-registrations without the record that
-discloses their precedence limits would release the claims without the caveat.
-The scratch clone was deleted afterwards; the `gem5` submodule was left
-uninitialised and untouched.
+tree they produce are obtainable from GitHub, and that the gitlink
+`9aad8a2b8b` records resolves against the remote. On its own it would *not*
+have proved a stranger could reach them, since it began from a clone of this
+working copy rather than of the published superproject — at the start of this
+pass `DutyFree` `main` was 95 commits unpushed, so the published superproject
+still pinned a pre-series gitlink and the local clone was the only honest test
+available.
+
+**That caveat was overtaken by events, and the stronger claim now holds.**
+While this pass was running, the superproject was published independently by
+another worker: `https://github.com/jaewan/DutyFree.git` `main` is now
+`322c9564ee`, which records `linux` at `ae43f80e6793` and `gem5` at
+`fa27f665db02`. The two halves therefore met, and the ordering mattered — had
+that push landed before this one, the published gitlink would have been a
+dangling pointer naming a commit no one could fetch. It was re-verified from
+the third party's side, with no local repository involved anywhere in the path:
+a fresh clone of the **published** `DutyFree` from GitHub into `/tmp`, no
+object alternates, then `git submodule update --init linux`, which reported
+`checked out 'ae43f80e67939ee3d3470c0dec91d3baeb056614'` after cloning from
+`https://github.com/jaewan/DutyFree-Linux.git`. In that clone the submodule
+tree hash is `fd230167b26a` as above, and the static counts come to **47**
+kselftest assertions and **10** KUnit cases. The paper's figures are now
+obtainable by a stranger today, which is the claim this section exists to
+support, and it is no longer contingent on anything in this working copy.
+
+**What a stranger still does not get.** The published superproject pins
+`ae43f80e6793`, not `0f82e8996b6b`, so a clone today lacks the two selftest
+ignore lines below and its `.gitmodules` still reads `branch = main` with no
+key for `gem5`. Those live in four commits that remain unpushed here, this
+record among them; per the sequencing above the superproject push is not this
+pass's to make. The consequence is bounded and worth stating plainly: it costs
+a stranger two untracked ELF files after a build, and a
+`git submodule update --remote` that walks to the base instead of the series.
+It does not affect the 47/10 counts, the tree hash, or any measurement in §1
+or §2, all of which are already reachable at `ae43f80e6793`.
+
+Both scratch clones were deleted afterwards. The `gem5` submodule was left
+uninitialised and untouched in both.
 
 **`.gitmodules` now names `pr4-work` for both submodules.** The earlier pass
 left `branch = main` for `linux` on the reasoning that naming an unpushed
