@@ -1,0 +1,23 @@
+========================================================================
+FS complete-join campaign: atomic_2cpu_w8_fs_e2e_r6e_16g
+========================================================================
+
+arm     n  victim cyc/load  half-range  victim loads  HNF bypasses
+qui     1           97.443       0.000       1200000             0
+wb      3          115.224       0.157       1680384             0
+h2      2           97.102       0.053       1994240        524144
+
+  victim window spans      : qui=116.9M cyc, wb=193.6M cyc, h2=193.6M cyc   ratio 1.66x
+
+  P2 victim tax under wb   : +17.781 cyc/load (+18.25%)   [PASS, threshold +10%]
+  P3 protection R(h2)      : +101.92%  (gap +18.122 cyc/load)
+     seed spread (max arm) : 0.314 cyc/load
+     -> resolved: gap exceeds the seed spread
+  P4 tenant wedge h2 vs wb : -0.01% (tuples/cycle, from rdtsc)
+     tenant seed spread    : +-0.70%  resolvable threshold +-0.70%
+     -> within noise: no measurable cost to the tenant
+
+FAIL (3):
+  - qui_s2: rcS did not complete cleanly
+  - qui_s3: rcS did not complete cleanly
+  - h2_s3: rcS did not complete cleanly
