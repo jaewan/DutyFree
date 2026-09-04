@@ -749,3 +749,41 @@ they and this memo disagree, **this memo is later** … Neither is withdrawn."
 Global staleness already has a global annotation. Adding per-clause blocks would
 duplicate it at the wrong granularity and contradict its "neither is withdrawn"
 framing. **The correct action is the one taken: none.**
+
+### 4. Provenance defect found while committing this pass: the kernel gitlink bump landed in someone else's commit
+
+**Recorded because it is a provenance defect, not because anything is broken.**
+The tree is correct; only the attribution is wrong.
+
+This pass corrected a stale comment in the kernel — `mm/streaming.c`'s ranged
+exit drain section still called the ~48 ms machine-wide `WBNOINVD` a live
+entry-path cost and a denial-of-service primitive — as `linux` commit
+**`6a7e5b09bd8b`**, and intended to advance this repository's gitlink to it in a
+commit of its own. That commit does not exist. The bump `0f82e89 → 6a7e5b0` was
+staged, and a concurrent worker's commit **`c34305f`** ("AMD_XSOCKET outcome:
+cross-socket tax is unmeasurable") captured the staged index and carried the
+gitlink with it. `c34305f`'s message documents 400 cross-socket runs on `moscxl`
+and says nothing about the kernel pointer it moves.
+
+**Consequences, stated precisely.** The gitlink at `HEAD` is `6a7e5b09bd8b`,
+which is the intended pointer, so a clone gets the right kernel and nothing
+measured moves — `6a7e5b09bd8b` is comment-only, and the shipped `vmlinux` and
+`bzImage` are still the ones scored 47/0/0 kselftest and 10/0/0 KUnit in
+`KERNEL_TEST_AGGREGATE_OUTCOME_2026-09-03.md`. What is lost is **searchability**:
+`git log -- linux` names `c34305f` as the commit that re-pinned the prototype,
+and its message gives a reader no reason why. The two immediately preceding
+gitlink moves (`9aad8a2`, `6315fa5`) each did this correctly in a dedicated
+commit, so the convention exists and this is a departure from it.
+
+**Not repaired here, deliberately.** `c34305f` is another worker's commit and
+all six commits on `main` are unpushed, so an amend is available — but amending
+a concurrent worker's commit while they may be mid-push is the larger risk, and
+this pass does not push. Left for the worker sequencing the pushes.
+
+**The methodological lesson, which is the reusable part.** `git add` in a shared
+checkout is not a private operation: the index is shared, so staging a path and
+then doing anything else first leaves that path to be swept up by whoever
+commits next. A prior pass in this repository used `git apply --cached` to stage
+only its own hunks against a file carrying a foreign edit; the same reasoning
+applies in the other direction, to staging *early*. **Stage and commit in one
+step**, or accept that the next commit may not be yours.
