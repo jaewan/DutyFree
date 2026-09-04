@@ -496,3 +496,139 @@ measurement — no cell is attributed to `build-481d7e12`, and the push moved no
 commit — so it is a consistency fix to §1's table, not a correction to anything
 it claims. The superproject gap above remains open and is being sequenced
 separately.
+
+## 2026-09-04 — the STREAMING kernel is now fetchable, and the 47/10 test counts are obtainable
+
+*Dating note: as above, this host's clock is KST (UTC+9) and commit timestamps
+for this pass read `2026-09-05`; this record is dated by project-local time
+(UTC-7), `2026-09-04`, consistent with the rest of this directory.*
+
+The `gem5` pass above closed the simulator half. The kernel half was in the
+same condition and is now closed the same way.
+
+**What was wrong.** `git rev-list --count pr4-work --not --remotes` in `linux`
+returned **9**: the whole STREAMING series was unpushed, tip `ae43f80e6793`,
+which is the commit `9aad8a2b8b` records as the `linux` gitlink. Unlike `gem5`,
+the gap was not an entire history — the base `b9f60fafda72` **is**
+`origin/main` on the remote — so this was nine commits on an already-fetchable
+base rather than a missing chain. The consequence was still that
+`git submodule update --init linux` could not succeed from a clone.
+
+This is what made the paper's test counts unobtainable, and the arithmetic is
+worth recording because it is checkable without building anything. A reader
+cloning the published tree got the base, whose `ksft_set_plan()` calls total
+`7 + 13 + 3 + 4 =` **27** with **8** `KUNIT_CASE` entries in
+`mm/streaming_kunit.c`. The paper cites **47** and **10**. At `pr4-work` the
+same static count is `10 + 13 + 4 + 3 + 17 =` **47** (`streaming_hugetlb`
+contributing `HUGE_TEST_PLAN`, `2 * HUGE_CYCLE_TESTS + 1` = 13) and **10**
+KUnit cases. So the 27/8 a reader saw was not a discrepancy in the claim; it
+was the pre-series tree. Publishing the branch is what makes the cited figures
+recoverable. These are declared plan totals read out of the source, not a test
+run — nothing was built, booted or executed for this record.
+
+**The remote, before.** `origin` is
+`https://github.com/jaewan/DutyFree-Linux.git`, the same URL `.gitmodules`
+names for the `linux` submodule. Remote-tracking refs were stale, as they were
+for `gem5`: a `git fetch --prune --tags` discovered a `claude-draft` branch and
+six upstream tags (`v3.0`, `v4.0`, `v5.0`, `v6.0`, `v6.8`, `v7.0`) the local
+repository did not know about, so the pre-push picture had to be re-read from
+the server rather than trusted from cache. Before the push the remote carried
+six branches — `main` and `origin/HEAD` at `b9f60fafda72`, plus `claude-draft`,
+`claude-draft2`, `merge-to-main`, `streaming-ranged-drain` and
+`streaming-sealed-memfd`. `git ls-remote --heads origin refs/heads/pr4-work`
+was **empty**: the branch did not exist there, so nothing could be overwritten
+and no question of a divergent same-named branch arose. A `--dry-run` reported
+`[new branch]` and so confirmed push permission before anything was sent.
+
+**Nothing to push in tags.** All six tags above came *from* the remote in that
+fetch; checking each with `git ls-remote --tags origin refs/tags/<t>` found
+zero local-only tags. Unlike `gem5`, this submodule has no build tags of its
+own, so "no tags to push" here is a verified fact rather than an assumption.
+
+**Pushed** to `origin` by name, as a single refspec `pr4-work:pr4-work`, with
+no force, no `--all`, no `--mirror` and no history rewrite:
+
+| ref | result | resolves to |
+|---|---|---|
+| `pr4-work` | new branch | `ae43f80e6793`, then fast-forwarded to `0f82e8996b6b` |
+
+`main` is still `b9f60fafda72` and every other branch is byte-for-byte what it
+was; only `refs/heads/pr4-work` was added. Unpushed count went **9 → 0**.
+
+**Verification, 2026-09-04.** End to end, in a throwaway clone outside the
+workspace, since `git rev-list` alone only proves the local repository believes
+the objects are remote. The superproject is **not yet pushed**, so cloning the
+*published* `DutyFree` would have pinned the old gitlink and tested nothing
+relevant; the **local** repository was cloned instead, with `--no-local` to
+force a real object transfer rather than hardlinks, and it was confirmed to
+have no `.git/objects/info/alternates` — so the submodule's objects could only
+come from GitHub. Checked out at `9aad8a2b8b`, whose recorded gitlink is
+`ae43f80e6793`, `git submodule update --init linux` reported `checked out
+'ae43f80e67939ee3d3470c0dec91d3baeb056614'` after cloning from
+`https://github.com/jaewan/DutyFree-Linux.git`. In that clone the submodule
+tree hash is `fd230167b26a`, identical to the local one, `git submodule status`
+shows no `+`/`-`, `git describe` gives `v6.8-26-gae43f80e6793`, and nine
+commits sit above the base.
+
+**What that does and does not demonstrate.** It proves the nine commits and the
+tree they produce are obtainable from GitHub by a third party, and that the
+gitlink `9aad8a2b8b` records resolves against the remote. It does **not** prove
+a stranger can reach them today, because the pointer naming them is still
+unpublished: `DutyFree` `main` is 95 commits ahead of
+`https://github.com/jaewan/DutyFree.git`, so a clone of the published
+superproject still pins the pre-series gitlink. The kernel is now obtainable;
+the pointer to it is not yet. Consistent with the `gem5` note above, that
+superproject push is sequenced separately and deliberately — it waits on this
+ledger, because publishing the pre-registrations without the record that
+discloses their precedence limits would release the claims without the caveat.
+The scratch clone was deleted afterwards; the `gem5` submodule was left
+uninitialised and untouched.
+
+**`.gitmodules` now names `pr4-work` for both submodules.** The earlier pass
+left `branch = main` for `linux` on the reasoning that naming an unpushed
+branch would make `git submodule update --remote` fail outright while `main` at
+least resolved. Publishing inverts that, and the inversion was *exercised* in
+the scratch clone rather than asserted: with `branch = pr4-work`,
+`git submodule update --remote linux` fetched `ae43f80e6793..0f82e8996b6b` from
+GitHub and checked out `0f82e8996b6b`; with `branch = main` the same command
+checked out `b9f60fafda72` — the bare base, the 27/8 tree, none of the series.
+That is the concrete cost the stale key carried.
+
+`gem5` was **not** stale in the same way, which is worth stating precisely: its
+entry carried **no** `branch` key at all. Git documents the default as the
+remote `HEAD`, which for that repository is `main` at `b580c0da1921`, so the
+practical outcome was identical to `linux`'s — `--remote` would have walked off
+`pr4-work`. The key was therefore *added* rather than corrected. Its
+`pr4-work` was confirmed present on the remote at `fa27f665db02`, matching the
+local HEAD with unpushed count 0, before being named, so this cannot
+reintroduce the unfetchable-branch problem. Note the asymmetry in evidence:
+`linux`'s key was exercised with a real `--remote` fetch, whereas `gem5`'s was
+verified by `git ls-remote` showing the ref server-side, not by a second
+multi-gigabyte clone. Both keys are inert for plain `git submodule update`,
+which uses the recorded gitlink.
+
+**Two selftest ignore lines, and a re-pin.** `tools/testing/selftests/mm/`
+built two ELF binaries, `streaming_lifecycle` and `streaming_memfd`, that
+showed as untracked because the directory's `.gitignore` listed
+`streaming_basic`, `streaming_hugetlb` and `streaming_reject` — added by this
+project's `123d6ae32009` — and not those two. The commit that introduced the
+tests said in its own message that the addition was "left as a separate change
+rather than folded in"; `0f82e8996b6b`
+(`selftests/mm: ignore the streaming_lifecycle and streaming_memfd binaries`)
+is that change, two inserted lines in one file and nothing else.
+`git check-ignore -v` attributes both binaries to the new lines 41 and 42, and
+the working tree reports clean with the binaries still on disk and
+uncommitted. It was pushed as a fast-forward (`ae43f80e6793..0f82e8996b6b`,
+unpushed count 0), and the `DutyFree` gitlink was re-pinned to it in its own
+commit; the fetched tip's `.gitignore` hashes to
+`0c30529364405805…`, equal to the local file. Unlike the `gem5` pass, a re-pin
+*was* needed here, because this pass added a commit rather than only publishing
+existing ones.
+
+**Unchanged by this pass.** No kernel source was modified, nothing was built,
+no guest was booted and no test was run. Apart from the two `.gitignore` lines,
+the only file content changed anywhere is `.gitmodules`; the `linux` tracked
+tree at `ae43f80e6793` hashes to `fd230167b26a` before and after, and
+`git status --porcelain --untracked-files=no` is empty in both repositories.
+Every commit hash cited in §1 and §2 is untouched — pushing does not rewrite
+commits.
