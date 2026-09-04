@@ -415,7 +415,11 @@ Provenance note that survives this: the re-run cells emit **six**
 guard is warning-only — `config.ini` byte-identical, and `wb` bit-identical —
 so **this is not a regression**, and should not later be read as one.
 
-## 2026-09-05 — `pr4-work` and both build tags are now on the remote, and the gitlink fetches
+## 2026-09-04 — `pr4-work` and both build tags are now on the remote, and the gitlink fetches
+
+*Dating note: this host's clock runs KST (UTC+9), so commit timestamps for this
+pass read `2026-09-05`; records in this directory are dated by project-local
+time (UTC-7) and so are dated `2026-09-04`.*
 
 Everything §1 and §2 rely on was, until now, reachable only in this working
 copy. `git rev-list --count pr4-work --not --remotes` returned **19**: the whole
@@ -442,7 +446,7 @@ and no other branch was touched. Pushing does not rewrite commits: every hash
 above is byte-for-byte what it was, so `065fd80` already pins the correct `gem5`
 commit and **no re-pin was needed**.
 
-**Verification, 2026-09-05.** `git rev-list --count <ref> --not --remotes` is now
+**Verification, 2026-09-04.** `git rev-list --count <ref> --not --remotes` is now
 **0** for all three refs, and `git ls-remote --tags origin` shows both tags
 dereferencing to the commits tabulated above. End to end, in a throwaway clone
 outside the workspace: a fresh clone of this superproject at `065fd80`, then
@@ -460,9 +464,35 @@ The `linux` submodule was left uninitialised and untouched.
   `pr4-work`, but it cannot be reached by tag name — so §1's "all three are now
   recoverable" holds for the commit and not yet for the label. No cell is
   attributed to that binary, so no published magnitude depends on it. Pushing
-  the tag is a one-line follow-up.
+  the tag is a one-line follow-up. **Closed the same day — see "The third tag
+  is now reachable by name" below.**
 - The superproject is itself unpushed. `DutyFree` `main` carries **90** commits
   absent from `https://github.com/jaewan/DutyFree.git`, whose `main` is still
   `73f0332f6c`, so neither `065fd80` nor the corrected gitlink is visible to a
   third party yet. The simulator is now obtainable; the pointer naming it is
   not. That is a superproject push, tracked separately from `F13`.
+
+**The third tag is now reachable by name.** The first gap above is closed.
+`build-481d7e12` was pushed to the same `origin`
+(`https://github.com/jaewan/DutyFree-Gem5.git`) by name, as a single refspec,
+with no force and no history rewrite:
+
+| ref | result | resolves to |
+|---|---|---|
+| `build-481d7e12` | new tag (annotated) | `1bb6418e01` |
+
+It did not exist on the remote beforehand, so nothing was overwritten, and no
+branch and no other tag was touched — `git ls-remote --tags origin` is
+unchanged apart from the two new lines for this ref. Verified: the remote
+carries tag object `d35d5fb116` with `refs/tags/build-481d7e12^{}`
+dereferencing to `1bb6418e0128d1daf1efdc2105d482ab0fa9adaa`, which is the
+commit §1 names and matches the local tag object byte for byte, so it arrived
+as an annotated tag rather than a lightweight ref. `git rev-list --count
+build-481d7e12 --not --remotes` is **0**.
+
+With this, §1's three recoverable binaries are recoverable **by label as well
+as by commit**: all three build tags now resolve on the remote. This changes no
+measurement — no cell is attributed to `build-481d7e12`, and the push moved no
+commit — so it is a consistency fix to §1's table, not a correction to anything
+it claims. The superproject gap above remains open and is being sequenced
+separately.
