@@ -1,0 +1,116 @@
+DUCKDB_SE_LAUNCH arm=h2 seed=1 preset=gem5-smoke out=/home/domin/DutyFree/gem5/logs/se_duckdb_mmap_h2_smoke/h2_s1 2026-09-05T07:27:26+09:00
+DUCKDB_SE_GEM5 cb2904444d5c5c4d31d9d8f07295209283d29e294ef1d885d789442d98e7bbe0  build_Intel_8592/gem5.opt
+DUCKDB_SE_TENANT 2139aa85efb386692b14c561df27eeb6ac257d89c9acb5b6c60aa8dc636fd84b  /home/domin/DutyFree/benchmarks/e2e/duckdb_mmap_probe/build/mmap_probe.gem5
+DUCKDB_SE_VICTIM 1f6214b8cadb451371665e73a08ee584f5a3efb062b8ced0f9cef6fb08f6a7fd  /home/domin/DutyFree/gem5/testcase/dutyfree/victim
+warn: The se.py script is deprecated. It will be removed in future releases of  gem5.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+Global frequency set at 1000000000000 ticks per second
+warn: rounding error > tolerance
+    1.818989 rounded to 2
+warn: rounding error > tolerance
+    1.818989 rounded to 2
+warn: rounding error > tolerance
+    1.818989 rounded to 2
+warn: rounding error > tolerance
+    1.818989 rounded to 2
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+warn: rounding error > tolerance
+    1.818989 rounded to 2
+warn: rounding error > tolerance
+    1.818989 rounded to 2
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/stats/storage.hh:278: warn: Bucket size (4) does not divide range [1:32] into equal-sized buckets. Rounding up.
+src/base/stats/storage.hh:278: warn: Bucket size (4) does not divide range [1:8] into equal-sized buckets. Rounding up.
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/stats/storage.hh:278: warn: Bucket size (4) does not divide range [1:32] into equal-sized buckets. Rounding up.
+src/base/stats/storage.hh:278: warn: Bucket size (4) does not divide range [1:8] into equal-sized buckets. Rounding up.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 25.1.0.1
+gem5 compiled Sep  4 2026 12:47:48
+gem5 started Sep  5 2026 07:27:30
+gem5 executing on mos181, pid 1593556
+command line: build_Intel_8592/gem5.opt --outdir=/home/domin/DutyFree/gem5/logs/se_duckdb_mmap_h2_smoke/h2_s1 configs/deprecated/example/se.py --ruby --topology=Pt2Pt --chi-config=/home/domin/DutyFree/gem5/configs/ruby/CHI_config_8592.py --num-l3caches=1 --num-dirs=1 --cpu-type=O3CPU --num-cpus=2 --cpu-clock=1.9GHz --l1d_size=48KiB --l1d_assoc=12 --l1i_size=32KiB --l1i_assoc=8 --l2_size=2MiB --l2_assoc=16 --l3_size=7680KiB --l3_assoc=20 --mem-type=SimpleMemory --mem-size=256GiB --cxl-mem-size=128GiB --dram-latency=98ns --cxl-latency=203ns -c '/home/domin/DutyFree/gem5/testcase/dutyfree/victim;/home/domin/DutyFree/benchmarks/e2e/duckdb_mmap_probe/build/mmap_probe.gem5' --options '2650 12000000;--preset gem5-smoke --policy stream --outdir /tmp/duckdb_mmap_se_unused'
+
+info: Standard input is not a terminal, disabling listeners.
+**** REAL SIMULATION ****
+src/mem/ruby/system/Sequencer.cc:707: warn: Replacement policy updates recently became the responsibility of SLICC state machines. Make sure to setMRU() near callbacks in .sm files!
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall rseq(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/base/loader/symtab.cc:95: warn: Cannot insert a new symbol table due to name collisions. Adding prefix to each symbol's name can resolve this issue.
+src/base/loader/symtab.cc:95: warn: Cannot insert a new symbol table due to name collisions. Adding prefix to each symbol's name can resolve this issue.
+src/base/loader/symtab.cc:95: warn: Cannot insert a new symbol table due to name collisions. Adding prefix to each symbol's name can resolve this issue.
+src/base/loader/symtab.cc:95: warn: Cannot insert a new symbol table due to name collisions. Adding prefix to each symbol's name can resolve this issue.
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall rseq(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.cc:97: warn: ignoring syscall rt_sigaction(...)
+      (further warnings will be suppressed)
+src/sim/syscall_emul.cc:97: warn: ignoring syscall rt_sigprocmask(...)
+      (further warnings will be suppressed)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall madvise(...)
+build_Intel_8592/mem/ruby/protocol/CHI/Cache_Controller.cc:1946: panic: Runtime Error at CHI-cache-actions.sm:159: STREAMING request is not a load/fetch for machine system.cpu1.l1d.
+Memory Usage: 269515072 KBytes
+Program aborted at tick 35423497878
+--- BEGIN LIBC BACKTRACE ---
+build_Intel_8592/gem5.opt(_ZN4gem515print_backtraceEv+0x2b) [0x5f00c45f093b]
+build_Intel_8592/gem5.opt(_ZN4gem512abortHandlerEi+0x4c) [0x5f00c4619e7c]
+/usr/lib/x86_64-linux-gnu/libc.so.6(+0x45cb0) [0x72bf96a45cb0]
+/usr/lib/x86_64-linux-gnu/libc.so.6(pthread_kill+0x11c) [0x72bf96aa642c]
+/usr/lib/x86_64-linux-gnu/libc.so.6(gsignal+0x1e) [0x72bf96a45b7e]
+/usr/lib/x86_64-linux-gnu/libc.so.6(abort+0x27) [0x72bf96a288ec]
+build_Intel_8592/gem5.opt(+0xc15f15) [0x5f00c2af5f15]
+build_Intel_8592/gem5.opt(_ZN4gem54ruby3CHI16Cache_Controller22AllocateTBE_SeqRequestERPNS1_9Cache_TBEERPNS1_16Cache_CacheEntryEm+0x5a0) [0x5f00c341de50]
+build_Intel_8592/gem5.opt(_ZN4gem54ruby3CHI16Cache_Controller18doTransitionWorkerENS1_11Cache_EventENS1_11Cache_StateERS4_RPNS1_9Cache_TBEERPNS1_16Cache_CacheEntryEm+0x10f9) [0x5f00c3354bd9]
+build_Intel_8592/gem5.opt(_ZN4gem54ruby3CHI16Cache_Controller12doTransitionENS1_11Cache_EventEPNS1_16Cache_CacheEntryEPNS1_9Cache_TBEEm+0xa7) [0x5f00c33597b7]
+build_Intel_8592/gem5.opt(_ZN4gem54ruby3CHI16Cache_Controller6wakeupEv+0x1525) [0x5f00c3383b25]
+build_Intel_8592/gem5.opt(+0x15d161a) [0x5f00c34b161a]
+build_Intel_8592/gem5.opt(_ZN4gem510EventQueue10serviceOneEv+0xb5) [0x5f00c46095a5]
+build_Intel_8592/gem5.opt(_ZN4gem59doSimLoopEPNS_10EventQueueE+0x68) [0x5f00c463b4f8]
+build_Intel_8592/gem5.opt(_ZN4gem58simulateEm+0x26b) [0x5f00c463bbeb]
+build_Intel_8592/gem5.opt(+0x1c366df) [0x5f00c3b166df]
+build_Intel_8592/gem5.opt(+0xc5b482) [0x5f00c2b3b482]
+/usr/lib/x86_64-linux-gnu/libpython3.14.so.1.0(+0x18d105) [0x72bf9738d105]
+/usr/lib/x86_64-linux-gnu/libpython3.14.so.1.0(PyObject_Call+0xab) [0x72bf973271bb]
+/usr/lib/x86_64-linux-gnu/libpython3.14.so.1.0(_PyEval_EvalFrameDefault+0x681f) [0x72bf9748725f]
+/usr/lib/x86_64-linux-gnu/libpython3.14.so.1.0(+0x2941a5) [0x72bf974941a5]
+/usr/lib/x86_64-linux-gnu/libpython3.14.so.1.0(PyEval_EvalCode+0xd6) [0x72bf974791c6]
+/usr/lib/x86_64-linux-gnu/libpython3.14.so.1.0(+0x27a819) [0x72bf9747a819]
+/usr/lib/x86_64-linux-gnu/libpython3.14.so.1.0(PyObject_Vectorcall+0x5e) [0x72bf97324cde]
+/usr/lib/x86_64-linux-gnu/libpython3.14.so.1.0(_PyEval_EvalFrameDefault+0x4fa0) [0x72bf974859e0]
+/usr/lib/x86_64-linux-gnu/libpython3.14.so.1.0(+0x2940f7) [0x72bf974940f7]
+build_Intel_8592/gem5.opt(+0x1c12916) [0x5f00c3af2916]
+build_Intel_8592/gem5.opt(main+0x217) [0x5f00c2aeebe7]
+/usr/lib/x86_64-linux-gnu/libc.so.6(+0x2a601) [0x72bf96a2a601]
+/usr/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x88) [0x72bf96a2a718]
+build_Intel_8592/gem5.opt(_start+0x25) [0x5f00c2af4a05]
+--- END LIBC BACKTRACE ---
+For more info on how to address this issue, please visit https://www.gem5.org/documentation/general_docs/common-errors/ 
+
+DONE_134 NAME=h2_s1 ARM=h2 SEED=1 1788562848
