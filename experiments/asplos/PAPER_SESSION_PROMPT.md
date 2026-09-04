@@ -369,6 +369,12 @@ the remaining time versus #28 and the end-to-end results. Do not start one.
 
 ### #32 — Ranged drain + transition-storm DoS
 
+**This item is CLOSED and its premise is withdrawn — see "Correction —
+2026-09-04" at the end of this file before drafting from it.** Baseline H2
+entry performs no broadcast at all and is measured in **microseconds**; the
+48 ms clean survives only as a `default n` H3 oracle. The wording below is
+left verbatim per `A6.19`.
+
 The 48 ms machine-scoped IPI broadcast at epoch entry is an **unprivileged DoS
 primitive** if any process can trigger it in a loop. Write the ranged-drain
 relocation (entry needs no drain under H2-only semantics — both types are
@@ -464,3 +470,64 @@ Not "the number came out well." A unit of work is done when:
 
 The paper's credibility is currently its strongest asset with the panels. It
 was bought with retractions. Spend it carefully.
+
+---
+
+## Correction — 2026-09-04: #32's premise is withdrawn; do not draft the DoS framing
+
+**Why this block exists.** This file exists to be drafted from. Item #32 above
+instructs a future worker to "discuss the storm" and hands them the phrase
+**"unprivileged DoS primitive"** as established fact. At the kernel tip
+(`linux` branch `pr4-work`, tip `ae43f80e67`) that premise is false for
+baseline H2, so acting on #32 as written would inject a security claim about a
+threat the proposed mechanism does not have. Per `A6.19` the item is left
+verbatim above; the superseded wording is quoted here rather than deleted:
+
+> The 48 ms machine-scoped IPI broadcast at epoch entry is an **unprivileged DoS
+> primitive** if any process can trigger it in a loop.
+
+**Replacement:**
+
+> Baseline H2 epoch entry performs **no cache writeback and no machine-wide
+> clean** — it changes only future shared-cache admission — and is measured in
+> **microseconds** (72–90 µs on QEMU/KVM; see the two-family note in
+> `KERNEL_TEST_AGGREGATE_OUTCOME_2026-09-03.md`). There is therefore **no DoS
+> primitive in baseline H2**: a ~10⁻⁴ s operation confined to the declarer is
+> not a denial-of-service vector. The ~48 ms machine-wide `WBNOINVD` survives
+> only as `CONFIG_PAT_STREAMING_H3_SEAL_ORACLE` (`arch/x86/Kconfig:1848`,
+> **`default n`**), whose own help text says it is "deliberately not part of
+> PROT_STREAMING's baseline H2 semantics … Do not enable it for normal H2 or
+> end-to-end measurements." The availability argument is a property of a
+> **default-off oracle**, not of the mechanism the paper proposes.
+
+**Sources.** `mm/mprotect.c:894-903` keeps the global clean strictly behind
+`IS_ENABLED(CONFIG_PAT_STREAMING_H3_SEAL_ORACLE)` and comments that baseline
+semantics "need no cache drain". Commit `888060f6a66e` removed both the
+`drain_at_exit` debugfs knob and the `streaming_drain_range()` call site; that
+function is still defined (`mm/streaming.c:383`) and declared (`mm/internal.h`)
+with **no caller anywhere in the tree**. Entry timings: 72–90 µs across four
+committed QEMU/KVM guest boots under `data/kernel/`; 124 µs in gem5 r12
+(`gem5/logs/fs_restore_chi/atomic_2cpu_w8_os_contract_r12_lifecycle/system.pc.com_1.device:9`),
+which is **clock-quantisation-limited** — see the two-family note.
+
+**The paper does not need this correction, and must not be "fixed" toward it.**
+Checked today across all eleven `Text/*.tex`: the strings `DoS`, `denial of
+service`, `storm`, `attack`, `adversar`, `malicious` and `threat` appear
+**nowhere**. The word `unprivileged` appears exactly once, at
+`Appendix.tex:669`, inside a paragraph headed "Why the **optional** entry
+broadcast is conservative" whose subject is stated at `Appendix.tex:660` as
+"The prototype's **H3-oracle** $\sim$48~ms entry cost", which the same
+paragraph calls "**not an inherent H2 cost**" and closes with "**Removing the
+broadcast from H2 closes it** for the portable path." That is correct at the
+tip and correctly scoped. Four other sites say the same thing independently:
+`Sec5_Streaming.tex:156`, `Sec6_Implementation.tex:55`,
+`Sec6_Implementation.tex:142` and `Sec6_Conclusion.tex:23`.
+
+**So the standing instruction for #32 is: do nothing.** The mitigation shipped;
+the paper already describes the post-mitigation world. `RANGED_DRAIN_DOS_WRITEUP.md`
+observed in August that "the words 'DoS,' 'unprivileged,' and 'storm' appear
+nowhere in `~/STREAMING_Paper/`" and treated that as a gap to fill. **Treat it
+instead as the correct end state.** Writing the storm discussion into the paper
+now would motivate the design with a threat the design does not have — the
+"claim stated stronger than the evidence supports" failure that §10 of this
+file exists to prevent.

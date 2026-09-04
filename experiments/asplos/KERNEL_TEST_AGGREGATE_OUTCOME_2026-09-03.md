@@ -159,3 +159,95 @@ Artifacts in `experiments/asplos/data/kernel/`: `guest_boot_2026-09-03.log` (run
   previously reported result. It is not a re-measurement of the old kernel.
 - Nothing here reruns the gem5 FS boot that produced the original KUnit `pass:8`
   line.
+
+---
+
+## Addendum — 2026-09-04: two measurement families for H2 transition latency, and which to cite
+
+The logs this record owns carry a second quantity besides the assertion counts:
+`streaming_lifecycle` case 4 prints `H2 transition 8MiB: enter_avg=… enter_max=…
+exit_avg=…`. That quantity now exists in **two families**, and until today no
+record distinguished them. Both are the same code measuring the same thing —
+`GENERATIONS 8` iterations of an 8 MiB `mprotect` seal/retire pair, timed with
+`clock_gettime(CLOCK_MONOTONIC_RAW)`
+(`tools/testing/selftests/mm/streaming_lifecycle.c:32,56,175-178`) — so the
+difference is entirely platform, not workload.
+
+| family | platform | `enter_avg` | `enter_max` | `exit_avg` |
+|---|---|---:|---:|---:|
+| **A — QEMU/KVM** `guest_boot_2026-09-03.log:452` | QEMU i440FX, **KVM**, Xeon Platinum 8592+, 4 vCPU | 90 µs | 156 µs | 76 µs |
+| A — `guest_boot_1g_2026-09-03.log:453` | as above | 90 µs | 168 µs | 77 µs |
+| A — `guest_shipped_always_2026-09-03.log:453` | as above, `thp=always` | 87 µs | 156 µs | 81 µs |
+| A — `guest_shipped_madvise_2026-09-03.log:454` | as above, `thp=madvise` | 72 µs | 85 µs | 75 µs |
+| **B — gem5 FS/CHI** `…os_contract_r12_lifecycle/system.pc.com_1.device:9` | gem5 full-system, atomic, CHI, 2 CPU | 124 µs | **999 µs** | 124 µs |
+| B — `…os_contract_r7_h2_lifecycle/…:9` | as above | 124 µs | **999 µs** | 124 µs |
+| B — `…os_contract_r13_lifecycle/…:9` | as above | 124 µs | **999 µs** | 124 µs |
+| B — `…os_validation_h2_lifecycle/…:9` | as above | 124 µs | **999 µs** | **249 µs** |
+
+### Why they differ, checked rather than assumed
+
+The obvious hypothesis is "gem5's timing model is slower than silicon". **That
+is not what is happening, and the real reason changes how family B may be
+cited.** Family B is **clock-resolution-limited**: the numbers are quantisation
+artifacts, not resolved means.
+
+The gem5 guest cannot use a fine clocksource. Its boot log
+(`gem5/logs/fs_boot_ckpt/atomic_2cpu_os_validation_h2_r1_16g/system.pc.com_1.device`)
+reads `tsc: Marking TSC unstable due to TSCs unsynchronized` and then
+`clocksource: Switched to clocksource refined-jiffies`. At `CONFIG_HZ=1000`
+(confirmed in `linux/.config`) one `refined-jiffies` tick is **999 848 ns**, so
+`CLOCK_MONOTONIC_RAW` in that guest advances in ~1 ms steps. Every family-B
+figure follows arithmetically:
+
+- `enter_max` = one tick = 999 848 / 1000 = **999 µs** — identical in all four
+  logs, which a genuine maximum across independent runs would not be.
+- `enter_avg` = one tick over `GENERATIONS 8` = 999 848 / 8 / 1000 = **124 µs**.
+- `exit_avg` = 249 µs in `os_validation` = **two** ticks over 8 = 1 999 696 / 8 /
+  1000 = **249 µs**.
+
+So the honest reading of family B is: **across 8 seal/retire pairs the guest
+clock advanced by one or two ticks in total**, i.e. seven of the eight samples
+returned a **0 ns delta** — each transition was *below the resolution of the
+clock measuring it*. 124 µs is not a measurement of 124 µs; it is one ~1 ms tick
+divided by eight. It bounds a transition at **≲ 1 ms** and says nothing finer.
+
+Family A is genuinely resolved: `kvm-clock` (`clocksource: Switched to
+clocksource kvm-clock`, TSC 1900 MHz) has nanosecond granularity, and the data
+behaves accordingly — the maxima differ run to run (85, 156, 156, 168 µs) and
+the means spread 72–90 µs, which is real per-sample variation rather than a
+repeated constant.
+
+### Which to cite, for what
+
+1. **For the magnitude of baseline H2 entry — cite family A: 72–90 µs**, four
+   independent boots, `data/kernel/`. It is the only resolved measurement of the
+   quantity, and it runs on real silicon under KVM, so the `mprotect` path,
+   page-table walk and TLB shootdown execute at hardware speed.
+2. **For "the model that produced the CHI results agrees" — cite family B, with
+   the limit stated.** Its value is corroborative and architectural, not
+   numeric: the same kernel in the gem5 full-system CHI configuration that
+   produced the paper's H2 results also completes entry in **under a
+   millisecond**. Write it as "below the guest clock's ~1 ms resolution", not as
+   "124 µs".
+3. **Neither family measures a `WBNOINVD` broadcast, so neither is comparable to
+   the ~48 ms figure.** That is a *third* platform — the 64-logical-CPU silicon
+   host (`SUBMISSION_READINESS_2026-08-19.md` C10, "48 ms measured on silicon").
+   The 48 ms and the µs figures are **not two measurements of one operation**:
+   the oracle build issues a machine-wide clean, the baseline issues none.
+   The gap is a *mechanism* change (`888060f6a66e`, `eccecc49e0ff`), and only
+   secondarily a platform difference. QEMU cannot reproduce `WBNOINVD` cost at
+   all — the reason `SUBMISSION_TODO_2026-08-19.md` item 2 asked for bare metal.
+
+### Consequence for records already citing 124 µs
+
+`STATE_2026-08-30.md`, `STATE_2026-09-01.md` (addendum 9) and commit `e9534a6`
+cite the gem5 **124 µs** as the corrected baseline entry cost. **Their
+conclusion is unaffected and their direction is right** — both families put
+entry in microseconds, three orders of magnitude below 48 ms, so the correction
+those documents make is if anything *understated*. What is imprecise is only the
+figure's status: 124 µs is a quantisation-limited upper bound, and 72–90 µs is
+the resolved number. A future draft quoting a single value for baseline H2 entry
+should quote **72–90 µs (QEMU/KVM)** and, if it needs one number, ~90 µs as the
+conservative end. Those documents are not edited here; this addendum is the
+pointer. **No measurement was launched for this note** — it is arithmetic over
+already-committed logs.

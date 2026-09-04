@@ -555,7 +555,7 @@ the cuts:
 | 24 | `Sec7` §tenant's own footprint | "falls from 89.4\% to 56.8\%, while a four-way CAT mask holds a flat 86--89\%" | 89.4\%→82.0\% between 2.0 and 3.5 MB, no further by 4.0 MB (82.3\%), across the five registered sizes; CAT declines ~4× more slowly, 89.3\%→87.3\%; seed spread <0.25 pp; 6.0/8.0 MB extension reported as exploratory — verbatim, add. 2 |
 | 25 | `Sec7` same paragraph | "the mask buys its **flat** protection" | "its **far flatter** protection" — add. 2 |
 | 26 | `fig:recovery` panels (a)/(b) + `\Description` | "a four-way CAT mask's does not"; "pays for that **flatness**"; "CAT **flat** near 87 percent" | "declines about four times more slowly"; "that flatter protection"; "declining only slightly, from 89 to 86 percent". **Not in add. 2's routed list** — found here, same withdrawn claim, same record |
-| 27 | `Sec7:360` | "sealing a 256~MiB object takes 46.2~ms with 2~MiB pages and 49.3~ms with 4~KiB pages, nearly independent of page count" | "sealing costs $\sim$48~ms and is *size-independent*: a 4~KiB epoch costs the same as a 256~MiB one, because the cost scales with logical-CPU count rather than object size" — `RANGED_DRAIN_DOS_WRITEUP.md:23`. **Resolves U4** |
+| 27 | `Sec7:360` | "sealing a 256~MiB object takes 46.2~ms with 2~MiB pages and 49.3~ms with 4~KiB pages, nearly independent of page count" | "sealing costs $\sim$48~ms and is *size-independent*: a 4~KiB epoch costs the same as a 256~MiB one, because the cost scales with logical-CPU count rather than object size" — `RANGED_DRAIN_DOS_WRITEUP.md:23`. **Resolves U4.** **Framing restored 2026-09-04:** in the paper this sentence sits under the `\emph{Optional H3.}` heading (`Sec7:356`) and is followed at `Sec7:362-365` by "it is **not a cost of baseline H2**, which preserves ordinary coherence and requires no global clean". Quoted without those two anchors the cell reads as a baseline cost, which it is not — baseline H2 entry is **microseconds**. See "Correction — 2026-09-04" at the end of this file |
 | 28 | `Appendix.tex` `tab:gem5cfg` Prefetch row | one row, "L1/L2 Stride(4) + DCPT" | two rows, "Prefetch (L1) — Stride(4) + DCPT" and "Prefetch (L2) — Stride(4) + Tagged". **Resolves U7 and §6.3** |
 | 29 | `Appendix.tex` `tab:gem5cfg` Memory row | "256\,GiB DDR + 128\,GiB CXL" | "128\,GiB DDR + 128\,GiB CXL" — **F6.1, open since 2026-08-23** |
 | 30–37 | 8 trim sites (below) | — | — |
@@ -634,7 +634,7 @@ re-proposed here.** Three rows are new:
 
 **For `INDEX.md`, "Withdrawn during 2026-09-03→04":**
 
-> | `Sec7_Evaluation.tex`'s seal costs, "46.2~ms with 2~MiB pages and 49.3~ms with 4~KiB pages" | `RANGED_DRAIN_DOS_WRITEUP.md` | the pair traces only to the HotStorage'26 draft and to no campaign record. Replaced with the record's **~48 ms, size-independent**, which is also the stronger statement: the cost scales with logical-CPU count, not object size |
+> | `Sec7_Evaluation.tex`'s seal costs, "46.2~ms with 2~MiB pages and 49.3~ms with 4~KiB pages" | `RANGED_DRAIN_DOS_WRITEUP.md` | the pair traces only to the HotStorage'26 draft and to no campaign record. Replaced with the record's **~48 ms, size-independent**, which is also the stronger statement: the cost scales with logical-CPU count, not object size. **This is an `\emph{Optional H3}` oracle cost, not a baseline H2 one** (`Sec7:356`, `Sec7:362-365`); baseline H2 entry performs no global clean and is measured in **microseconds**. Framing restored 2026-09-04 — see the correction at the end of this file |
 > | `tab:gem5cfg`'s memory row, "256~GiB DDR" | `W4.3_PROVENANCE_LEDGER_2026-08-23.md` §F6.1 | all 214 run directories instantiate `mem_ctrls[0]` over 128 GiB. Found 2026-08-23, applied 2026-09-04 |
 
 **For `INDEX.md`, a rendering-fault row** (per add. 2's request that this
@@ -646,3 +646,106 @@ document's U-list carry it — recording it here since `INDEX.md` is not ours):
 not edited; no `*_PREREG_*.md` edited; `RECOVERY_CURVE_OUTCOME_2026-09-04.md`
 read only, not rewritten; no rebuild, no `gem5/src/` change, nothing written
 under `gem5/logs/`, no simulation launched.
+
+---
+
+## Correction — 2026-09-04: the 48 ms rows' `Optional H3` framing, and the DoS argument checked end to end
+
+### 1. What changed in this file
+
+Edits 27 and the `INDEX.md` hand-back row both quote today's paper text
+correctly and **drop the framing that makes it correct in situ**. In
+`Sec7_Evaluation.tex` the sentence sits under the heading `\emph{Optional H3.}`
+(`Sec7:356`), is introduced by "We do price one deliberately conservative
+clean-home oracle" (`Sec7:359`), and is closed by "it is **not a cost of
+baseline H2**, which preserves ordinary coherence and requires no global clean"
+(`Sec7:362-365`). Quoted without those anchors, "sealing costs $\sim$48~ms and
+is *size-independent*" reads as a baseline transition cost. **It is not**, and
+at the kernel tip nothing in baseline H2 costs milliseconds: entry is
+**72–90 µs** (QEMU/KVM, four boots) and **124 µs** in gem5 r12, the latter
+clock-quantisation-limited (see
+`KERNEL_TEST_AGGREGATE_OUTCOME_2026-09-03.md`, addendum 2026-09-04). Both rows
+now carry the framing inline; **neither quotation was altered**, per `A6.19`.
+**The paper needed no change for this** — the exposure was this document being
+quotable out of context.
+
+### 2. The DoS argument: the paper is clean, and it was made clean on 2026-09-02
+
+Checked today across all eleven `Text/*.tex`, in both `HEAD` (`75d8841`) and the
+working tree. **`DoS`, `denial`, `storm`, `attack`, `adversar`, `malicious` and
+`threat` appear nowhere.** `unprivileged` appears exactly once:
+
+- **working tree** `Appendix.tex:669`, under `\heading{Why the **optional** entry
+  broadcast is conservative, and why ranging alone does not close it}`, whose
+  subject is set at `Appendix.tex:660` as "The prototype's **H3-oracle**
+  $\sim$48~ms entry cost", called "**not an inherent H2 cost**" at 663, and
+  closed at 674 with "**Removing the broadcast from H2 closes it** for the
+  portable path."
+- **`HEAD`** `Appendix.tex:650,653`, under `\heading{The **optional** entry
+  broadcast is an unprivileged primitive…}`, preceded by the same "H3-oracle" /
+  "not an inherent H2 cost" anchors and containing "Removing the broadcast from
+  H2 closes this problem for the portable path."
+
+Both are correctly scoped, and the availability claim is **true of the oracle**:
+`mm/mprotect.c:900` gates the global clean on `IS_ENABLED(CONFIG_PAT_STREAMING_H3_SEAL_ORACLE)`
+with **no privilege check**, so in an oracle build any process does trigger it.
+The scoping is what matters, and it is present. Four further sites say the same
+thing independently: `Sec5_Streaming.tex:156`, `Sec6_Implementation.tex:55`,
+`Sec6_Implementation.tex:142`, `Sec6_Conclusion.tex:23`.
+
+**The concern was well founded historically.** At `c6f5c80` (2026-08-19) and
+`1058877` (2026-08-24) the heading read `\heading{The entry broadcast is an
+unprivileged primitive…}` — **no "optional", no "H3-oracle" anywhere in the
+file** — and the surrounding text said "we report the un-relocated number
+because it is the one we measured". That version *did* present the DoS primitive
+as a live property of the mechanism. It was rescoped at **`7abf70b`
+(2026-09-02)**, which introduced both "optional" and "H3-oracle". Edit 30 of
+this pass ("merged two adjacent headings") then merged the two paragraphs,
+preserving the scoping. **So the defect existed, and was closed two days before
+this sweep looked for it.** No paper edit is proposed; cost **0 words**, which
+matters at 22 pages with under a caption line of slack.
+
+**One thing for the lead, not a defect.** The rescoping and edit 30 are **not
+committed** — seven `Text/*.tex` files are modified in the `STREAMING_Paper`
+working tree, and `HEAD` (`75d8841`) still carries the pre-merge two-heading
+form. The committed form is correctly scoped too, so there is no claim risk
+either way; but the trim this document records is unsaved. Not committed here,
+per this pass's constraints.
+
+### 3. `SUBMISSION_READINESS_2026-08-19.md` — the earlier decision not to annotate is **endorsed**
+
+That file asserts 48 ms as a live cost twice — line 47 ("a disclosed weakness
+(the unprivileged 48 ms DoS)") and line 118, C10 ("48 ms measured on silicon;
+mitigation implemented but **unmeasured**"). A prior pass declined to annotate
+it, reasoning that its staleness is **global rather than local**, so correcting
+one clause would falsely imply the other eleven matrix rows are current. **That
+reasoning is endorsed, on two grounds, and the file is left unedited.**
+
+*First, the premise is not merely sound — it is understated.* Re-verified today,
+the 48 ms clauses are two of at least **five** independently stale sites, only
+two of which this sweep would have touched:
+
+| site | why stale at the tip |
+|---|---|
+| Part 1, "A ranged drain now exists in the prototype (PR #3, boot-tested)" | `888060f6a66e` removed the `streaming_drain_range()` **call site**; no caller in the tree |
+| Part 2 OS item 1, "The mitigation is merged and boot-tested in QEMU; its benefit is unmeasured" | entry is now measured in µs; the exit arm is unreachable without reverting code |
+| Part 2 OS item 1, "the unprivileged 48 ms DoS" *(line 47)* | not a baseline cost |
+| Part 3, C4, "sealed memfd merged" | `888060f6a66e` narrows admission to private anon/hugetlb; the tip asserts `EINVAL` for a sealed single-mapper memfd |
+| Part 3, C10, "48 ms measured on silicon; mitigation … **unmeasured**" *(line 118)* | measured; and not a baseline cost |
+
+Annotating two of five would produce exactly the false signal of currency the
+prior pass predicted: a reader seeing two dated corrections in a matrix
+reasonably infers the remaining rows were checked. That is **worse than no
+annotation**, because it upgrades "undated snapshot, read with suspicion" to
+"audited document, two known issues".
+
+*Second — and this is the ground the prior pass did not cite — the supersession
+is already recorded, at the right granularity, in the successor document.*
+`REVIEWER_STATE_2026-08-24.md:15-20` carries an explicit, dated,
+**document-level** notice naming this file: "`SUBMISSION_READINESS_2026-08-19.md`
+and `REVIEWER2_RESPONSE_2026-08-19.md` predate W1's replication, W2.1's
+de-confound, W3.1's H3 null, W7's failure and W8's attribution result. Where
+they and this memo disagree, **this memo is later** … Neither is withdrawn."
+Global staleness already has a global annotation. Adding per-clause blocks would
+duplicate it at the wrong granularity and contradict its "neither is withdrawn"
+framing. **The correct action is the one taken: none.**

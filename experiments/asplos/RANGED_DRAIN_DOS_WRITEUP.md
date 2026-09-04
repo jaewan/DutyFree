@@ -1,5 +1,51 @@
 # The transition-storm DoS, and why the ranged-drain relocation actually closes it (#32)
 
+> **Forward pointer, 2026-09-04: this analysis is sound, and the entry path it
+> analyses is no longer baseline.** Everything below was true of the revision it
+> was written against (2026-08-13). The mitigation it argues for has since
+> **shipped**: at the kernel tip (`linux` `pr4-work`, tip `ae43f80e67`) baseline
+> H2 entry performs no writeback and no machine-wide clean, and is measured in
+> **microseconds** — 72–90 µs across four committed QEMU/KVM guest boots
+> (`data/kernel/`), 124 µs in gem5 r12. The ~48 ms `WBNOINVD` survives only as
+> `CONFIG_PAT_STREAMING_H3_SEAL_ORACLE` (`arch/x86/Kconfig:1848`, **`default n`**),
+> reached solely through `IS_ENABLED(...)` at `mm/mprotect.c:900`.
+>
+> **Read every present tense below as "as of 2026-08-13".** In particular the
+> primitive of §"The primitive, stated plainly" (lines 21–39) **does not exist in
+> baseline H2 today**: a 72–90 µs operation confined to the declarer is not a
+> denial-of-service vector. The primitive is now a property of a **default-off
+> oracle** that the Kconfig help text tells you not to enable, not a property of
+> the mechanism the paper proposes. This is a change of *scope*, not a retraction
+> of the reasoning: the coherence argument in §"Why the broadcast is machine-wide
+> today" and the sharer-set precision argument are exactly why the entry drain
+> could be removed, and they remain the live justification for H3's bounded seal
+> and retire.
+>
+> **Two clauses are now out of date as statements about the paper, and both are
+> good news.** First, lines 13–15 report that "the words 'DoS,' 'unprivileged,'
+> and 'storm' appear nowhere in `~/STREAMING_Paper/`" and treat that as a gap.
+> Re-checked across all eleven `Text/*.tex` today: `DoS`, `storm`, `denial`,
+> `attack`, `adversar`, `malicious` and `threat` still appear **nowhere**, and
+> `unprivileged` now appears exactly once — `Appendix.tex:669`, correctly scoped.
+> **That absence is the correct end state, not a gap**; see
+> `PAPER_SESSION_PROMPT.md` "Correction — 2026-09-04". Second, the closing line
+> "This has not been landed in `~/STREAMING_Paper/` yet" is superseded: §"Recommendation
+> for the paper" items 2 and 3 **were** landed, at `Appendix.tex:674-681`
+> ("The fix needs precision in \emph{who}, which the snoop filter already
+> records"), and item 1 was landed **rescoped** — `Appendix.tex:660` attributes
+> the cost to the "H3-oracle" and line 674 states that "Removing the broadcast
+> from H2 closes it for the portable path." Whoever drafted it dropped the
+> security framing and kept the coherence argument. That was the right call and
+> it is why the paper needs no correction today.
+>
+> One code note, since this document turns on the exit-side drain: commit
+> `888060f6a66e` removed the `drain_at_exit` debugfs knob **and the
+> `streaming_drain_range()` call site**. The function is still defined
+> (`mm/streaming.c:383`) and declared (`mm/internal.h`) with **no caller anywhere
+> in the tree**, so the ranged exit drain this document designs is present as code
+> and unreachable as behaviour. See
+> `RANGED_DRAIN_IMPLEMENTED_2026-08-19.md`'s forward pointer of the same date.
+
 Written 2026-08-13. Per `PAPER_SESSION_PROMPT.md` #32: *"The 48 ms
 machine-scoped IPI broadcast at epoch entry is an unprivileged DoS primitive
 if any process can trigger it in a loop... A reviewer who finds this before

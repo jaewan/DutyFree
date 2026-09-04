@@ -33,6 +33,14 @@ pure compute, embarrassingly parallel.
 
 ## 2. Measure the ranged drain on real hardware **[OS]**
 
+> **CLOSED 2026-09-04 — and this item's own prediction is CONFIRMED.** "Entry
+> should collapse from ~48 ms to microseconds" is exactly what happened:
+> baseline H2 entry is measured at **72–90 µs** (QEMU/KVM, four boots) and
+> **124 µs** (gem5 r12). Nobody recorded the closure at the time, so this item
+> sat open under **P0 — Blocking** for sixteen days after the evidence for it
+> landed. See "Closure — 2026-09-04" at the end of this file. The text below is
+> left verbatim per `A6.19`; read its present tenses as "as of 2026-08-19".
+
 **Reason.** The ~48 ms machine-wide, size-independent, unprivileged epoch-entry
 stall is the single most quotable objection in the paper — a DoS primitive in a
 multi-tenant pooled-memory proposal. The mitigation is now merged and
@@ -234,3 +242,64 @@ already made.
 before submission — that H2's benefit cannot be shown on silicon, because the
 repurposed PAT slot decodes to WB — is structural, is now stated at the claim
 site, and is bridged by flush-behind as an acknowledged proxy.
+
+---
+
+## Closure — 2026-09-04: item 2's prediction is confirmed, and the item was never marked closed
+
+**The prediction was right, and it is the entry half that is closed.** Per
+`A6.19` the two superseded passages are quoted rather than deleted:
+
+> **Reason.** The ~48 ms machine-wide, size-independent, unprivileged epoch-entry
+> stall is the single most quotable objection in the paper — a DoS primitive in a
+> multi-tenant pooled-memory proposal.
+
+> **Expected result.** Entry should collapse from ~48 ms to microseconds, because
+> the broadcast is simply gone.
+
+**Replacement:**
+
+> **Entry is closed, as predicted.** At the kernel tip (`linux` `pr4-work`, tip
+> `ae43f80e67`) baseline H2 entry performs no writeback and no machine-wide
+> clean: the global clean is reached only through
+> `IS_ENABLED(CONFIG_PAT_STREAMING_H3_SEAL_ORACLE)` at `mm/mprotect.c:900`, and
+> that symbol is **`default n`**. Measured entry cost is **72–90 µs** across
+> four committed QEMU/KVM guest boots (`data/kernel/`) and **124 µs** in gem5
+> r12. "Microseconds" was the prediction; microseconds is the result — a
+> ~500–670× reduction against the 48 ms figure. **There is consequently no DoS
+> primitive in baseline H2**, so the framing above ("a DoS primitive in a
+> multi-tenant pooled-memory proposal") describes a default-off oracle rather
+> than the proposed mechanism.
+
+**What is *not* closed, and it is the more interesting half.** This item asked
+for two curves, and only one exists:
+
+1. **Entry** — closed by *removal*, not by measurement. The broadcast is gone,
+   so there is no entry curve to sweep. The µs figures above are what remains.
+2. **Exit** — **still unmeasured, and now unmeasurable without a code change.**
+   The item's pre-registered honest risk ("Exit cost now *scales with object
+   size*, so there must be a crossover … Measure the curve, not a point") cannot
+   be run at the tip. Commit `888060f6a66e` removed the `drain_at_exit` debugfs
+   knob **and the `streaming_drain_range()` call site**; the function is still
+   defined (`mm/streaming.c:383`) and declared (`mm/internal.h`) with **no
+   caller anywhere in the tree**. No configuration reaches the ranged exit
+   drain, so the crossover sweep requires *reverting code*, not building two
+   kernels. `RANGED_DRAIN_IMPLEMENTED_2026-08-19.md`'s forward pointer of the
+   same date records this.
+
+**So "What it proves" is now half-earned.** The claim that the transition cost
+is an x86 exposure artifact rather than something intrinsic to object-scoped
+memory types **is** supported at entry, and the paper states it that way
+(`Sec5_Streaming.tex:156`, `Sec6_Implementation.tex:55`). The last sentence,
+"turns the DoS from a disclosed weakness into a solved problem", is right about
+entry and premature about exit: the exit-side drain is designed
+(`RANGED_DRAIN_DOS_WRITEUP.md`) and, at the tip, unreachable.
+
+**The process failure worth naming.** The mitigation merged via PR #3
+(`b9f60fa`, `eccecc49e0ff` "ranged exit drain, replacing the machine-wide entry
+writeback") and the confirming logs were committed, yet this P0 item was never
+annotated. Three separate later records (`STATE_2026-08-30.md`,
+`STATE_2026-09-01.md`, `PAPER_SESSION_PROMPT.md` #32) went on quoting 48 ms as
+a live cost, all corrected on 2026-09-04. **The instrument was not the problem
+here; the bookkeeping was.** An item whose prediction has been confirmed by
+committed evidence should be closed in the same commit that lands the evidence.
