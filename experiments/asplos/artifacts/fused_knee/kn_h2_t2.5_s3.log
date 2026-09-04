@@ -1,0 +1,41 @@
+warn: The se.py script is deprecated. It will be removed in future releases of  gem5.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+warn: Base 10 memory/cache size 1kB will be cast to base 2 size 1KiB.
+Global frequency set at 1000000000000 ticks per second
+warn: No dot file generated. Please install pydot to generate the dot file and pdf.
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/stats/storage.hh:278: warn: Bucket size (4) does not divide range [1:32] into equal-sized buckets. Rounding up.
+src/base/stats/storage.hh:278: warn: Bucket size (4) does not divide range [1:8] into equal-sized buckets. Rounding up.
+src/base/statistics.hh:279: warn: One of the stats is a legacy stat. Legacy stat is a stat that does not belong to any statistics::Group. Legacy stat is deprecated.
+src/base/stats/storage.hh:278: warn: Bucket size (4) does not divide range [1:32] into equal-sized buckets. Rounding up.
+src/base/stats/storage.hh:278: warn: Bucket size (4) does not divide range [1:8] into equal-sized buckets. Rounding up.
+src/base/remote_gdb.cc:418: warn: Sockets disabled, not accepting gdb connections
+gem5 Simulator System.  https://www.gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 25.1.0.1
+gem5 compiled Aug 29 2026 03:29:25
+gem5 started Aug 29 2026 22:58:38
+gem5 executing on mos181, pid 277689
+command line: build_Intel_8592/gem5.opt --outdir=/tmp/kn_h2_t2.5_s3 configs/deprecated/example/se.py --ruby --topology=Pt2Pt --chi-config=/home/domin/DutyFree/gem5/configs/ruby/CHI_config_8592.py --num-l3caches=1 --num-dirs=1 --cpu-type=O3CPU --num-cpus=2 --cpu-clock=1.9GHz --l1d_size=48KiB --l1d_assoc=12 --l1i_size=32KiB --l1i_assoc=8 --l2_size=2MiB --l2_assoc=16 --l3_size=5MiB --l3_assoc=20 --mem-type=SimpleMemory --mem-size=256GiB --cxl-mem-size=128GiB --dram-latency=98ns --cxl-latency=203ns -c '/home/domin/DutyFree/gem5/testcase/dutyfree/victim;/home/domin/DutyFree/gem5/testcase/dutyfree/fused' --options '2650 3000000;16.0 2.5 stream'
+
+info: Standard input is not a terminal, disabling listeners.
+**** REAL SIMULATION ****
+src/mem/ruby/system/Sequencer.cc:707: warn: Replacement policy updates recently became the responsibility of SLICC state machines. Make sure to setMRU() near callbacks in .sm files!
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall rseq(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.cc:86: warn: ignoring syscall set_robust_list(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall rseq(...)
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+src/sim/mem_state.cc:443: info: Increasing stack size by one page.
+src/sim/syscall_emul.cc:86: warn: ignoring syscall mprotect(...)
+fused: stream 16.00 MB, table requested 2.50 MB, REALIZED 2.50 MB (327680 elements)
+victim(2650KiB iters=3000000): sum=1017507206513
+Exiting @ tick 133515307984 because m5_exit instruction encountered
+DONE_0 NAME=kn_h2_t2.5_s3 ARM=h2 TABLE_MB=2.5 MASKS=none SEED=3 1788020563
