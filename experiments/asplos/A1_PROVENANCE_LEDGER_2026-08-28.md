@@ -768,3 +768,47 @@ pre-registrations and whose own campaign is closed. Neither moves a cell in any
 table above; the ledger's 20/20 recomputation and `fig:recovery`'s 63/63 stand,
 the latter now re-derived from the published tree rather than from this working
 copy.
+
+**Correction to the paragraph above, minutes after it was committed, and it is
+the fourth instance of the same pattern in two passes.** A second publication
+landed while this pass was committing: `origin/main` moved `322c9564ee →
+a0cfe302d2`, **11** commits, at `2026-09-05T03:20:01+09:00` KST. Three clauses
+written above are now false, and per `A6.19` they are quoted rather than deleted.
+
+> At the instant of publication `.gitmodules`' `branch` keys were wrong, and
+> **the fix is still unpublished** … Both keys now read `pr4-work`, fixed at
+> `6d6109e`, which is a descendant of `322c956` and **not** an ancestor, so it
+> is **not in the published tree**.
+
+> It is the **only** rule-suite record the API returns for this repository, so
+> this is the one direct push evaluated against the ruleset.
+
+What is true now, re-measured rather than inferred: `git show
+origin/main:.gitmodules` names `branch = pr4-work` for **both** submodules, so
+`6d6109e` is published and the stale-key exposure is closed in the published
+tree; `7606f84`'s `logs/se_chi_h1bw_sc/` subset is published with it, so the
+`tab:h1bw` row's artifact citations now resolve for a stranger and not merely for
+a reader of this working copy; and the published `linux` gitlink is
+`6a7e5b09bd8b`, which the 02:58:56 push put on the submodule's `pr4-work`, so the
+pin folded into `F13` above is fetchable from the published tree as well.
+
+**The bypass finding is strengthened rather than weakened, which is why it is
+worth correcting precisely.** There are now **two** rule-suite records for
+`refs/heads/main` and both read `result: bypass` --- `3950722155`
+(`73f0332f6c → 322c9564ee`, 02:18:06) and `3951418509` (`322c9564ee →
+a0cfe302d2`, 03:20:01) --- each failing the same two rules of the "Protect Main"
+ruleset. So direct pushes with admin bypass are not a single event but the
+established practice, which is what the user's decision to accept them as policy
+means in the record.
+
+**What does not change.** The two-commit publication does not touch the content
+finding: the `fig:recovery` reproduction above was run against `322c9564ee`'s
+extracted tree and every figure in it stands, `a0cfe302d2` being a superset of
+it. The matplotlib limit is unchanged --- still no `pip` and no `ensurepip` on
+this interpreter --- so rendering remains unproven. And the repository is still
+not fully versioned: `main` is ahead of the published tip again, this pass's own
+two commits among the reasons, and the remaining-untracked list two paragraphs up
+was re-measured after this push and is unchanged by it. **The instruction
+stands and this is now its fourth demonstration in two passes: a
+remaining-untracked list, an unpushed-commit count, and a publication state are
+each a measurement with a timestamp, not a state.**
