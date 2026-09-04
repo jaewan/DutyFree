@@ -143,3 +143,110 @@ on an 8 MiB probe (`g_copy` false at this P). The c4 80 MiB G-copy PASS
 
 No JSONL, no outcome, no gem5 arm, no paper sentence. This file is a
 gate list, not a result.
+
+---
+
+# Addendum 1 — 2026-09-04: the simulator binary is not the one registered. Declared before the smoke run, appended not edited (`A6.19`).
+
+**Nothing above is retracted, reworded or deleted.** The Apparatus section's
+`gem5.opt` line is superseded by this addendum and is quoted here rather than
+changed:
+
+> - gem5: `build_Intel_8592/gem5.opt` sha256 `cfd37207b9b7124ae88af7192178518b21c89b44a84d582efa69960ce19b9ed1` (same as r5)
+
+## The two digests, verified on mos181 before any arm
+
+| | sha256 | provenance |
+|---|---|---|
+| registered (r5 build) | `cfd37207b9b7124ae88af7192178518b21c89b44a84d582efa69960ce19b9ed1` | the line quoted above |
+| **realized (this campaign)** | **`cb2904444d5c5c4d31d9d8f07295209283d29e294ef1d885d789442d98e7bbe0`** | `sha256sum gem5/build_Intel_8592/gem5.opt`, mtime 2026-09-04 12:51:05, 984,361,288 B, `git describe` `build-cb290444-1-gfa27f665db` |
+
+The tenant and victim are **unchanged from the registration**: tenant
+`mmap_probe.gem5` `2139aa85efb386692b14c561df27eeb6ac257d89c9acb5b6c60aa8dc636fd84b`,
+victim `1f6214b8cadb451371665e73a08ee584f5a3efb062b8ced0f9cef6fb08f6a7fd`. Only
+the simulator moved.
+
+## The delta: three changes compiled into `gem5.opt`
+
+`git log build-cfd37207..build-cb290444` in `gem5/` lists five commits. Two do
+not reach this binary and are named so the count is not silently reconciled:
+`3bd36a0061` touches only `scripts/fs_*.sh` (FS restore, not SE, not compiled),
+and `f3c2c84949` touches only `testcase/dutyfree/fused.c`, a guest binary this
+campaign does not run — our `victim` and `dummy` hash unchanged. The three that
+are compiled in:
+
+| commit | change | bearing here |
+|---|---|---|
+| `b9c8714c93` | `prepareRequestRetry()` now copies `isStreaming` | **material — see below** |
+| `1bb6418e01` | m5op `0x57` `flush_range`, an idealised flush-behind oracle (`pseudo_inst.{cc,hh}`, `sim_object.{cc,hh}`, `m5ops.h`) | inert, measured |
+| `a5f366456e` | `ticks.py` rounding guard: `err = abs(...)` | warning-only |
+
+Records: `H2_BYPASS_COLLAPSE_2026-09-03.md` (diagnosis) and
+`H2_BYPASS_FIX_OUTCOME_2026-09-03.md` (patch, rebuild, re-run). One correction
+to the latter's §2 table, handed back rather than applied: it attributes
+`sim_object.{cc,hh}` to `3bd36a0061`; those two files are `1bb6418e01`'s, and
+`3bd36a0061` is shell scripts only. The count of compiled changes is unaffected.
+
+## Why the fix is load-bearing for `P1`, and why it is not a free choice
+
+`P1` is `streamingHnfFillBypasses > 0` on `h2`, and it is a **VOID** gate: a
+miss says the m5op never reached the HNF, not that STREAMING failed to help.
+The pre-fix binary contains exactly the defect that manufactures that miss.
+`prepareRequestRetry()` omitted one field assignment, so every CHI request that
+took a `RetryAck` was re-sent with `isStreaming` at its `false` field default —
+affirmatively marked non-streaming, not merely unmarked — and the HNF then
+allocated the line H2 was supposed to decline. The measured consequence, from
+`H2_BYPASS_FIX_OUTCOME_2026-09-03.md` §4: the one-slice H2 cell went from
+17,197 bypasses and 1.8% engagement to 853,853 and 97.6% on the same
+configuration with only the simulator changed.
+
+This campaign runs **one** LLC slice (`--num-l3caches=1`), which is the
+geometry in which the defect was worst — a 32-entry HNF transaction pool, 64.8%
+write-request retry, and H2 reduced to a writeback arm wearing an H2 label. So
+running `cfd37207` here would have put a known VOID-generator directly on the
+gate that decides whether this campaign is interpretable at all, and a `P1`
+miss would have been uninterpretable between "DuckDB never loaded the marked
+mapping" and "the fabric stripped the tag". That is the whole reason for the
+deviation and it is recorded before any arm.
+
+The other two are declared inert rather than assumed so. The flush-behind
+oracle: the registration forbids a flush-behind arm, and the opcode is not
+merely unused but **absent** — the byte sequence `0f 04 57 00` does not occur
+in `mmap_probe.gem5`, `victim` or `dummy`, and the tenant source contains no
+`gem5_flush_range` call site. There is no runtime branch to take, unlike
+`cxl_join_bench.gem5` where the byte is present behind `--policy fbo`. The
+`ticks.py` guard feeds a `warn()` and no computed value; it will emit
+`rounding error > tolerance` lines in every run's log from `SimpleMemory`'s
+bandwidth tick quantization. **Those lines are expected and are not a gate
+failure.** They are also the only way to tell the two binaries apart from a
+console log alone.
+
+## The honest cost
+
+The geometry table above still matches r5. **The build no longer does.** This
+campaign was designed as an only-the-tenant-changed contrast against r5 — same
+HNF, same victim, same simulator, DuckDB substituted for `cxl_join_bench` — and
+after this deviation the simulator is a second changed variable. r5's arms were
+measured on `cfd37207` and cannot be re-measured on `cb290444` without spending
+those runs again, which this campaign is not registered to do.
+
+So: **no r5 comparison is licensed from this campaign, on two independent
+grounds.** The registration already forbade one — "Not comparable to r5
+tuples/s unlabelled", "Compare query seconds to r5 tuples/s" on the Do-not
+list — because the tenant's unit changed from tuples/s to query seconds. This
+addendum adds a second, which is narrower in one way and broader in another:
+it holds even for quantities that *are* commensurable across the two campaigns,
+including `cyc_per_load`, the bypass counts and the `P2` contention ratio. A
+difference between r5 and this campaign cannot be attributed to the tenant,
+because the simulator also moved.
+
+The direction of the bias is known and does not rescue the comparison. The
+defect only ever *removed* bypasses, so r5's H2 figures are lower bounds and
+this campaign's are not. That makes any r5-versus-DuckDB delta on an
+H2-sensitive quantity biased in a known direction of unknown size — enough to
+know the comparison is unsound, not enough to correct it.
+
+Nothing else in this registration moves: the geometry, the nine arms, `G-lock`,
+`G0`, `P_complete`, `P_match`, `P1`–`P4`, the analysis plan and the Do-not list
+all stand exactly as written, and the smoke run has not yet been launched at
+the time this addendum is committed.
