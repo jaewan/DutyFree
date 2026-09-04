@@ -94,6 +94,10 @@ def cpus_allowed(pid):
 
 
 def thread_cpus(pid):
+    """tid -> realized CPU. The coordinator thread (tid == pid) is included and
+    must be separated by the caller: it is deliberately unpinned in
+    aggressor.c -- it allocates, starts the workers and sleeps -- so it does no
+    streaming and its CPU carries no placement meaning."""
     out = {}
     for d in glob.glob(f"/proc/{pid}/task/*"):
         tid = os.path.basename(d)
@@ -129,6 +133,8 @@ def one(place, wss, thp, rep, logdir):
     agg = agg_log = None
     bw = None
     agg_threads = []
+    agg_workers = []
+    agg_main_cpu = None
     agg_hist = agg_allowed = agg_comm = None
     agg_fatal = False
 
@@ -165,7 +171,10 @@ def one(place, wss, thp, rep, logdir):
         if i == 2:
             vic_hist = numa_hist(vic.pid)
             if agg is not None and agg.poll() is None:
-                agg_threads = sorted(thread_cpus(agg.pid).values())
+                tc = thread_cpus(agg.pid)
+                agg_threads = sorted(tc.values())
+                agg_main_cpu = tc.get(str(agg.pid))
+                agg_workers = sorted(v for k, v in tc.items() if k != str(agg.pid))
                 agg_hist = numa_hist(agg.pid)
 
     out, _ = vic.communicate(timeout=VDUR + VWARM + 60)
@@ -204,6 +213,8 @@ def one(place, wss, thp, rep, logdir):
         agg_pkgs_all=sorted({pkg(c) for c in clist}) if clist else None,
         victim_pkg=pkg(0),
         agg_realized_cpus=agg_threads or None,
+        agg_worker_cpus=agg_workers or None,      # the 7 pinned streaming threads
+        agg_main_cpu=agg_main_cpu,                # unpinned coordinator; no placement meaning
         agg_cpus_allowed=agg_allowed, agg_comm=agg_comm,
         agg_numa_pages=agg_hist, agg_fatal=agg_fatal, agg_log=agg_log,
         victim_realized_cpus=vic_cpus or None,
@@ -217,7 +228,8 @@ def one(place, wss, thp, rep, logdir):
     print(f"  {place:11s} wss={wss:5d} thp={rec['thp_readback']:6s} rep{rep:2d} "
           f"cyc/acc={rec['cyc_per_access'] or 0:8.2f} "
           f"hit%={hr or 0:6.2f} bw={bw or 0:6.2f} "
-          f"vcpu={sorted(set(vic_cpus))} acpu={len(agg_threads)}t", flush=True)
+          f"vcpu={sorted(set(vic_cpus))} aw={len(agg_workers)}t{sorted(set(agg_workers))}",
+          flush=True)
     return rec
 
 

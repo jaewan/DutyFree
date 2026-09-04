@@ -21,6 +21,7 @@ NB_FLOOR         = 0.02        # noise band floor, so a freak-tight control cann
 ALPHA            = 0.05
 BOOT_N           = 10000
 BOOT_SEED        = 20260904
+N_STREAM_THREADS = 7           # pinned worker threads; the coordinator is not one
 VICTIM_CORE      = 0
 VICTIM_NODE      = 0
 STREAM_NODE      = 2           # CXL; held fixed in every arm by mbind MPOL_MF_STRICT
@@ -114,12 +115,17 @@ def main():
     gates["G1_victim_pinning"] = g1
 
     # ---------------- G2 streamer placement realized
+    # Judged on the 7 pinned WORKER threads. aggressor.c's coordinator thread is
+    # deliberately unpinned -- it allocates, starts the workers and sleeps -- so
+    # it streams nothing and its CPU carries no placement meaning. See
+    # AMD_XSOCKET_PREREG_2026-09-04.md Addendum 0 (pre-launch).
     g2 = True
     for r in recs:
         if not r["agg_cores"]:
             continue
         want = {int(x) for x in r["agg_cores"].split(",")}
-        if not r["agg_realized_cpus"] or not set(r["agg_realized_cpus"]) <= want:
+        w = r.get("agg_worker_cpus")
+        if not w or len(w) != N_STREAM_THREADS or not set(w) <= want:
             g2 = False
         if not r["agg_l3_domains_all"] or len(r["agg_l3_domains_all"]) != 1:
             g2 = False

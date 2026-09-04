@@ -307,3 +307,81 @@ memory is offlined, no reboot.
   `S6.6` that is stated rather than hidden. G0 and G10 are therefore both set on
   ratios, and G10's 10× floor is deliberately far below the record's 30.82× for
   exactly this reason.
+
+
+---
+
+# Addendum 0 --- 2026-09-04, before launch: one gate was mis-specified, and I saw n=1 values while finding out
+
+The body above was frozen at **`d65f768`** with the runner and the analyzer.
+**Then**, and only then, the runner was exercised end-to-end at `reps=1` against
+a throwaway path (`/tmp/plumb.jsonl`) to prove the plumbing before committing a
+70-minute run to it. This addendum records both consequences. It is written
+**before** the registered `n=20` campaign starts.
+
+## 1. Gate G2 was mis-specified, and is corrected here rather than allowed to fail spuriously
+
+`aggressor.c` runs **eight** threads, not seven: seven pinned workers plus the
+coordinator, which allocates the buffer, starts the workers, sleeps for the
+duration and joins. The coordinator is deliberately never pinned. G2 as frozen
+compared *all* `/proc/<pid>/task/*` CPUs against the requested core list, so it
+would have failed on all 240 co-run runs — the plumbing check recorded
+`[129,130,131,132,133,134,135,274]`, where `274` is the coordinator sitting
+wherever the scheduler put it.
+
+That is a gate that fails for an apparatus-accounting reason rather than a
+placement reason, which is exactly the defect
+`BERGAMO_BACKINVAL_PREREG`'s P1 was recorded as ("a threshold calibrated in one
+configuration and applied in another"). Launching into a gate known in advance
+to fail would make the campaign uncertifiable for no scientific reason.
+
+**Correction, applied before launch.** The runner now records
+`agg_worker_cpus` (tids ≠ pid) and `agg_main_cpu` separately, and **G2 is judged
+on the worker threads only**, additionally requiring that there be exactly
+**7** of them. The gate therefore became *stricter*, not looser: it now also
+catches a run in which a worker thread failed to start.
+
+**Why this cannot move the verdict.** G2 is a placement-verification gate. It
+takes no threshold on the effect, appears in no verdict arithmetic, and its
+correction changes which *runs* are admissible, not what any number means. No
+threshold, band, α, seed, primary cell or decision rule in the body above is
+touched. Those remain as frozen at `d65f768`.
+
+## 2. I saw n=1 numbers, and here they are, because concealing them would be worse
+
+The plumbing check is a full pass of the factorial at one rep, so proving the
+plumbing meant seeing twenty single-sample values. **The registered thresholds
+were already frozen and public in git before that happened**, so the peek could
+not have shaped them — but it did tell me the likely direction of the answer,
+and this project's rule is that a researcher degree of freedom is disclosed
+rather than argued away.
+
+Primary cell (`THP=always`, 4096 KB), single samples, **discarded and not
+carried into the campaign**:
+
+| arm | cyc/access | ratio to `quiescent_a` |
+|---|--:|--:|
+| `quiescent_a` | 47.47 | 1.00 |
+| `same` | 1458.78 | 30.7 |
+| `other` | 61.99 | 1.31 |
+| `xsock` | 46.37 | **0.98** |
+| `quiescent_b` | 47.46 | 1.00 |
+
+So I go into the registered run expecting the apparatus to reproduce (`other`
+1.31 against the published 1.30×, `same` 30.7 against 30.82×) and expecting
+Outcome **A**. Three commitments follow from saying so out loud:
+
+1. `/tmp/plumb.jsonl` is **not** an artifact of this campaign. It is not
+   analyzed, not pooled, not cited by the outcome, and the registered run writes
+   to a fresh path that the runner refuses to overwrite (`A6.19`).
+2. The verdict is taken by `analyze_amd_xsocket.py` on the `n=20` data against
+   the constants frozen at `d65f768`. **Expecting A is not permission to
+   deliver A**: if the `n=20` interval crosses a band edge the answer is C, and
+   C does not license the phrase "measurement noise".
+3. The 512 KB cells look noisy at `n=1` (`quiescent_b/quiescent_a` = 21.03/17.65
+   = **1.19**), consistent with `AMD_L3OCC_PREREG`'s finding that at that size
+   the victim's own quiescent spread is large. That is what gate **G7** is for,
+   and if the 512 KB noise band exceeds 0.10 those cells are unfit to adjudicate
+   anything and will be reported as such. **The primary cell was designated as
+   4096 KB in the frozen body, before any of this was known**, so this
+   observation does not get to relocate it.
