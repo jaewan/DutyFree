@@ -1110,6 +1110,52 @@ def main(argv):
     print(f"\n  {repro}/{tot} archived figures reproduced within "
           f"{ARCHIVE_REPRODUCE_TOL:.0%}.")
 
+    # ---- POST-HOC, NON-CERTIFYING: the footprint rows above are confounded.
+    # Added 2026-09-04 AFTER the data existed, and labelled as such.  It scores
+    # nothing, moves no threshold and changes no verdict; the certified archive
+    # test is the whole-program one above, exactly as pre-registered.
+    #
+    # The confound the pre-registration did not anticipate: whole-program LLC
+    # writes scale with the PASS COUNT, and the two campaigns do not share one.
+    # The archive's WB figure of 529,330 is 2.019x the stream's 262,144 lines,
+    # i.e. warmups+reps == 2.  This campaign runs 10 (warmups 2, reps 8, chosen
+    # for the checksum gate and the error bar), so its whole-program column is
+    # ~11 passes' worth.  Comparing 10 passes against 2 is a units mismatch and
+    # the +443.7% on the WB rows above measures that mismatch, not a physical
+    # disagreement.  Bandwidth is a rate and is NOT affected.
+    print("\n  POST-HOC (labelled, non-certifying): footprint per measured pass")
+    print("  The whole-program comparison above divides by different pass counts:")
+    print("  the archive's WB column is 2.019x 262,144 lines, i.e. 2 passes, and")
+    print("  this campaign runs 10.  Normalising both to ONE measured pass is the")
+    print("  informative comparison.  It is post-hoc and certifies nothing.")
+    print(f"  {'quantity':>22s} {'archive/pass':>13s} {'new/pass':>10s} {'delta':>9s}")
+    ARCHIVE_PASSES = 2
+    for mshr in (16, 48):
+        for arm in ARMS:
+            r = by.get((arm, mshr))
+            a = ARCHIVE.get((arm, mshr))
+            if not r or not a:
+                continue
+            ap = a["fills"] / ARCHIVE_PASSES
+            np_ = r["llc_fills_window_per_pass"]
+            name = f"{ARM_LABEL[arm]}@{mshr} LLC wr/pass"
+            print(f"  {name:>22s} {ap:>13,.0f} {np_:>10,.0f} "
+                  f"{(np_ - ap) / ap:>+8.1%}")
+    print("  WB reproduces to ~1% at BOTH depths, which corroborates the fill")
+    print("  accounting and the geometry: a full pass of 262,144 lines is filled")
+    print("  and evicted at either MSHR depth, in both campaigns.  H2 and pf-off")
+    print("  do not: this campaign suppresses ~3 orders of magnitude more.  The")
+    print("  archive's own rows imply 43% (h2@16) and 33% (h2@48) suppression,")
+    print("  which is the PARTIAL engagement signature of the pre-fix binary")
+    print("  (H2_BYPASS_COLLAPSE_2026-09-03.md): pre-fix one-slice cells measure")
+    print("  0.474 for pfoff and 0.012 for h2, and the archive sits inside that")
+    print("  range while the fixed binary reads 0.999.  The most economical")
+    print("  reading of the archive's footprint column is therefore that it was")
+    print("  taken on a binary whose STREAMING attribute did not survive the")
+    print("  retry path.  This is an INFERENCE, not a measurement: the archive's")
+    print("  binary is gone and its engagement cannot be measured")
+    print("  (H1BW_ARM_IDENTITY_2026-09-04.md s.Q4).")
+
     structure_ok = all(x for x in (
         pf16 and pf48 and abs(pf48["bandwidth_gbps"] - pf16["bandwidth_gbps"])
         / pf16["bandwidth_gbps"] <= S1_PFOFF_BW_MSHR_TOL,
