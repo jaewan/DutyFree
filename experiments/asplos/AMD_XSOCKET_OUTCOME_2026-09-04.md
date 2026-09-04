@@ -38,6 +38,18 @@ visible in the provenance: this is not merely the same *kind* of machine but
 `victim` and `aggressor` at mtime 2026-08-23 15:24, sha256 `90089579…` and
 `583257f5…`, never rebuilt.
 
+**This narrows `AMD_NARROWMASK_OUTCOME`'s standing `S6.6` instruction rather
+than contradicting it, and the distinction is the host rebuild.** That document
+compared figures published *before* the rebuild against a re-measurement
+*after* it, and found the magnitudes gone. This campaign compares 2026-08-30
+against 2026-09-04, both after the rebuild, on the same binaries and the same
+platform state — and the magnitudes hold to ≤1.5%. So the honest scope is:
+**absolute AMD magnitudes do not survive a host rebuild; within a fixed host
+state and fixed binaries they reproduce tightly.** The paper's caveat should
+keep saying the first thing; it is now known not to be a statement about the
+apparatus's intrinsic repeatability. Handed back in §10 rather than written
+into that document.
+
 The one arm that does not reproduce tightly is `always`/512 same-CCX (+12.5%),
 and that is the cell the record itself flagged: `BERGAMO_BACKINVAL_OUTCOME`
 addendum 1 withdrew its "bimodality" reading and reported a stable ~1.9× when
@@ -387,3 +399,97 @@ above a 1-minute load average of 1.0; no other user was on the machine
    check, and are disclosed in `AMD_XSOCKET_PREREG` addendum 0 along with the
    fact that the thresholds were already frozen in `d65f768` at that point.
    The plumbing data is not pooled, analyzed or cited.
+
+## 10. Handed back --- index, ledger and reconciliation wording
+
+`INDEX.md` and `A1_PROVENANCE_LEDGER_2026-08-28.md` were **not edited**; a
+worker is active in both. No `*_PREREG_*` file other than this campaign's own
+was touched. Nothing under `gem5/` was built, modified or launched, and no
+simulation was started --- this is a silicon campaign.
+
+**One disclosure.** The `linux` submodule gitlink was already staged in the
+index by another worker when `c34305f` was made, so that commit swept it up
+alongside this campaign's artifacts. No content of this campaign's is affected
+and no other worker's work was lost --- the worktree state is unchanged and it is
+the state they had staged. It was already noticed and registered independently
+in `081bc3d`, and `c34305f` is no longer `HEAD`, so it is recorded here rather
+than rewritten.
+
+### For `INDEX.md`, the curated "Start here" table
+
+| document | what it settles |
+|---|---|
+| `AMD_XSOCKET_OUTCOME_2026-09-04.md` | **NOT CERTIFIED (10/12 gates), registered verdict `C` --- INCONCLUSIVE.** Closes `PAPER_RECONCILIATION_2026-09-04.md`'s **U3** by measurement: the AMD **cross-socket** placement arm that `Sec3:152` asserted and no record contained now exists. 400 runs on `moscxl`, reusing `bergamo_backinval.py`'s **unmodified 2026-08-23 binaries**, command lines, metric and **n=20**. **Read the control first**: other-CCX same-socket reproduces at **1.3249×** against the published 1.305× (**+1.5%**), every 4096 KB arm within 1.5%, and `never`/4096 same-CCX to **0.03%** --- so the arms are comparable. **There is no cross-socket tax**: `0.9991×` (`always`/4096) and `0.9934×` (`never`/4096) of the uncontended baseline, `p` = 0.24 / 0.21 where the same-CCX arm rejects at 7e−08; in `never`/4096 the cross-socket victim sits **0.007 cyc/access** from the no-streamer negative control, and in the primary cell it is closer to `quiescent_a` than the negative control is. **But the registered verdict is `C`, not `A`, and must be quoted as such**: the primary cell's bootstrap interval missed the measured noise band's **lower** (faster-than-baseline) edge by **2.8e−4**, the rule was two-sided by design, and `C` does **not** license the phrase "measurement noise". Outcome `B` (a residual tax) is nowhere near firing. The secondary 4096 KB cell returns `A` cleanly and is **not pooled** --- the primary cell was designated before any data existed. **Two gates FAIL and are recorded as mis-specified, not as passes** (proposed `F17`): `G4`'s page histogram cannot see a 512 KB working set, so it scored the 512 KB cells 0% while the primary cell passes at **100% on node 0**; `G6b` sampled core-0 frequency *before* the victim started, so it compared its own 2-second settle sleep (1.5 GHz co-run vs 3.1 GHz quiescent). Both questions are answered by post-hoc diagnostics: the 512 KB working set **is** on node 0, with the size-invariant 457-page node-1 residue identified as `libc`/`ld.so`/`libnuma` text shared with ~100 processes, and core 0 runs at **3.100 GHz in every arm** during the measured window. **The CXL confound is measured, not assumed, and runs the *other* way**: socket 1 is **25.9% faster** to the CXL device (16.18 vs 12.85 GB/s single-thread, confirming the SLIT's 50-against-60), so the cross-socket streamer was **advantaged, not starved** --- a conservative test --- while at 7 threads the arms are rate-matched to **+0.49%** because the device link saturates from either socket. Stream memory verified on **node 2 in 240/240 runs**. **One limit is named rather than resolved**: `xsock` falls materially below `other` (0.999× against 1.325×), so leaving the victim's L3 domain accounts for 31.15× → 1.32× and the remaining **1.32× → 1.00× is reported unattributed** --- socket boundary and CXL path length are not separated by this design. Also narrows `AMD_NARROWMASK_OUTCOME`'s `S6.6` instruction: absolute AMD magnitudes do not survive a **host rebuild**, but within a fixed host state and fixed binaries they reproduce to ≤1.5% |
+| `AMD_XSOCKET_PREREG_2026-09-04.md` | Frozen at `d65f768` before launch; addendum 0 at `c7b8d1c`, also **pre-launch**. **First document in this project to operationalize "measurement noise"**, which the corpus had left as a bare phrase: the noise band is *measured*, not chosen --- `NB = max(0.02, |CI95(quiescent_b) − 1|)`, i.e. the largest apparent slowdown the apparatus manufactures from **no effect at all** at n=20, obtained by adding a second, temporally separated quiescent cell as a negative control. Twelve fail-closed gates; three outcomes (confirmed / refuted-with-residual / inconclusive) each with its **licensed paper wording written in advance**, including an explicit refusal to search for a framing that preserves the claim. Records that the brief's recollection of "n=5 and n=30" matches no AMD record (the family uses n=6, n=10 and n=20) and that **n=20** is the n of the harness being reused. **Addendum 0 is worth reading as process**: it corrects gate `G2` before launch (`aggressor.c` runs 7 pinned workers **plus an unpinned coordinator**, so the gate as frozen would have failed all 240 co-run runs for an accounting reason) and **discloses that proving the plumbing meant seeing n=1 values across the factorial**, records them, and states that the thresholds were already frozen in git before the peek |
+
+### For `INDEX.md`, "Withdrawn during 2026-09-03→04 (claims, not documents)"
+
+| withdrawn | by | why |
+|---|---|---|
+| **"moving it to the other socket reduces it to measurement noise"** --- `Sec3_Measurement.tex:152`, the AMD cross-socket placement claim | `AMD_XSOCKET_OUTCOME_2026-09-04.md` | it had **no artifact behind it** (`PAPER_RECONCILIATION_2026-09-04.md` U3); the paper held a measured same-socket 1.30× at `Sec7:313` and an unmeasured cross-socket assertion in `Sec3`. Now measured on matched apparatus: **`0.993`--`0.999×` of baseline at n=20**, with the same-socket control reproducing at 1.3249×. **Withdrawn is not refuted** --- no residual tax was found, and Outcome `B` did not come close. The phrase goes because the **pre-registered equivalence rule returned `C`** (interval outside the noise band's lower edge by 2.8e−4) and `C` does not license it. Replaced in the draft by the measured value plus the instrument's limit. **Do not restore the phrase without a certified Outcome `A`** |
+| **"the absolute AMD magnitudes are not reproducible while its argument is"** as a statement about the apparatus --- `AMD_NARROWMASK_OUTCOME_2026-08-30.md` §"Reproduction" | `AMD_XSOCKET_OUTCOME_2026-09-04.md` §1 | **narrowed, not withdrawn, and the `S6.6` instruction to the paper stands.** That document compared pre-rebuild published figures against a post-rebuild re-measurement. Measured across two post-rebuild dates on the same binaries and platform state, the magnitudes reproduce to **≤1.5%** and one cell to **0.03%**. Correct scope: magnitudes do not survive a **host rebuild**; they are not intrinsically irreproducible |
+
+### For `INDEX.md`, housekeeping
+
+- Document count **215 → 217** (this outcome and its pre-registration). It is
+  derived, not authored --- re-derive rather than trusting either figure.
+- **"Runners and analyzers … 17 pairs currently" → 18.** The new pair is
+  `broker/amd_xsocket.py` + `analyze_amd_xsocket.py`, with thresholds as module
+  constants per the stated convention. It **breaks the `run_*.sh` naming rule**
+  and does so deliberately: it is a sibling of `broker/bergamo_backinval.py`,
+  which is a Python runner living in `broker/` because it must be copied to the
+  AMD host, and matching the parent harness mattered more than matching the
+  filename convention. Two further scripts are diagnostics, not runners, and
+  should not be counted as pairs: `broker/amd_xsocket_distance_probe.sh` (D1,
+  pre-registered) and `broker/amd_xsocket_gatecheck.py` (D2/D3, post-hoc).
+- The **`AMD_*` / `BERGAMO_*` family** line gains this campaign; it is the first
+  addition to the AMD residual thread since 2026-08-30.
+- `broker/README.md`'s table lists the four AMD runners and now under-reports;
+  a row for `amd_xsocket.py` (produced
+  `data/amd_xsocket_2026-09-04/amd_xsocket.jsonl`, the 5-placement sweep) is
+  offered but **not applied**, that file being outside this campaign's remit to
+  restructure.
+
+### For `A1_PROVENANCE_LEDGER_2026-08-28.md`
+
+**A binding row**, for "New numbers added to the paper this week, and their
+bindings":
+
+| number | binding | artifacts | recomputation | selection |
+|---|---|---|---|---|
+| `Sec3_Measurement.tex:151-155` --- AMD cross-socket `0.993`--`0.999×`, and the same-socket `1.30×` now cited in `Sec3` as well as `Sec7:313` | `data/amd_xsocket_2026-09-04/amd_xsocket.jsonl` (**400** records, 20 per cell over 2 THP × 2 WSS × 5 placements). Runner `broker/amd_xsocket.py`; judged by `analyze_amd_xsocket.py` against `AMD_XSOCKET_PREREG_2026-09-04.md` frozen at `d65f768`. Diagnostics `d1_distance.jsonl`, `d23_gatecheck.jsonl`; provenance `amd_xsocket.jsonl.provenance.json`; all 240 streamer logs in `agg_logs.tar.gz` | **all committed** (`c34305f`), runner and analyzer committed **before** launch (`d65f768`, `c7b8d1c`). Binaries **not** in-tree by design (`broker/README.md`): `victim` sha256 `90089579…` and `aggressor` sha256 `583257f5…`, both mtime 2026-08-23 15:24, recorded per run | reproducible by `analyze_amd_xsocket.py data/amd_xsocket_2026-09-04/amd_xsocket.jsonl`. Bootstrap is seeded (**20260904**), so the interval that decided the verdict is deterministic | **VERIFIED --- 400/400.** Every record emits a `VICTIM` line, 20 per cell, **none dropped**; 0 quiescent runs with nonzero streamer bandwidth; realized placement recorded **per run** and verified from the artifact rather than the launcher (`S5.1`). What this row does **not** certify: the campaign itself is **NOT CERTIFIED** on gates `G4` and `G6b` (proposed `F17`), and the number is a **`C`-verdict** number |
+
+**A defect row**, proposed as **`F17`** --- the ledger states `F17` is the next
+free number; if a worker has taken it since, renumber:
+
+| # | defect | date | status |
+|---|---|---|---|
+| `F17` | **A fail-closed gate whose instrument cannot observe the quantity at one of the levels its own campaign sweeps, or whose sample is taken at a point in the schedule that differs by arm.** Two instances, both in `AMD_XSOCKET_PREREG_2026-09-04.md`, both caught **by the gate failing** rather than by review, and both leaving that campaign **NOT CERTIFIED**. (1) `G4` required ≥99% of the victim's pages on node 0 and read a histogram that filters mappings below 1024 pages; the campaign sweeps a **512 KB (384-page)** victim, which is invisible to it, so 200 of 400 runs scored 0% while the 4096 KB cells passed at 100%. The ≥99% threshold was **also** wrong for an unfiltered view, which fails even the primary cell at 87.2% because ~457 pages of `libc`/`ld.so` text are page-cache-resident on the other socket. (2) `G6b` required per-arm core-0 frequency to match the quiescent arm within 10% and sampled it **before the victim started** --- which in a co-run arm follows a 2-second settle sleep that lets core 0 drop to its 1.5 GHz minimum, and in a quiescent arm does not. It measured its own sampling schedule and split 3.1 GHz against 1.5 GHz with perfect correlation to placement. **Same root cause as two prior instances, which is why this is offered as a class rather than as two mistakes**: `BERGAMO_BACKINVAL_PREREG`'s `P1` was recorded as mis-specified for calibrating a threshold in one configuration and applying it in another, and `AMD_L3OCC_PREREG` opens by naming the recurring cause in as many words --- *"the instrument does not measure the quantity in the claim."* Distinct from **`F12`** (a criterion a crashed run could satisfy): `F12` is a gate too weak to fail, this is a gate that fails for a reason unrelated to what it tests. **Both questions were answered by post-hoc diagnostics** (`broker/amd_xsocket_gatecheck.py`) and both came back clean --- working set on node 0 at both sizes, 3.100 GHz in every arm during the measured window --- so **no measurement is impeached and no number moves.** What is impeached is the certification. **Prevention worth registering**: a gate should be dry-run against every level of its campaign's own sweep before the campaign is frozen, and any gate reading a point-in-time sample must state where in the run schedule the sample is taken. Logged **open**; the remedy is a convention, not a patch, and the affected campaign is closed | 09-04 | **open** |
+
+### For the next reconciliation pass, on `PAPER_RECONCILIATION_2026-09-04.md`
+
+`PAPER_RECONCILIATION_2026-09-04.md` was **not edited**. Its §7 `U3` row and its
+"Unlocatable claims --- updated" list both stand to be revised:
+
+> **`U3` --- resolved 2026-09-04** by `AMD_XSOCKET_OUTCOME_2026-09-04.md`, and
+> resolved by the established response: an unbacked claim replaced by a
+> measured campaign on matched apparatus. `Sec3:152` no longer asserts an
+> unmeasured cross-socket result. **Five remain**: `U1`, `U2`, `U5`, `U6`,
+> `U8`. Note for the count: `U3` is the item the earlier pass twice identified
+> as the one where "the established response would apply", and it did apply ---
+> though the campaign it produced is `NOT CERTIFIED` and its verdict is
+> `INCONCLUSIVE`, so the draft now carries a **measured, narrowed** claim
+> rather than a confirmed one.
+
+Page budget for §8 of that document, re-measured after this edit:
+
+| | Pages | Overfull `\hbox` | Overfull `\vbox` | Undefined refs |
+|---|---:|---:|---:|---:|
+| Baseline (verified here before editing) | 22 | 7 | 0 | 0 |
+| After this edit | **22** | **7** | **0** | **0** |
+
+The same seven boxes at **identical widths** (37.82, 95.45, 33.58, 65.03, 2.85,
+42.86, 80.55 pt). No new overfull or underfull boxes, no page added at the
+22-page limit, `latexmk` exit 0. Every percent sign in the new prose is `\%`,
+and `Sec3_Measurement.tex` was re-checked for unescaped `%` in non-comment lines
+after the edit: **none**.
