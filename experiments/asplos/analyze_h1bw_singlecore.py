@@ -182,9 +182,24 @@ HAZARD_RETRY_FRAC_BUFFER_CAPPED = 0.50  # above this, an inversion is a home-nod
 HAZARD_HNF_OCCUPANCY_EXPECT_BELOW = 0.60
 
 HNF_RE = re.compile(r"^system\.ruby\.hnf(\d*)\.cntrl\.cache$")
-# The L1D controller section.  gem5 names RNF controllers system.ruby.rnf<i>...;
-# match on the presence of a sequencer plus a cache, which only the L1s have.
-L1_TBE_RE = re.compile(r"^system\.ruby\.rnf(\d+)\.cntrl$")
+# The L1 controller sections.  PARSER CORRECTION, 2026-09-04, post-launch:
+# this was written as ^system\.ruby\.rnf(\d+)\.cntrl$ on the assumption that
+# CHI names L1 controllers under the rnf node.  It does not.  The realized
+# names in every cell of this campaign are system.cpu.l1d and system.cpu.l1i
+# (system.cpu<i>.l1[di] at more than one core), so the old pattern matched
+# nothing, G8 read an empty realized set and fail-closed all nine cells.  That
+# is the gate behaving correctly on an unreadable knob; the knob itself was
+# realized correctly all along (16/48, 48/48 and 48/16 as declared, verified
+# by hand in config.ini before this line was changed).
+#
+# G8's SEMANTICS AND DECLARED VALUES ARE UNCHANGED -- this edit changes where
+# the gate looks, not what it requires.  It is committed as its own commit,
+# after the pre-registration commit, so the sequence is visible in git.
+#
+# system.cpu.l2 must NOT match: L2_MSHR is a separate knob defaulting to 48,
+# so matching it would compare the L2's 48 against a declared L1_MSHR of 16
+# and fail the 16-MSHR cells for the wrong reason.
+L1_TBE_RE = re.compile(r"^system\.cpu(\d*)\.l1[di]$")
 
 
 def mark(name, ok, detail):
