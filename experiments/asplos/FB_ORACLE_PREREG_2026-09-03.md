@@ -136,3 +136,82 @@ against a 0.157 spread (115x); tenant cost -0.01%, i.e. none measurable; HNF
 bypasses 524,076 and 524,211 of 524,288 stream lines with all four controls at
 exactly 0. So H2's recovery on a properly exposed victim is near-total. The
 open question is whether an idealised flush-behind can also reach it.
+
+---
+
+## Amendment 1 — 2026-09-04, before any arm of this campaign has run
+
+Registered geometry change, made **while this campaign has produced no number
+of any kind**: no `fbo`, `qui`, `wb` or `h2` cell exists under `gem5/logs/`, and
+`data/gem5/` carries no file for it. (The `/tmp/fbo_validate` pair of
+2026-09-03 is this registration's own `P-O1` plumbing check at the wrong
+geometry — one run per arm, `--fact-bytes 2097152 --hot-bytes 1048576 --reps 2`,
+no victim process — and is not a campaign cell; see `F16`.) Amending a
+registration before its data exists is what pre-registration is for. Superseded
+wording is quoted rather than deleted, per `A6.19`.
+
+### What changes
+
+**§"Machine — r5's, exactly" as registered:**
+
+> `--num-l3caches=1 --l3_size=7680KiB --l3_assoc=20`
+
+**as amended:**
+
+> `--num-l3caches=1 --l3_size=5MiB --l3_assoc=20`
+
+**§"How the result may and may not be used", third bullet, as registered:**
+
+> Different platform, different LLC (7.5 MiB vs 320 MiB per socket), different
+> victim tax (r5 ~6 cyc/load vs silicon ~94).
+
+**as amended:** "different LLC (**5.0 MiB** vs 320 MiB per socket)".
+
+### Why — and why it costs this registration nothing
+
+`--l3_size=7680KiB --l3_assoc=20` at 64 B lines gives
+`(7864320 / 20) / 64 = 6144` sets. `CacheMemory::init()` takes
+`floorLog2(6144) = 12` and `addressToCacheSet()` selects 12 index bits, so
+4,096 of 6,144 sets are reachable and the HNF realizes
+`4096 x 20 x 64 = 5,242,880 B = 5.00 MiB`, 66.7% of what was asked for. Record:
+`NONPOW2_SETS_MEASURED_2026-09-04.md`; `[F9.4]` class, proposed as `F18`.
+
+**The amendment changes the description of the machine and not the machine.**
+Measured, on the campaign binary `cb290444` unmodified: `--l3_size=7680KiB
+--l3_assoc=20` and `--l3_size=5MiB --l3_assoc=20` are **bit-identical on all
+2,014 simulated quantities** — same HNF demand hits (166,595), same misses
+(128,498), same `simTicks` (26,881,767,046), same per-way allocation histogram;
+5 differing lines, all five host-side. So:
+
+- **`P-O2` is preserved exactly, and strengthened.** Its requirement is that
+  `qui`/`wb`/`h2` reproduce r5 within noise. r5's realized machine is
+  5,242,880 B, so after this amendment the registration names the geometry r5
+  actually ran. Before it, `P-O2` asked for reproduction of r5 on a machine
+  described as 1.5× r5's realized size — a description that would have made a
+  successful reproduction look like a coincidence.
+- **No other registered quantity moves.** `P-O1`, `P-O3`, `P-O4`, the
+  falsification condition, the arms, the seeds, the flush distance (65,536 B),
+  every pin in §"Machine", and the r6e context figures are untouched. The
+  geometry section's remaining lines — `--cpu-type=O3CPU --num-cpus=2
+  --cpu-clock=1.9GHz`, `--l1d_size=48KiB --l1d_assoc=12`, `--l2_size=2MiB
+  --l2_assoc=16`, and the tenant/victim options — are all confirmed clean:
+  48 KiB/12 = 64 sets, 32 KiB/8 = 64, 2 MiB/16 = 2048, every one a power of two.
+
+### Do not "fix" this by respelling 7,864,320
+
+Added to §"Do not". No `--l3_size` value gives 7.5 MiB at 20 ways: the
+attainable capacities are `2^k x 20 x 64`, i.e. 5 MiB then 10 MiB. A genuine
+7.50 MiB needs `--l3_size=7680KiB --l3_assoc=15` (8,192 sets, exact), which
+breaks this campaign's requirement to be r5's machine and would void `P-O2`.
+**5 MiB at 20 ways is the correct amendment precisely because it is r5's
+machine.**
+
+### Recurrence
+
+From `gem5.opt` `d4e798601e7205c526868c8bdefbb75c4dde4f05f2b6b6a54a802df0b9c74a83`
+onward, `CacheMemory::init()` warns with the realized capacity whenever a set
+count is not a power of two, so this cannot recur silently. The guard is
+warning-only and proved inert on power-of-two geometries (four cells, pre and
+post, byte-identical on every simulated quantity). Whichever binary runs this
+campaign, its console log should contain **no** such warning; if it does, the
+geometry is not the amended one.

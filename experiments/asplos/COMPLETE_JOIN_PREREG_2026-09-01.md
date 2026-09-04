@@ -137,3 +137,102 @@ justification is in the P2 bullet above; it belongs next to the measured
 The registered geometry knob is table/LLC.  Growing the HNF with a fixed
 2650 KiB victim necessarily lowers victim/LLC (0.518 → 0.345).  That
 trade is a limitation of this campaign, not a later surprise.
+
+---
+
+## Addendum 2 — 2026-09-04. Line 28's justification is the origin of a capacity error: `7680KiB` at 20 ways realizes 5.00 MiB, so this registration's own capacity correction never took effect
+
+This document is **sealed**; nothing above is rewritten. This addendum records
+what the registered geometry realizes, quoting the superseded reasoning in
+place per `A6.19`. Full record: `NONPOW2_SETS_MEASURED_2026-09-04.md`. The
+outcome document carries the matching Addendum 2. **No registered prediction is
+withdrawn and no measured value moves.**
+
+### The line
+
+The geometry table's `--l3_size` row, and its justification, read:
+
+> | `--l3_size` | 5MiB (5242880) | **7680KiB (7864320)** | 4/7.5 = 0.5333… = 32/60. `7.5MiB` **does not parse** in gem5 `toMemorySize` |
+
+The second sentence is right and remains useful: `7.5MiB` genuinely does not
+parse, and `7680KiB` is the correct way to spell 7,864,320 B to gem5. The
+**first** sentence is where the error enters. `4/7.5 = 0.5333` is arithmetic
+against a capacity the simulator does not provide.
+
+`(7864320 / 20) / 64 = 6144` sets; `CacheMemory::init()` takes
+`floorLog2(6144) = 12`; `addressToCacheSet()` selects 12 index bits. So 4,096 of
+6,144 sets are reachable and the HNF realizes
+
+    4096 x 20 x 64 = 5,242,880 B = 5.00 MiB   (66.7% of configured)
+
+**Realized `table/LLC` is 4,194,304 / 5,242,880 = 0.800** — the r3 value this
+campaign was designed to move away from — **not 0.5333**.
+
+**Measured, not derived.** `--l3_size=7680KiB --l3_assoc=20` is bit-identical
+to `--l3_size=5MiB --l3_assoc=20` on all 2,014 simulated quantities (four SE
+cells, `run_npot_probe.sh`, campaign binary `cb290444` unmodified), while
+`--l3_size=7680KiB --l3_assoc=15` — the same requested bytes at a power-of-two
+set count — differs on 1,825 lines.
+
+### The three consequences for this registration
+
+1. **`G0` could not have failed.** As registered: "*Every admitted run has
+   realized HNF size 7864320 and instantiated hot 4194304, hence table/LLC in
+   [0.530, 0.537]*". Both sides of that test come from `config.ini`'s `size=`
+   field, which records the **requested** size faithfully. A gate written to
+   catch requested-for-realized substitution was reading a requested value, so
+   it passed on the geometry it was meant to police. Registered in advance and
+   measured honestly — but not the check it was intended to be. This is the
+   `F17` shape (an instrument that cannot observe the quantity in its own
+   claim) and is proposed as component (2) of `F18`.
+2. **`P2`'s floor rests on a premise that does not obtain.** As registered:
+   "*Floor is below r3's 1.30 because the LLC is 1.5× larger*". The LLC is
+   **the same size as r3's**. `P2` was fixed before any arm produced a number
+   and measured 1.185×, so the gate stands exactly as registered and this is
+   **not** a post-hoc relaxation; what is void is the reason given for the
+   relaxation. The 1.185× must never be quoted with "the LLC is 1.5× larger"
+   attached.
+3. **Addendum 1's third paragraph is void, and it is the sharpest instance.**
+   As written: "*The registered geometry knob is table/LLC. Growing the HNF
+   with a fixed 2650 KiB victim necessarily lowers victim/LLC (0.518 →
+   0.345). That trade is a limitation of this campaign, not a later
+   surprise.*" The HNF did not grow, so **no trade was made**: realized
+   `victim/LLC` is 2,713,600 / 5,242,880 = **0.518**, identical to r3's. The
+   paragraph was written to pre-empt a later surprise and instead names one
+   that did not happen, while the real one — that `table/LLC` never moved —
+   went unnamed.
+
+### What this registration still licenses
+
+Everything it registered about **arms, seeds, metrics and thresholds**, all of
+which were fixed before any number existed and all of which were met. The
+design is intact: victim `2650 12000000` on cpu0, tenant on cpu1, `HNF_RP=lru`
+with the pins listed above, 12 CAT widths plus `wb`/`qui`/`h2`, 3 seeds,
+`join_mtuples_per_s` primary with the cycles-derived cross-check. **P5's
+verdict stands as measured**, because all 45 runs share one realized geometry
+and a comparison between arms is unaffected by a ratio common to all of them.
+
+What it does **not** license is the sentence its "Why" section opens with:
+"*table/LLC = 4 MiB / 5 MiB = 0.80. Silicon is 32/60 = 0.53*", followed by
+this campaign being "*the single run that closes Q1: a completed 8 MiB join at
+matched table/LLC*". **The join was completed and the table/LLC was not
+matched.** The correct description of what ran is: r3's cache geometry, exactly,
+with a complete pass and tuples/s instead of a truncated pass and IPC. That is
+still a result worth having — it is the change this registration made that had
+an effect — but it is not a matched-pressure comparison to silicon, and must
+not be quoted as one.
+
+### If this campaign is ever re-run at genuinely matched pressure
+
+The registration's own "Do not" list already forbids the two wrong fixes
+(`--l3_size=7.5MiB`, which does not parse; `--hot-bytes 2MiB`, which is
+L2-resident). A third is now needed: **do not respell 7,864,320 B.** No
+`--l3_size` value reaches 7.5 MiB at 20 ways — the attainable capacities are
+`2^k x 20 x 64`, i.e. 5 MiB then 10 MiB. Matching 0.533 requires either an
+assoc whose set count is a power of two at the wanted size
+(`--l3_size=7680KiB --l3_assoc=15` gives 8,192 sets and a genuine 7.50 MiB, at
+the cost of the pinned associativity), or a different `--hot-bytes` against the
+realized 5.00 MiB (2,796,203 B for 0.533, which is not a power of two and
+conflicts with the `--hot-bytes` row's own justification). Either is a
+pre-registration amendment, not an analysis decision — the same conclusion
+`W7.2_A1_SIZING_2026-08-24.md` reached for W7's A1 at 32 MiB.

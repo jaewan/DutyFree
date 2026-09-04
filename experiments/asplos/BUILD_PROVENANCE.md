@@ -660,3 +660,117 @@ tree at `ae43f80e6793` hashes to `fd230167b26a` before and after, and
 `git status --porcelain --untracked-files=no` is empty in both repositories.
 Every commit hash cited in §1 and §2 is untouched — pushing does not rewrite
 commits.
+
+## 2026-09-04 — `build_Intel_8592/gem5.opt` is no longer `cb290444`; the bytes it replaced are preserved on disk
+
+*Dating note, as above: this host's clock is KST (UTC+9), so this build's own
+timestamp reads `2026-09-05T08:38:06+09:00`; the record is dated project-local
+(UTC−7), `2026-09-04`.*
+
+Appended per this document's own standing instruction — "append a row when a
+binary is built". No row above is edited.
+
+**What changed.** `gem5/src/mem/ruby/structures/CacheMemory.cc` gained a
+warning for a non-power-of-two Ruby set count (gem5 commit `c030d776ee`, one
+above `fa27f665db`; superproject gitlink bumped in `13b6126`), and
+`build_Intel_8592/gem5.opt` was rebuilt. Record and justification:
+`NONPOW2_SETS_MEASURED_2026-09-04.md`.
+
+### §1's table, extended
+
+| ref | sha256 | compiled | on disk | cells |
+|---|---|---|---|---|
+| `build-c030d776` | `d4e798601e7205c526868c8bdefbb75c4dde4f05f2b6b6a54a802df0b9c74a83` | 2026-09-05 08:38:06 KST | `gem5/build_Intel_8592/gem5.opt` | **0** |
+
+**The row above it needs one correction, which is the point of this section.**
+§1 records `build-cb290444` as "on disk: `gem5/build_Intel_8592/gem5.opt`".
+That is **no longer true**, and reading §1 without this section would attribute
+the three `h1bw_mc_*_20260904fix` cells to a binary that is no longer at the
+path named. Superseded wording quoted rather than edited, per `A6.19`:
+
+> | `build-cb290444` | `cb290444…` | 2026-09-04 12:47:48 | `gem5/build_Intel_8592/gem5.opt` | 3 (in flight) |
+
+Its three cells are complete, and it is still the binary that produced them.
+
+### What was done differently from 2026-09-04 12:51
+
+This document exists because a binary was replaced in place and the bytes were
+gone. Three things prevent a repeat here, and the first is the one that matters:
+
+1. **The pre-guard bytes were not discarded.** They are on disk at
+   `gem5/build_Intel_8592/gem5.opt.pre-npot-guard.cb290444`, sha256 verified
+   `cb2904444d5c5c4d31d9d8f07295209283d29e294ef1d885d789442d98e7bbe0` after the
+   copy and before the rebuild. §"What a rebuild will not do" is therefore not
+   invoked at all for `cb290444`: it does not have to be *behaviourally*
+   reproduced, because it still exists. 984 MB against another archaeology
+   pass is not a close call. It is covered by the existing `build_*/`
+   `.gitignore` rule, so it is preserved and not committed.
+2. **The build went through `scripts/build_gem5.sh`** — §5(a)'s mechanism, used
+   here for the first time on the campaign build directory. It wrote
+   `build_Intel_8592/BUILD_PROVENANCE.json` and `BUILD_SOURCE.diff`:
+   `gem5_git_head fa27f665db02e24a40ea5e1c4b2cab53bf79f5c8`,
+   `gem5_git_describe build-cb290444-1-gfa27f665db-dirty`,
+   `gem5_source_dirty true`, `gem5_source_fingerprint
+   a2f261684dfa6c79812036b2e7e186a63db070d107979a6333f3dc82fc2b4546`,
+   `host mos181`. The tree was dirty by exactly the guard, which is now
+   committed as `c030d776ee`, so the fingerprint names a state that is
+   reachable by commit and the `.diff` is a convenience rather than the only
+   way back.
+3. **No simulation was running.** Checked before the copy, not assumed: no
+   `gem5.opt` process on the host, and nothing under `gem5/logs/` was written
+   by the rebuild.
+
+### Zero cells, and why that is a claim rather than a default
+
+No `console.log` anywhere under `gem5/logs/` reports `gem5 compiled Sep  5
+2026` other than the eight cells this pass created itself
+(`se_npot_probe_postguard/npot_{A,B,C,D}` are the four; the four in
+`se_npot_probe/` ran on `cb290444`). Those eight are a guard-inertness proof,
+not campaign cells, and `gem5/logs/` is ignored, so nothing is attributed to
+`build-c030d776`.
+
+### What a campaign that runs this binary should expect to see
+
+The guard is **warning-only and measured inert**: the four probe cells, run
+before and after on the same launcher and options, are byte-identical on every
+simulated quantity — 5 differing `stats.txt` lines per cell, all five host-side
+(`hostSeconds`, `hostTickRate`, `hostMemory`, `hostInstRate`, `hostOpRate`),
+and `config.ini` byte-identical apart from the three `host_paths` lines naming
+the different `--outdir`. This is the same evidence shape §2's `isStreaming`
+comparison used.
+
+So, exactly as the `ticks.py` `abs()` guard added six `rounding error >
+tolerance` warnings without changing a value: a cell run on
+`build-c030d776` may emit
+
+```
+warn: CacheMemory <name>: N sets is not a power of two, so only M of them are
+reachable ... REALIZED CAPACITY X B (Y% of configured)
+```
+
+and **this is not a regression, and should not later be read as one.** It is
+also a usable discriminator in both directions. A console log with the warning
+says the geometry has a non-power-of-two set count *and* that a binary at or
+after `c030d776ee` ran; a console log from a power-of-two geometry is
+byte-identical to `cb290444`'s and so cannot be told apart this way — the
+`gem5 compiled` banner remains the authority, per §2.
+
+### No tag
+
+`build-c030d776` is **not tagged**, deliberately, because no cell is attributed
+to it and §1's tags exist to make attributed cells reproducible. Its commit is
+on `pr4-work` and the superproject gitlink names it, so it is reachable by
+commit; if a campaign is ever run on it, the tag should be created *then*, with
+the cells.
+
+### Follow-up this creates
+
+`gem5/scripts/build_gem5.sh` is now exercised, and one thing it does not do is
+worth recording next to §5's specification: it requires `scons` on `PATH`, and
+on this host `scons` lives in `/home/domin/gem5-venv/bin`. It failed with
+`scons: command not found` and correctly left **no** `BUILD_PROVENANCE.json`
+behind — the fail-closed behaviour §5 designed, working. It was re-run with
+`SCONS=/home/domin/gem5-venv/bin/scons`, the override the script already
+provides. Not patched here: hard-coding a venv path is worse than the
+override, but §5(b)'s runner patch should pass `SCONS` explicitly or the
+wrapper will be bypassed by whoever hits this next.
