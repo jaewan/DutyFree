@@ -14,6 +14,32 @@ this record already discloses that it carries no performance number (see "What
 is still missing"); what is lost is the runtime selectability of the two
 validated modes.
 
+**Correction, 2026-09-04: the "~124 µs" in the pointer above is a
+clock-quantisation artifact, not a measurement.** Per `A6.19` that pointer is
+left verbatim and its superseded clause is quoted rather than deleted:
+
+> Entry now needs no drain at all under baseline H2 — measured at ~124 µs, not
+> ~48 ms
+
+**Replacement:** entry now needs no drain at all under baseline H2 — **72–90 µs
+on QEMU/KVM** (four committed guest boots, `data/kernel/`), not ~48 ms. The
+gem5 full-system figure that produced "124 µs" is **resolution-limited**: that
+guest marks its TSC unstable and runs on `refined-jiffies`, whose tick at
+`CONFIG_HZ=1000` is 999 848 ns, so `enter_max` = one tick = 999 µs
+(byte-identical across all four lifecycle logs) and `enter_avg` =
+999 848 / 8 / 1000 = 124 µs. Seven of the eight samples returned a **0 ns
+delta**. Cite gem5 as "below the guest clock's ~1 ms resolution", never as
+"124 µs". **The direction of the pointer above is unchanged and if anything
+understated** — both families put entry three orders of magnitude below
+~48 ms — so this corrects a figure's *status*, not the withdrawal.
+
+**And neither figure is comparable to this record's ~48 ms.** Neither family
+measures a `WBNOINVD` broadcast; the ~48 ms came from a third platform, the
+64-logical-CPU silicon host described in "What the primitive was" below. The
+oracle build issues a machine-wide clean and the baseline issues none, so the
+collapse is a **mechanism** change, not a platform difference. See
+`KERNEL_TEST_AGGREGATE_OUTCOME_2026-09-03.md`, addendum 2026-09-04.
+
 Written 2026-08-19, answering reviewer item 4. Merged to `DutyFree-Linux` `main`
 via PR #3 (`b9f60fa`).
 

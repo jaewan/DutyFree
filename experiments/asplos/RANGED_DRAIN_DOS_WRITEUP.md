@@ -46,6 +46,36 @@
 > and unreachable as behaviour. See
 > `RANGED_DRAIN_IMPLEMENTED_2026-08-19.md`'s forward pointer of the same date.
 
+> **Correction to the pointer above, 2026-09-04: its "124 µs in gem5 r12" is a
+> clock-quantisation artifact, not a measurement.** Per `A6.19` the pointer is
+> left verbatim and the superseded clause is quoted rather than deleted:
+>
+> > microseconds** — 72–90 µs across four committed QEMU/KVM guest boots
+> > (`data/kernel/`), 124 µs in gem5 r12.
+>
+> **Replacement:** baseline H2 entry is measured in **microseconds — 72–90 µs
+> on QEMU/KVM**, across four committed guest boots (`data/kernel/`), on
+> `kvm-clock` at nanosecond resolution. The gem5 r12 figure is
+> **resolution-limited**, not 124 µs: that guest marks its TSC unstable and
+> falls back to `refined-jiffies`, whose tick at `CONFIG_HZ=1000` is
+> 999 848 ns, so `enter_max` = one tick = 999 µs — byte-identical across all
+> four lifecycle logs — and `enter_avg` = 999 848 / 8 / 1000 = 124 µs. Seven of
+> the eight samples returned a **0 ns delta**. Cite gem5 as "below the guest
+> clock's ~1 ms resolution".
+>
+> **Nothing else in the pointer changes, and the µs conclusion is if anything
+> understated**: both families put entry three orders of magnitude below
+> ~48 ms, so the DoS primitive is still gone from baseline H2. The
+> "72–90 µs operation confined to the declarer" phrasing below is already the
+> resolved family and needs no change.
+>
+> **The ~48 ms is not comparable to either figure.** Neither family measures a
+> `WBNOINVD` broadcast; the ~48 ms of §"The primitive, stated plainly" came
+> from a third platform — the 64-logical-CPU silicon host. The oracle build
+> issues a machine-wide clean and the baseline issues none, so this is a
+> **mechanism** change, not a platform difference. Source:
+> `KERNEL_TEST_AGGREGATE_OUTCOME_2026-09-03.md`, addendum 2026-09-04.
+
 Written 2026-08-13. Per `PAPER_SESSION_PROMPT.md` #32: *"The 48 ms
 machine-scoped IPI broadcast at epoch entry is an unprivileged DoS primitive
 if any process can trigger it in a loop... A reviewer who finds this before

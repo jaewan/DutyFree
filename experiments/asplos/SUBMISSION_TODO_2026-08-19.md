@@ -41,6 +41,11 @@ pure compute, embarrassingly parallel.
 > landed. See "Closure — 2026-09-04" at the end of this file. The text below is
 > left verbatim per `A6.19`; read its present tenses as "as of 2026-08-19".
 
+> **The "124 µs (gem5 r12)" above is corrected — see "Correction to the closure
+> — 2026-09-04" at the end of this file.** It is a clock-quantisation artifact,
+> not a measurement. The citable figure is **72–90 µs on QEMU/KVM**; the
+> closure itself stands and its prediction is still confirmed.
+
 **Reason.** The ~48 ms machine-wide, size-independent, unprivileged epoch-entry
 stall is the single most quotable objection in the paper — a DoS primitive in a
 multi-tenant pooled-memory proposal. The mitigation is now merged and
@@ -271,6 +276,12 @@ site, and is bridged by flush-behind as an acknowledged proxy.
 > multi-tenant pooled-memory proposal") describes a default-off oracle rather
 > than the proposed mechanism.
 
+**The "124 µs in gem5 r12" in that replacement is corrected — see "Correction
+to the closure — 2026-09-04" below.** It is a clock-quantisation artifact, not
+a measurement; the citable figure is **72–90 µs on QEMU/KVM**. The replacement
+above is left verbatim per `A6.19`, and **the closure it records still
+stands**: the prediction was microseconds and the result is microseconds.
+
 **What is *not* closed, and it is the more interesting half.** This item asked
 for two curves, and only one exists:
 
@@ -303,3 +314,59 @@ annotated. Three separate later records (`STATE_2026-08-30.md`,
 a live cost, all corrected on 2026-09-04. **The instrument was not the problem
 here; the bookkeeping was.** An item whose prediction has been confirmed by
 committed evidence should be closed in the same commit that lands the evidence.
+
+---
+
+## Correction to the closure — 2026-09-04: the gem5 124 µs is a clock artifact, not a measurement
+
+The closure above cites baseline H2 entry as "**72–90 µs** … and **124 µs** in
+gem5 r12", presenting both as measured. **The closure stands and its verdict is
+unchanged** — the prediction was that entry would "collapse from ~48 ms to
+microseconds", and it did, on both families. What is wrong is the **status of
+the second figure**: 124 µs is not a measurement. Per `A6.19` the passages
+above are left verbatim and the superseded clause is quoted rather than
+deleted:
+
+> Measured entry cost is **72–90 µs** across four committed QEMU/KVM guest
+> boots (`data/kernel/`) and **124 µs** in gem5 r12.
+
+**Replacement:**
+
+> Measured entry cost is **72–90 µs on QEMU/KVM**, across four committed guest
+> boots (`data/kernel/`) — the only resolved measurement of the quantity. The
+> gem5 r12 figure is **resolution-limited**, "below the guest clock's ~1 ms
+> resolution", and must not be quoted as 124 µs.
+
+**The arithmetic.** The gem5 guest marks its TSC unstable and switches to
+`clocksource: refined-jiffies`
+(`gem5/logs/fs_boot_ckpt/atomic_2cpu_os_validation_h2_r1_16g/system.pc.com_1.device:107,190`).
+At `CONFIG_HZ=1000` one tick is **999 848 ns** — re-derived from
+`kernel/time/jiffies.c:78-104` with `CLOCK_TICK_RATE = PIT_TICK_RATE = 1193182`,
+not read off a log. `streaming_lifecycle.c:175-178` prints integer-truncated
+microseconds over `GENERATIONS 8`, so `enter_max` = one tick = **999 µs**,
+`enter_avg` = 999 848 / 8 / 1000 = **124 µs**, and `os_validation`'s `exit_avg`
+= two ticks / 8 = **249 µs**. `enter_max=999 us` is byte-identical across all
+four lifecycle logs, which a genuine maximum over independent runs would not
+be: **seven of the eight samples returned a 0 ns delta**, each transition being
+below the resolution of the clock timing it. The QEMU/KVM family runs on
+`kvm-clock` at nanosecond resolution and behaves like data — maxima 85, 156,
+156, 168 µs; means 90, 90, 72, 87 µs.
+
+**The ~500–670× above still holds**, because it was computed against 72–90 µs,
+not against the gem5 figure.
+
+**A distinction this item is the right place to record.** Neither family
+measures a `WBNOINVD` broadcast, so **neither is comparable to the ~48 ms**.
+That came from a third platform — the 64-logical-CPU silicon host
+(`SUBMISSION_READINESS_2026-08-19.md` C10). This item's own **Reason** section
+anticipated exactly that ("QEMU cannot reproduce WBNOINVD cost, so its benefit
+is unmeasured"), and it is still true: the ~48 ms → µs collapse is a
+**mechanism** change (`888060f6a66e`, `eccecc49e0ff`) — the oracle build issues
+a machine-wide clean, the baseline issues none — and only secondarily a
+platform difference. So item 2's request for bare metal was never satisfied and
+was never *needed* for the entry half, which closed by removal rather than by
+measurement.
+
+**Source.** `KERNEL_TEST_AGGREGATE_OUTCOME_2026-09-03.md`, addendum 2026-09-04.
+No measurement was launched; this is arithmetic over already-committed logs and
+kernel source.
