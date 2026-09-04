@@ -271,7 +271,16 @@ worth having.
 
 `A1_PROVENANCE_LEDGER_2026-08-28.md` and `INDEX.md` are owned by another worker
 and were **not edited**. Suggested wording is in the commit message and reproduced
-here:
+here.
+
+That owner committed twice while this pass was running (`f425779`, `5584644`,
+both registering `F17` and the publication paragraph for the AMD cross-socket
+campaign, no overlap with this subject), and `origin/main` advanced from
+`a0cfe30` to include the eleven previously-unpushed commits. Item 4 below is
+struck through as a result: it was accurate when this pass began and was fixed by
+`f425779` before this pass committed. Items 1–3 were re-checked against `HEAD`
+after those commits and remain live — the ledger's mtime figure still stands at
+line 264.
 
 1. **Ledger, the `Sec7_Evaluation.tex:238…` bullet.** Replace "the first run
    directory, `/tmp/kn_cat4_t2.0_s1`, was created at **22:58:38.53**" with the
@@ -294,9 +303,15 @@ here:
    raw launch and completion evidence for all 63 runs, and note that the 504
    larger originals are digested rather than committed.
 
-4. **`INDEX.md`.** `FUSED_KNEE_PREREG` is still absent entirely, per
-   `FUSED_KNEE_CLOSED` §"Why this record exists" item 2. Whoever fixes that may
-   want this record in the same entry.
+4. **`INDEX.md`.** ~~`FUSED_KNEE_PREREG` is still absent entirely, per
+   `FUSED_KNEE_CLOSED` §"Why this record exists" item 2.~~ **Superseded while
+   this pass was running** — `f425779` added it at `INDEX.md:149`, so the gap
+   `FUSED_KNEE_CLOSED` item 2 identified is closed. Two smaller things remain in
+   that new entry: it ends "Its runs went to `/tmp/kn_*` and `/tmp/kb_*` rather
+   than `gem5/logs/`, which is the other reason the campaign looked unexecuted",
+   which is still true of the bulk output but no longer true of the launch and
+   completion evidence — that is now `artifacts/fused_knee/`; and the entry could
+   name this record.
 
 5. **Optional, a real decision rather than wording.** If a reviewer must be able
    to *rebuild* `kn_runs.jsonl`/`kb_runs.jsonl` from raw gem5 output rather than
