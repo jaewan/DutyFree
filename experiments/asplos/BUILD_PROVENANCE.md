@@ -414,3 +414,55 @@ Provenance note that survives this: the re-run cells emit **six**
 `SimpleMemory.bandwidth` tick quantization) that the pre-fix cells do not. The
 guard is warning-only — `config.ini` byte-identical, and `wb` bit-identical —
 so **this is not a regression**, and should not later be read as one.
+
+## 2026-09-05 — `pr4-work` and both build tags are now on the remote, and the gitlink fetches
+
+Everything §1 and §2 rely on was, until now, reachable only in this working
+copy. `git rev-list --count pr4-work --not --remotes` returned **19**: the whole
+STREAMING chain was unpushed, `b0eea53b5b` among it — the commit the superproject
+recorded as the `gem5` gitlink before `065fd80` — so `git submodule update` had
+never once succeeded from a clone of this repository. The two tags this document
+names as the recoverable build states were in the same position:
+`build-cb290444` had 18 unpushed ancestors, `build-cfd37207` had 13. A tag whose
+ancestors are unreachable asserts a provenance it cannot supply, which is `F13`
+in its own right and not a packaging detail.
+
+Pushed to `origin` (`https://github.com/jaewan/DutyFree-Gem5.git`, the same URL
+`.gitmodules` names for the `gem5` submodule), each ref by name, no force and no
+history rewrite:
+
+| ref | result | resolves to |
+|---|---|---|
+| `pr4-work` | new branch | `fa27f665db` |
+| `build-cb290444` | new tag (annotated) | `a5f366456e` |
+| `build-cfd37207` | new tag (annotated) | `830905739a` |
+
+None of the three existed on the remote beforehand, so nothing was overwritten
+and no other branch was touched. Pushing does not rewrite commits: every hash
+above is byte-for-byte what it was, so `065fd80` already pins the correct `gem5`
+commit and **no re-pin was needed**.
+
+**Verification, 2026-09-05.** `git rev-list --count <ref> --not --remotes` is now
+**0** for all three refs, and `git ls-remote --tags origin` shows both tags
+dereferencing to the commits tabulated above. End to end, in a throwaway clone
+outside the workspace: a fresh clone of this superproject at `065fd80`, then
+`git submodule update --init gem5`, fetched from GitHub and reported `checked
+out 'fa27f665db...'`. In that clone `git -C gem5 describe --tags` gives
+`build-cb290444-1-gfa27f665d`, which independently confirms §1's statement that
+exactly one commit sits above the tag, and both tags arrived as annotated tag
+objects rather than lightweight refs. The scratch clone was deleted afterwards.
+The `linux` submodule was left uninitialised and untouched.
+
+**Two gaps this did not close.**
+
+- `build-481d7e12` was not pushed, and its tag ref is still absent from the
+  remote. Its commit `1bb6418e01` *is* now fetchable, being an ancestor of
+  `pr4-work`, but it cannot be reached by tag name — so §1's "all three are now
+  recoverable" holds for the commit and not yet for the label. No cell is
+  attributed to that binary, so no published magnitude depends on it. Pushing
+  the tag is a one-line follow-up.
+- The superproject is itself unpushed. `DutyFree` `main` carries **90** commits
+  absent from `https://github.com/jaewan/DutyFree.git`, whose `main` is still
+  `73f0332f6c`, so neither `065fd80` nor the corrected gitlink is visible to a
+  third party yet. The simulator is now obtainable; the pointer naming it is
+  not. That is a superproject push, tracked separately from `F13`.
