@@ -1,0 +1,8 @@
+# Figure generators: make_eval_frontiers.py (fig:frontier),
+# make_recovery_curve.py (fig:recovery).  Nothing else here needs a package.
+#
+# Pinned to the one version both figures have been regenerated under, rather
+# than to a floor that was never tested.  No font package is required: both
+# scripts request "Linux Libertine O" behind a Nimbus Roman then DejaVu Serif
+# fallback, so a missing face changes typography without failing the build.
+matplotlib==3.11.1
