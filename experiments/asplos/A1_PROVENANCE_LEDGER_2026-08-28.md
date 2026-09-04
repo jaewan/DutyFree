@@ -33,7 +33,7 @@ document*. This maps *published table -> raw artifact -> does it recompute*.
 | `tab:h3sf` | `/tmp/sf_*` | **no** | --- | **DATA VERIFIED, ANNOTATION WRONG** (F4, open) |
 | `tab:appplat` | live host state | n/a | not re-read today | VERIFIED 2026-08-23 |
 | `tab:gem5cfg` | run dirs in `/tmp` | **no** | --- | VERIFIED 13/15 2026-08-23; 1 defect, 1 imprecision |
-| `fig:recovery` (all three panels) | `data/gem5/kn_runs.jsonl` (**45** records, 2.0–4.0 MB) + `data/gem5/kb_runs.jsonl` (**18** records, 6.0 and 8.0 MB); quiescent denominator `data/gem5/fh_runs.jsonl` (`fh_qui`, n=3, 33.8814 cyc/access). Runners `run_fused_knee.sh`, `run_fused_knee_big.sh`; figure built by `make_recovery_curve.py` → `figures/recovery_curve.pdf`. Registered by `FUSED_KNEE_PREREG_2026-08-29.md`; campaign closed by `FUSED_KNEE_CLOSED_2026-09-04.md` | **archives yes** (`acc722a`), **runners yes** (`94bfbef`), **generator yes** (`9791976`). `make_recovery_curve.py` was untracked when this row was first written; it is tracked as of 2026-09-04, so the figure is no longer built by a file in no commit. One input this row's artifact list does not name: panel (c)'s held-out complete-join point reads `data/gem5/r5_runs.jsonl`, which was untracked until `fee8417` | **recomputed here today from the raw archives**, `R = (wb − arm)/(wb − qui)`, at 2.0 / 2.5 / 3.0 / 3.5 / 4.0 / 6.0 / 8.0 MB. `R(h2)` = **89.44 / 87.69 / 84.51 / 81.95 / 82.33 / 67.14 / 56.84 %**; `R(cat4)` = **89.26 / 88.20 / 87.79 / 87.45 / 87.26 / 86.25 / 86.31 %**; `wb` tax 1.4679 / 1.5012 / 1.5141 / 1.5186 / 1.5100 / 1.5223 / 1.5477x; tenant L2 misses per kilocycle vs `wb`, `h2` **+4.14 / +7.07 / +11.92 / +12.03 / +7.81 / +11.38 / +10.42 %** (faster at every size) and `cat4` **−15.84 / −23.54 / −23.17 / −24.22 / −19.28 / −22.09 %** at the six sizes where protection is matched. Every cell matches `FUSED_INDEX_ARTIFACT_CORRECTION_2026-08-30.md` and `RECOVERY_CURVE_OUTCOME_2026-09-04.md` to the digits printed there | **VERIFIED --- 63/63.** Every record `completed: true` and `reason: ok`; `realized_table_mb` non-null in all 63, covering exactly {2.0, 2.5, 3.0, 3.5, 4.0, 6.0, 8.0}; 7 sizes x 3 arms x 3 seeds; **none dropped and no size omitted**. Two things this row does **not** certify: the *attribution* of the sweep to a pre-registration (**`F15`, open**, below), and counter-based engagement evidence — `hnf_streaming_bypasses` is **absent, not zero**, from every one of the 63 records, so panel (c)'s declared share is obtained by differencing allocations because it is the only definition the fused build supports |
+| `fig:recovery` (all three panels) | `data/gem5/kn_runs.jsonl` (**45** records, 2.0–4.0 MB) + `data/gem5/kb_runs.jsonl` (**18** records, 6.0 and 8.0 MB); quiescent denominator `data/gem5/fh_runs.jsonl` (`fh_qui`, n=3, 33.8814 cyc/access). Runners `run_fused_knee.sh`, `run_fused_knee_big.sh`; figure built by `make_recovery_curve.py` → `figures/recovery_curve.pdf`. Registered by `FUSED_KNEE_PREREG_2026-08-29.md`; campaign closed by `FUSED_KNEE_CLOSED_2026-09-04.md`. **Raw launch and completion evidence for all 63 runs added 2026-09-04 at `3ed6ff0`: `artifacts/fused_knee/`**, the 63 sibling `.log` files carrying gem5's own `gem5 started` banner plus the two `*_sweep.done` runner stamps, byte-for-byte originals (65 files, 223.5 KiB), with the **504** larger per-run originals (`stats.txt`, `config.json`, `config.ini`, `citations.bib`, `fs/**`, 124.79 MiB) SHA-256'd rather than committed in the same directory. Selection argued in `FUSED_KNEE_RUNLOG_PROVENANCE_2026-09-04.md`; **the two banners are not one banner** — 45 `kn_*` at `Aug 29 22:58:38` and 18 `kb_*` at `Aug 30 01:33:02`, two separate launches | **archives yes** (`acc722a`), **runners yes** (`94bfbef`), **generator yes** (`9791976`). `make_recovery_curve.py` was untracked when this row was first written; it is tracked as of 2026-09-04, so the figure is no longer built by a file in no commit. One input this row's artifact list does not name: panel (c)'s held-out complete-join point reads `data/gem5/r5_runs.jsonl`, which was untracked until `fee8417` | **recomputed here today from the raw archives**, `R = (wb − arm)/(wb − qui)`, at 2.0 / 2.5 / 3.0 / 3.5 / 4.0 / 6.0 / 8.0 MB. `R(h2)` = **89.44 / 87.69 / 84.51 / 81.95 / 82.33 / 67.14 / 56.84 %**; `R(cat4)` = **89.26 / 88.20 / 87.79 / 87.45 / 87.26 / 86.25 / 86.31 %**; `wb` tax 1.4679 / 1.5012 / 1.5141 / 1.5186 / 1.5100 / 1.5223 / 1.5477x; tenant L2 misses per kilocycle vs `wb`, `h2` **+4.14 / +7.07 / +11.92 / +12.03 / +7.81 / +11.38 / +10.42 %** (faster at every size) and `cat4` **−15.84 / −23.54 / −23.17 / −24.22 / −19.28 / −18.95 / −22.09 %**. **That list read six values and the analyzer prints seven**; the missing one was 6.0 MB's **−18.95%**, and the omission was carried by a clause that rationalised it — quoted rather than deleted, per `A6.19`: "at the six sizes where protection is matched". `analyze_registered_scope.py` prints a `t(cat4)` at **all seven** sizes, so there was no sixth-versus-seventh distinction to make and the gap was simply a transcription short by one. Corrected 2026-09-04 and re-run to confirm; nothing else in the row moves. Every cell matches `FUSED_INDEX_ARTIFACT_CORRECTION_2026-08-30.md` and `RECOVERY_CURVE_OUTCOME_2026-09-04.md` to the digits printed there | **VERIFIED --- 63/63.** Every record `completed: true` and `reason: ok`; `realized_table_mb` non-null in all 63, covering exactly {2.0, 2.5, 3.0, 3.5, 4.0, 6.0, 8.0}; 7 sizes x 3 arms x 3 seeds; **none dropped and no size omitted**. Two things this row does **not** certify: the *attribution* of the sweep to a pre-registration (**`F15`, open**, below), and counter-based engagement evidence — `hnf_streaming_bypasses` is **absent, not zero**, from every one of the 63 records, so panel (c)'s declared share is obtained by differencing allocations because it is the only definition the fused build supports |
 | `tab:declpred`, `tab:checklist`, `tab:contract`, `tab:workload_taxonomy` | --- | n/a | qualitative | no quantitative provenance to bind |
 
 ## New numbers added to the paper this week, and their bindings
@@ -84,8 +84,8 @@ read back to what it said before.
 | F14 | `fig:recovery`'s axis is **post-hoc** and its single external validation is **metric-dependent**. The relation "recovery is bounded by the declared range's share of shared-cache fills" was identified after the data existed; panels (a)/(b) rest on the registered sweep `FUSED_TABLESWEEP_PREREG_2026-08-29.md` but panel (c)'s x-axis does not. The one held-out point (complete join, r5) is metric-dependent: differencing home-node allocations gives a 32.32% share against `R = 22.59%` and the bound holds with 9.7 pp slack, while the later `hnf_streaming_bypasses` counter puts the same point at **17.43%** and the bound is **violated by 5.2 pp**. The differencing choice is forced rather than chosen — `hnf_streaming_bypasses` is absent entirely from every fused record — but the constraint became visible only after the alternative was computed, so it is a researcher degree of freedom and not a pre-registration. Mitigating and recorded as such: **nothing is fitted** (the panel-(c) line is `y = x`, zero free parameters), **point selection is verified clean** (63 records, 7 table sizes x 3 arms x 3 seeds, every record `completed: true`, no point dropped and no table size omitted), and the mechanism is corroborated independently by `W1.4_CHARGE_DECOMPOSITION_2026-08-24.md`. FS r6e is off the curve because its **`R` of 101.92% exceeds 100%, which no share can bound** — not because its counters are whole-run. That figure appears here only as the ground for exclusion; `FS_COMPLETE_JOIN_OUTCOME_2026-09-04.md`'s standing instruction to report `R ≈ 100%` and never quote 101.92% as a result is unchanged. See `RECOVERY_CURVE_OUTCOME_2026-09-04.md` add. 1 and `FS_COMPLETE_JOIN_OUTCOME_2026-09-04.md` add. 1. **Logged closed by disclosure, not open, because the claim was weakened in the paper to match the evidence.** The disclosure now lives in the `fig:recovery` caption in `Sec7_Evaluation.tex` — which states that panel (c)'s axis was chosen afterwards, that nothing is fitted, and that the fill-bypass counter puts the complete join at 17.4% — and in full in `RECOVERY_CURVE_OUTCOME_2026-09-04.md` Addendum 1, whose "Licensed / Not licensed" paragraph is the governing statement. The withdrawn phrasing ("played no part in establishing the relation and lands on it"; "two tenants, a 3x range of declared share, and one relation") is out of the draft | 09-04 | **closed by disclosure** 2026-09-04 |
 | F15 | **`fig:recovery`'s "registered sweep" attribution names the wrong pre-registration, and its 8.0 MB endpoint — which carries the headline — is in no pre-registration's design.** `RECOVERY_CURVE_OUTCOME_2026-09-04.md` add. 1 defends panel selection with "the seven fused points are the whole of a registered sweep (`FUSED_TABLESWEEP_PREREG_2026-08-29.md`)", and the `fig:recovery` caption in `Sec7_Evaluation.tex` carries "Panels~(a) and~(b) report a registered sweep." **The defence is substantially right and the data is sound** — no point was dropped, all 63 records are `completed`, and the row above verifies 63/63. What is wrong is the credit. Registered by `FUSED_KNEE_PREREG_2026-08-29.md`, not by `FUSED_TABLESWEEP_PREREG`: **2.0, 2.5, 3.0, 3.5, 4.0 MB** are that pre-registration's five-size design, plotted from `kn_*` via `run_fused_knee.sh`. **6.0 MB** is a size `FUSED_TABLESWEEP_PREREG` registers, but *its* runs (`ts_*`) are at the aliased power-of-two probe stride and **are not plotted**; the plotted 6.0 MB point is `kb_*`. **8.0 MB is in no pre-registration's design at all.** `FUSED_TABLESWEEP_PREREG` registered {1, 2, 4, 6} plus a reused 3 MB point and explicitly named 6 MB as its top end ("Explicitly NOT predicted --- the shape at the top end"); its executed sweep `ts_runs.jsonl` (45 records) covers {1, 2, 4, 6, 8}, itself one size beyond its own registration, and **none of its runs appears in the figure** --- 36 of those 45 records carry a null `realized_table_mb`, verified here today. The consequence worth stating plainly: **8.0 MB is the endpoint of the paper's headline range** ("falls from 89.4% to 56.8%") **and is the least-registered point on the curve.** The honest attribution, per `FUSED_KNEE_CLOSED_2026-09-04.md`, is that panels (a)/(b) report `FUSED_KNEE_PREREG`'s sweep, **extended by two sizes that were not pre-registered**, all 63 runs of which completed and none of which was dropped. Two knock-on notes: **`F14`'s own cell above repeats the wrong attribution** ("panels (a)/(b) rest on the registered sweep `FUSED_TABLESWEEP_PREREG_2026-08-29.md`") and is corrected by this row rather than rewritten, per `A6.19`; and this is a **separate defect from `F14`, not a reopening of it** --- `F14` is about panel (c)'s axis being post-hoc and closed by disclosure, whereas this is about panels (a)/(b)'s registration credit. **No number moves**, in this ledger or in the paper. **Logged open and deliberately not resolved here**: a separate worker is analyzing what the headline claim should be narrowed to, and the caption is paper text owned by the reconciliation pass, so nothing was edited in `Sec7_Evaluation.tex` or in the certified outcome document | 09-04 | **open** |
 | F13 | **The `gem5.opt` behind every published magnitude in three campaigns was replaced in place on 2026-09-04, and at the moment of replacement its source state was captured by no commit.** Reserved here since 2026-09-04 and **registered for the first time today**, as `BUILD_PROVENANCE.md` asks in its §5 and its §"Open". Same family as `F10` — a result whose launcher was never committed — applied to the **simulator** rather than to the harness: "a transcript is not an artifact". Scope is the `h1bw_multicore`, `h1bw_cxlbw` and `h1bw_slice_bracket` campaigns. `cfd37207` (compiled 2026-08-31 12:40:39) produced all 21 completed `h1bw_mc_*_20260904` cells and was overwritten 2026-09-04 12:51; it survives only as tag `build-cb290444`'s sibling `build-cfd37207`, which is **a reproduction point for those 21 cells, not a photograph of the tree** (§3 states the three places it departs from one). `cb290444` produced the three `*_20260904fix` cells. A related half of the same defect: `gem5_sha256` is **not** sufficient provenance, because `configs/` is read from the working tree at run time, so the six `bwt` cells ran an 08-31 binary against an 09-03 `Ruby.py`. Prevention is **implemented at build time** (`gem5/scripts/build_gem5.sh`, `fa27f665db`) rather than in a run manifest, that being the only point where source and binary provably coexist. Four older compile dates in `gem5/logs/` console logs are covered by no tag and were not investigated; anything still cited from those runs carries this defect unrepaired. **Repaired in two halves on 2026-09-04, by two different actions, and the second landed while this row was being written.** *Identity:* commit `065fd80` advanced this repository's gem5 gitlink `b0eea53b → fa27f665`, so the recorded simulator is the one that produced the cells — a checkout at `b0eea53b` gets a gem5 without the `isStreaming` retry-path fix, i.e. one that cannot produce them. *Reachability:* a separate property, and this row first stated it as unrepaired. **That wording is superseded within the day and is quoted rather than deleted, per `A6.19`:** "Verified here today: all **19** STREAMING commits on the submodule's `pr4-work` are unreachable from every remote-tracking ref in this clone, and `b0eea53b` was **one of them**, so the pointer `065fd80` replaced was **already unfetchable from any clone**. `git submodule update` failed from a clone before `065fd80` and still does; what changed is which unfetchable commit is named. The build tags stand in the same position — `build-cb290444` has **18** unpushed ancestors and `build-cfd37207` **13** … **The remaining action is a push, not a commit**, and it is outside this repository's tree." **Every figure in that paragraph was correct when measured and the conclusion is now false**: `pr4-work` and all three build tags were pushed to `origin` at `2026-09-05 01:51:32 +0900` (KST; project-local 2026-09-04), which is after this row's check ran and before it was committed. Re-verified here after an explicit `git fetch --all`: `git rev-list HEAD --not --remotes` is **0**, `origin/pr4-work` resolves to `fa27f665db`, and `git ls-remote --tags origin` carries `build-cb290444`, `build-cfd37207` and `build-481d7e12` as annotated tag objects dereferencing to `a5f366456e`, `830905739a` and `1bb6418e01`. `BUILD_PROVENANCE.md` records the end-to-end check this ledger did not have to repeat: a throwaway clone of this superproject at `065fd80` followed by `git submodule update --init gem5` fetched from GitHub and checked out `fa27f665db`. **The lesson worth keeping is methodological**: `git rev-list --not --remotes` reads *local* remote-tracking refs, so an unfetched clone reports a push as absent — that is what happened here, and a reachability claim should be made only after a fetch. **Logged open on one remaining ground, and it is not the simulator.** The **superproject is unpushed** — `main` carries **95** commits absent from `origin`, whose `main` is still `73f0332f6c` — so the simulator is now obtainable while the pointer naming it is not visible to a third party. `BUILD_PROVENANCE.md` tracks that as a superproject push separate from `F13`, and this row agrees with that scoping: `F13`'s own subject, the simulator behind three campaigns, is **recoverable by commit and by label**. What the push did **not** touch are the two limits stated earlier in this cell — the four untagged compile dates, and `build-cfd37207` being a reproduction point rather than a photograph of its tree. **That last remaining ground is now discharged too, later the same day, and the wording above is superseded rather than deleted, per `A6.19`:** "The **superproject is unpushed** — `main` carries **95** commits absent from `origin`, whose `main` is still `73f0332f6c` — so the simulator is now obtainable while the pointer naming it is not visible to a third party." Verified here after a fetch and confirmed **server-side** rather than from local remote-tracking refs, which is the discipline this row's own lesson demands: `git ls-remote origin refs/heads/main` on `https://github.com/jaewan/DutyFree.git` returns **`322c9564ee`**, the push having moved `origin/main` `73f0332f6c → 322c9564ee` (**103** commits); `git ls-tree 322c956 gem5` records **`fa27f665db02`**; and `git ls-remote origin pr4-work` in the submodule resolves `pr4-work` to that same `fa27f665db02`. So a third party cloning the published superproject now reaches the simulator behind the three campaigns by pointer as well as by commit and label. **`F13` therefore closes outright.** Two things it does not license: the ninety-five figure was never re-derived and does not verify against anything measured here (the published range `73f0332f6c..322c9564ee` is **103** commits, and `322c9564ee..main` was in double figures and rising while this pass ran, other workers still committing), and the repository around the pointer is **not** fully published — what remains unpublished is enumerated in the close-out below. **One item is folded into this row rather than given a number of its own, because it is this row's second half — reachability of a pin — on the sibling submodule.** `c34305f` re-pinned `linux` `0f82e89 → 6a7e5b09bd8b`, a commit that existed only in the local submodule, so from the moment of that commit `git submodule update --init linux` could not succeed from any clone and the superproject could not usefully be published again. `081bc3d` registered the bump and misdiagnosed it: it recorded the loss as **searchability** — "`git log -- linux` names `c34305f` as the commit that re-pinned the prototype, and its message gives a reader no reason why" — and stated that "a clone gets the right kernel and nothing measured moves", which was false for any clone, the pointer being unfetchable rather than merely unexplained. Checked live in this pass rather than inherited, and it has since closed: the submodule's `origin/pr4-work` reflog records the push of `6a7e5b09bd8b` at **`2026-09-05 02:58:56 +0900`** (KST; project-local 2026-09-04), twenty minutes after `c34305f` and confirmed server-side by `git ls-remote`, so the pin is fetchable and `ae43f80e6793` — the gitlink the *published* commit carries — is reachable from that branch as well. Registered and closed inside one entry, like `F14`. **The reusable half is process, not provenance**: `git add` in a shared checkout is not a private operation. `c34305f` carries a `linux` gitlink its subject line never mentions because the path was staged by one worker and swept up by another's commit; stage and commit in one step, or accept that the next commit may not be yours | 09-04 | **closed** 2026-09-04, subject and remaining ground both |
-| F16 | **For nine of the fourteen campaign pre-registrations, "this was pre-registered" is corroborated by nothing outside the document's own dated self-attestation.** All fourteen are now committed, and every citation in "Status history"'s freeze list verifies — but **commit order proves less than the commit dates suggest**, because the registration commits all landed in one 2026-09-04 pass (author timestamps read `2026-09-05 01:32–01:37`, this host's clock being **KST**, UTC+9, against the project-local UTC-7 by which records in this directory are dated — the convention `BUILD_PROVENANCE.md` states in its own dating note, and every wall-clock instant quoted in this row is labelled KST for the same reason), after the campaigns they register had run. Verified here today, campaign by campaign: **eight** registrations were committed **in the same commit as their own outcome document** (`SILICON_E2E_PREREGISTRATION` + `SILICON_E2E_OUTCOME` at `74e37b2`; `COMPLETE_JOIN_PREREG` + `COMPLETE_JOIN_OUTCOME` at `61c8a8e`; `H2H_REALJOIN_PREREG` at `61c8a8e`, whose verdict lives in two sections **of the registration itself**; `DUCKDB_TENANT_CAT_PREREG` at `cda8602`; `DUCKDB_MMAP_PROBE_PREREG` at `bff2622`; `IVF_LIST_DOM_PREREG` at `a1bfbfa`; `H1BW_MULTICORE_PREREG` at `a4b0c5e`; `H1BW_CXLBW_PREREG` at `b21cd21`), and in every one of those eight the campaign's **raw data was already committed in an earlier commit of the same pass** (`fee8417`, `ea28693`, `c271a22`, `931b248`, `7cd63f3`, `84dfd65`), so git witnesses the data preceding the registration rather than the reverse. A **ninth**, `FS_COMPLETE_JOIN_PREREG` at `fa30418`, is committed ahead of an outcome document that is still untracked, but behind r6b–r6e data that already existed on disk. **Filesystem mtimes cannot substitute, and there is a proof rather than an argument:** `COMPLETE_JOIN_OUTCOME_2026-09-01.md` is stamped `05:32:53` while its own `COMPLETE_JOIN_PREREG_2026-09-01.md` is stamped `05:32:58` — the outcome's mtime is **five seconds earlier** than the registration it followed, which is what a last-write timestamp records rather than a creation order. **Five of the fourteen do hold an external witness**, and it is worth naming which: `DUCKDB_MMAP_SE_H2_PREREG` (`bff2622`), `AGGBW_WINDOW_PREREG` (`443b637`), `FB_ORACLE_PREREG` (`e2b1b90`) and `IVF_FLAT_SILICON_PREREG` (`a1bfbfa`) are committed and their campaigns have produced **no committed data and no outcome at all**, so git will witness precedence for them from here forward; and `H1BW_SLICE_BRACKET_PREREG` (`e35cfa3`) was deliberately committed **ahead of its outcome** — though its run data was already committed at `84dfd65`, so what git witnesses there is the registration preceding the *outcome document*, not the runs. One orphan qualifies that: `/tmp/fbo_validate` holds an `fbo`/`wb` run pair from 2026-09-03 13:06–13:21, referenced by no document, script or record in this repository, and named as an arm by no registration. **This is a limit on external verifiability and not a defect in the claims, and the ledger says so deliberately** — the reasoning is in "Status history" below. **What is recoverable is recorded rather than assumed:** four of the fourteen are **not sealed originals**, and their amendment counts verify — `SILICON_E2E_PREREGISTRATION` 1 amendment, `COMPLETE_JOIN_PREREG` 1 addendum, `H2H_REALJOIN_PREREG` 5 (four addenda plus "Amendment 1, three corrections made AFTER data existed", which the document itself labels as such), `FS_COMPLETE_JOIN_PREREG` 7. The remaining ten carry no addendum at all. From `065fd80` forward **git witnesses every further change to all fourteen**, sealed or not, which is the half of the property that is now secured even though the originating half cannot be. **No number moves**, here or in the paper. **Paper exposure is one passage, not eight** — the eight registration-claiming passages were read and seven of them are git-witnessed; see "Status history" | 09-04 | **open as a verifiability limit** 2026-09-04 |
-| F17 | **A fail-closed gate whose instrument cannot observe the quantity at one of the levels its own campaign sweeps, or whose sample is taken at a point in the run schedule that differs by arm.** Registered here 2026-09-04 from `AMD_XSOCKET_OUTCOME_2026-09-04.md` §10, which proposed it and left the number to this table. Two instances, both in `AMD_XSOCKET_PREREG_2026-09-04.md`, both caught **by the gate failing** rather than by review, and both leaving that campaign **NOT CERTIFIED** (10 of 12 gates pass). (1) `G4` required ≥99% of the victim's pages on node 0 and read a histogram that filters mappings below 1024 pages; the campaign sweeps a **512 KB (384-page)** victim, which is invisible to it, so 200 of 400 runs scored 0% while the 4096 KB cells passed at 100%. The ≥99% threshold was **also** wrong for an unfiltered view, which fails even the primary cell at 87.2%, because ~457 pages of `libc`/`ld.so`/`libnuma` text are page-cache-resident on the other socket. (2) `G6b` required per-arm core-0 frequency to match the quiescent arm within 10% and sampled it **before the victim started** --- which in a co-run arm follows a 2-second settle sleep that lets core 0 drop to its 1.5 GHz minimum, and in a quiescent arm does not. It measured its own sampling schedule and split 3.1 GHz against 1.5 GHz with perfect correlation to placement. **Same root cause as two prior instances, which is why it is registered as a class rather than as two mistakes**: `BERGAMO_BACKINVAL_PREREG`'s `P1` was recorded as mis-specified for calibrating a threshold in one configuration and applying it in another, and `AMD_L3OCC_PREREG` opens by naming the recurring cause in as many words --- *"the instrument does not measure the quantity in the claim."* Distinct from **`F12`** (a criterion a crashed run could satisfy): `F12` is a gate too weak to fail, this is a gate that fails for a reason unrelated to what it tests. **Both questions were answered by fresh post-hoc diagnostics** (`broker/amd_xsocket_gatecheck.py`, `d23_gatecheck.jsonl`, n=5 per cell, disclosed as post-hoc) and both came back clean --- the 512 KB working set **is** on node 0, the size-invariant 457-page node-1 residue being `libc`/`ld.so` text shared with ~100 processes and identical in all five arms, and core 0 runs at **3.100 GHz in every one of 20 samples, in every arm, at both sizes** during the measured window --- so **no measurement is impeached and no number moves.** What is impeached is the certification. **The behaviour this row exists to reward is the diagnosis, not the failure**: the two gates were recorded as mis-specified rather than converted to passes, and the campaign's headline was held to the same standard --- Outcome A failed on the **lower (faster-than-baseline) edge by 2.8x10⁻⁴** under a two-sided rule the worker had frozen and did not loosen, and the primary cell was not relocated to the secondary 4096 KB cell that returns A cleanly. That is the same pattern that makes `F16`'s pre-registrations credible: a registration that goes on to fail its own thresholds and reports it. **Prevention worth registering**: a gate should be dry-run against every level of its campaign's own sweep before the campaign is frozen, and any gate reading a point-in-time sample must state where in the run schedule the sample is taken. Logged **open**; the remedy is a convention, not a patch, and the affected campaign is closed | 09-04 | **open** |
+| F16 | **For ten of the fourteen campaign pre-registrations, "this was pre-registered" is corroborated by nothing outside the document's own dated self-attestation, and for an eleventh it cannot be settled either way.** *(This row read **nine** until a birth-time re-audit later on 2026-09-04. The superseded headline is quoted rather than deleted, per `A6.19` — "**For nine of the fourteen campaign pre-registrations, 'this was pre-registered' is corroborated by nothing outside the document's own dated self-attestation.**" — and the two reclassifications that moved it, both verified here against the repository rather than accepted from the handback, are set out where the witness list used to be. The row's **verdict does not move and is better founded than when written**; see the birth-time paragraph at the end of this cell.)* All fourteen are now committed, and every citation in "Status history"'s freeze list verifies — but **commit order proves less than the commit dates suggest**, because the registration commits all landed in one 2026-09-04 pass (author timestamps read `2026-09-05 01:32–01:37`, this host's clock being **KST**, UTC+9, against the project-local UTC-7 by which records in this directory are dated — the convention `BUILD_PROVENANCE.md` states in its own dating note, and every wall-clock instant quoted in this row is labelled KST for the same reason), after the campaigns they register had run. Verified here today, campaign by campaign: **eight** registrations were committed **in the same commit as their own outcome document** (`SILICON_E2E_PREREGISTRATION` + `SILICON_E2E_OUTCOME` at `74e37b2`; `COMPLETE_JOIN_PREREG` + `COMPLETE_JOIN_OUTCOME` at `61c8a8e`; `H2H_REALJOIN_PREREG` at `61c8a8e`, whose verdict lives in two sections **of the registration itself**; `DUCKDB_TENANT_CAT_PREREG` at `cda8602`; `DUCKDB_MMAP_PROBE_PREREG` at `bff2622`; `IVF_LIST_DOM_PREREG` at `a1bfbfa`; `H1BW_MULTICORE_PREREG` at `a4b0c5e`; `H1BW_CXLBW_PREREG` at `b21cd21`), and in every one of those eight the campaign's **raw data was already committed in an earlier commit of the same pass** (`fee8417`, `ea28693`, `c271a22`, `931b248`, `7cd63f3`, `84dfd65`), so git witnesses the data preceding the registration rather than the reverse. A **ninth**, `FS_COMPLETE_JOIN_PREREG` at `fa30418`, is committed ahead of an outcome document that is still untracked, but behind r6b–r6e data that already existed on disk. **Filesystem mtimes cannot substitute, and there is a proof rather than an argument:** `COMPLETE_JOIN_OUTCOME_2026-09-01.md` is stamped `05:32:53` while its own `COMPLETE_JOIN_PREREG_2026-09-01.md` is stamped `05:32:58` — the outcome's mtime is **five seconds earlier** than the registration it followed, which is what a last-write timestamp records rather than a creation order. **Three of the fourteen hold an external witness, one is indeterminate, and the figure this row first published was five.** The superseded sentence is quoted rather than deleted, per `A6.19`: "**Five of the fourteen do hold an external witness**, and it is worth naming which: `DUCKDB_MMAP_SE_H2_PREREG` (`bff2622`), `AGGBW_WINDOW_PREREG` (`443b637`), `FB_ORACLE_PREREG` (`e2b1b90`) and `IVF_FLAT_SILICON_PREREG` (`a1bfbfa`) are committed and their campaigns have produced **no committed data and no outcome at all**, so git will witness precedence for them from here forward; and `H1BW_SLICE_BRACKET_PREREG` (`e35cfa3`) was deliberately committed **ahead of its outcome** — though its run data was already committed at `84dfd65`, so what git witnesses there is the registration preceding the *outcome document*, not the runs. One orphan qualifies that: `/tmp/fbo_validate` holds an `fbo`/`wb` run pair from 2026-09-03 13:06–13:21, referenced by no document, script or record in this repository, and named as an arm by no registration." **The surviving three are `DUCKDB_MMAP_SE_H2_PREREG`, `AGGBW_WINDOW_PREREG` and `IVF_FLAT_SILICON_PREREG`**, and the reason they survive is worth stating explicitly rather than left as a residue, because the error class that moved the other two **cannot reach them**: their witness is *absence of any data at all* plus a committed registration, which is a **forward-looking guarantee that never consults a timestamp**. There is no mtime, birth time or in-band stamp in their argument to have read wrongly, and nothing measured after the commit can precede it. That is the strongest form the property takes in a bulk pass, and it is also the emptiest — it licenses nothing about a campaign that has not run. **Two reclassifications, both verified here against the repository:** (1) `H1BW_SLICE_BRACKET_PREREG` was **miscounted as witnessed and is unwitnessed**. Its committed data carries an in-band `started`, and `data/gem5/h1bw_slice_bracket.jsonl`'s three cells read `2026-09-04T09:11:27+09:00` to `09:11:31`, against a registration commit `e35cfa3` at `2026-09-05 01:37:06` KST — the runs began **16 h 25 m 39 s before the registration was in git**, and the post-fix triple (`_20260904fix`, `12:52:44`) began 12 h 44 m before it. The cell had already conceded the substance ("what git witnesses there is the registration preceding the *outcome document*, not the runs"); what changes is that the concession is now measured rather than inferred, and the count is taken on one criterion — precedence over **run start** — instead of two. (2) `FB_ORACLE_PREREG` moves to **indeterminate**, and this row's own supporting claim about it was **false**. The orphan pair is not unregistered: `FB_ORACLE_PREREG_2026-09-03.md` §"Arms" registers exactly "`qui` / `wb` / `h2` / `fbo`, three seeds each, 12 runs", so `fbo` **is** a registered arm, and the `fbo`/`wb` pair in `/tmp/fbo_validate` is that registration's own **`P-O1`** check — "`fbo` must show a materially lower HNF occupancy/insertion count than `wb`", the first thing its own text says to check. In-band banners put it at `Sep 3 2026 13:06:48` (`wb`) and `13:21:50` (`fbo`), matching both directories' birth times to the millisecond and predating `e2b1b90` by **1 d 12 h 25 m 56 s**. So the witness cannot rest on absence of data, because data exists. It is **indeterminate rather than unwitnessed for a reason that runs the other way**, and the reason is recorded because it is the more interesting half: the pair is **one run per arm at the wrong geometry** — `--fact-bytes 2097152 --hot-bytes 1048576 --reps 2` against the registered `8388608`/`4194304`/`reps 1`, no victim process at all, and a different build directory (`build_Intel_8592_FBO`) — so it is a plumbing check and not a campaign cell; and the registration document's own **birth time is `2026-09-03 09:16:46`, 3 h 50 m 2 s *before* the earlier of the two runs**, which corroborates its attestation at exactly the point where git cannot. Neither reading is provable from a clone. Both are recorded. **This is a limit on external verifiability and not a defect in the claims, and the ledger says so deliberately** — the reasoning is in "Status history" below. **What is recoverable is recorded rather than assumed:** four of the fourteen are **not sealed originals**, and their amendment counts verify — `SILICON_E2E_PREREGISTRATION` 1 amendment, `COMPLETE_JOIN_PREREG` 1 addendum, `H2H_REALJOIN_PREREG` 5 (four addenda plus "Amendment 1, three corrections made AFTER data existed", which the document itself labels as such), `FS_COMPLETE_JOIN_PREREG` 7. The remaining ten carry no addendum at all. From `065fd80` forward **git witnesses every further change to all fourteen**, sealed or not, which is the half of the property that is now secured even though the originating half cannot be. **No number moves**, here or in the paper. **The birth-time re-audit that cost this row two witnesses also strengthened its verdict, and that belongs in the row rather than in a footnote.** The mtime pair this cell offers as its inversion proof inverts only in *mtime*: the birth times run the right way round, `COMPLETE_JOIN_PREREG_2026-09-01.md` born `2026-09-01 23:48:22.666` and `COMPLETE_JOIN_OUTCOME_2026-09-01.md` born `2026-09-02 05:02:16.092`, five hours and fourteen minutes apart in the order the documents assert — while their mtimes read `05:32:58` and `05:32:53`, five seconds the wrong way. And that registration's birth **precedes its own campaign's in-band launch by 4 min 21 s**: r5's first wave of fifteen arms reports `gem5 started Sep 1 2026 23:52:44` in fifteen separate logs. The pattern holds for every bulk-pass registration where an in-band launch time exists to check it against, measured here: `H1BW_SINGLECORE` **28.9 s**, `H1BW_SLICE_BRACKET` **35 s**, `H1BW_MULTICORE` **40 s**, `H1BW_CXLBW` **1 m 29 s**, `COMPLETE_JOIN` **4 m 21 s**, `DUCKDB_TENANT_CAT` **12 m 54 s** and `SILICON_E2E` **41 m 08 s** — in every case the document was **on disk before the campaign started**. So the filesystem **corroborates these attestations rather than contradicting them**; what it cannot do is show a reviewer, because git records no mtime, no ctime and no birth time and none of it survives a clone. That is precisely what "a limit on external verifiability, not a defect in the claims" was asserting when this row was written, and it is now founded on a measurement instead of on an argument. **Read the two facts together and not separately**: the same instrument that removed two witnesses from the count corroborated ten attestations, and neither result is available to anybody who has only the repository. **Paper exposure is one passage, not eight** — the eight registration-claiming passages were read and seven of them are git-witnessed; see "Status history". **One of those seven is now witnessed on a narrower ordering than the one first claimed for it**, and the exposure count survives that: `Appendix.tex:403` rests on `H1BW_SINGLECORE_PREREG`, whose registration commit is **21 m 46 s after its runs launched** and **25 m 45 s before the earliest of them reported** — so what git witnesses is the thresholds being fixed before any result existed, which is the ordering the word "pre-registered" needs there, and not the thresholds being fixed before the runs began, which the bullet in "Status history" originally claimed from a directory mtime. Corrected there, not rewritten | 09-04 | **open as a verifiability limit** 2026-09-04 |
+| F17 | **A fail-closed gate whose instrument cannot observe the quantity at one of the levels its own campaign sweeps, or whose sample is taken at a point in the run schedule that differs by arm.** Registered here 2026-09-04 from `AMD_XSOCKET_OUTCOME_2026-09-04.md` §10, which proposed it and left the number to this table. Two instances, both in `AMD_XSOCKET_PREREG_2026-09-04.md`, both caught **by the gate failing** rather than by review, and both leaving that campaign **NOT CERTIFIED** (10 of 12 gates pass). (1) `G4` required ≥99% of the victim's pages on node 0 and read a histogram that filters mappings below 1024 pages; the campaign sweeps a **512 KB (384-page)** victim, which is invisible to it, so 200 of 400 runs scored 0% while the 4096 KB cells passed at 100%. The ≥99% threshold was **also** wrong for an unfiltered view, which fails even the primary cell at 87.2%, because ~457 pages of `libc`/`ld.so`/`libnuma` text are page-cache-resident on the other socket. (2) `G6b` required per-arm core-0 frequency to match the quiescent arm within 10% and sampled it **before the victim started** --- which in a co-run arm follows a 2-second settle sleep that lets core 0 drop to its 1.5 GHz minimum, and in a quiescent arm does not. It measured its own sampling schedule and split 3.1 GHz against 1.5 GHz with perfect correlation to placement. **Same root cause as two prior instances, which is why it is registered as a class rather than as two mistakes**: `BERGAMO_BACKINVAL_PREREG`'s `P1` was recorded as mis-specified for calibrating a threshold in one configuration and applying it in another, and `AMD_L3OCC_PREREG` opens by naming the recurring cause in as many words --- *"the instrument does not measure the quantity in the claim."* Distinct from **`F12`** (a criterion a crashed run could satisfy): `F12` is a gate too weak to fail, this is a gate that fails for a reason unrelated to what it tests. **Both questions were answered by fresh post-hoc diagnostics** (`broker/amd_xsocket_gatecheck.py`, `d23_gatecheck.jsonl`, n=5 per cell, disclosed as post-hoc) and both came back clean --- the 512 KB working set **is** on node 0, the size-invariant 457-page node-1 residue being `libc`/`ld.so` text shared with ~100 processes and identical in all five arms, and core 0 runs at **3.100 GHz in every one of 20 samples, in every arm, at both sizes** during the measured window --- so **no measurement is impeached and no number moves.** What is impeached is the certification. **The behaviour this row exists to reward is the diagnosis, not the failure**: the two gates were recorded as mis-specified rather than converted to passes, and the campaign's headline was held to the same standard --- Outcome A failed on the **lower (faster-than-baseline) edge by 2.8x10⁻⁴** under a two-sided rule the worker had frozen and did not loosen, and the primary cell was not relocated to the secondary 4096 KB cell that returns A cleanly. That is the same pattern that makes `F16`'s pre-registrations credible: a registration that goes on to fail its own thresholds and reports it. **Prevention worth registering**: a gate should be dry-run against every level of its campaign's own sweep before the campaign is frozen, and any gate reading a point-in-time sample must state where in the run schedule the sample is taken. **A third convention is registered alongside those two, from a different pass and the same category — fix the harness, not the record.** Every committed per-run record should carry an in-band `started` and `ended`, as the `h1bw_*` harness already does. Measured 2026-09-04: only **9 of the 30** committed `.jsonl` files under `data/` carry any in-band timestamp at all, in **two schemas** — ISO-8601 `started`/`ended` per record in the five `h1bw_*` files, and a single `ts` per record in `duckdb_tenant_cat.jsonl` and the three `silicon_e2e_*` files — and the remaining 21 carry none, `r5_runs.jsonl` and the two fused archives among them. The whole birth-time re-audit recorded at the end of this document, which cost two of `F16`'s witnesses and corrected four passages including two of this ledger's own, would have been a two-command check against those fields; instead it was done against tmpfs metadata that no clone can see and that means *launch* on one harness and *completion* on another. This is registered as a convention rather than as a defect number for the same reason as the two above: nothing measured is wrong, and the remedy is what the next harness does. Logged **open**; the remedy is a convention, not a patch, and the affected campaign is closed | 09-04 | **open** |
 | --- | `tab:gem5`'s +H2 column never re-instantiated | 08-23 | **open** (agenda E6) |
 | --- | `tab:fused`'s way-sweep runner exists in no commit | 08-23 | **open**, disclosed at the data |
 | --- | Sec5 decomposition table is stale against E2B | today | **fix in the writing pass** |
@@ -205,8 +205,10 @@ can be argued with.
 
 *The case for calling it a claims defect.* The paper says "pre-registered",
 "registered before the runs", "registered in advance". A reader takes those as
-claims about the order in which two things happened. For nine of the fourteen
-campaigns, the only evidence for that order is the registration document
+claims about the order in which two things happened. For ten of the fourteen
+campaigns (**this read "nine" until the 2026-09-04 birth-time re-audit**; quoted
+per `A6.19`, and the two reclassifications are in `F16`'s cell), the only
+evidence for that order is the registration document
 saying so in its own first two lines — `COMPLETE_JOIN_PREREG`'s "Date:
 2026-09-01. Registered **before any arm of this campaign produced a number.**"
 is representative. Nothing external corroborates it: git has the data landing
@@ -233,13 +235,25 @@ The registered/unregistered distinction in particular appears to be reported
 accurately — see the passage audit below, where it is the part that *is*
 witnessed.
 
-*The consequence, stated in the form a reviewer would use.* For nine
-campaigns, "pre-registered" should be read as **attested and internally
+*The consequence, stated in the form a reviewer would use.* For ten
+campaigns (**"nine" as first written**, quoted per `A6.19`; `H1BW_SLICE_BRACKET`
+joined them on 2026-09-04 and `FB_ORACLE` became indeterminate), "pre-registered"
+should be read as **attested and internally
 corroborated, not independently verifiable**. That is weaker than the word
 alone implies and stronger than nothing. It is also **not recoverable** —
 no action taken now can create a witness for an order of events that has
 already happened — which is why this row is logged as a limit and left open
-rather than routed for repair.
+rather than routed for repair. **One addition from the birth-time re-audit
+belongs in this reading rather than only in the cell**: the phrase "internally
+corroborated" can now be said to include the filesystem. The registration
+documents of every bulk-pass campaign with an in-band launch time to check
+against were **on disk before their campaigns started** — by 29 seconds in the
+tightest case and 41 minutes in the loosest — and the mtime pair this row offers
+as its inversion proof runs the right way round in *birth* time. A reviewer
+cannot see any of that, because git carries no filesystem timestamps. So the
+correct reading is not "there is no evidence of order" but "**the evidence of
+order exists and does not travel**", which is a materially different thing to
+disclose and is the sharper form of the same conclusion.
 
 **The eight paper passages, audited before the exposure was characterised.**
 Read in `/home/domin/STREAMING_Paper/ASPLOS27/Text/`. **Seven of the eight are
@@ -247,27 +261,107 @@ git-witnessed and only one is not**, which narrows the exposure sharply and is
 the reason `F16`'s cell says so rather than reporting eight.
 
 - **`Appendix.tex:403`, "Pre-registered and certified: six cells, twelve
-  fail-closed gates".** Witnessed. `H1BW_SINGLECORE_PREREG_2026-09-04.md` is
-  frozen at `b4ac57c` (2026-09-04 21:22:22); the run directories under
-  `logs/se_chi_h1bw_sc/` were created 21:48–21:50, i.e. **26 minutes after the
-  registration was in git**; and the outcome plus `h1bw_singlecore.jsonl`
-  landed separately at `6fa71f5` (22:07:17). Three independent orderings, all
-  in the same direction.
+  fail-closed gates".** Witnessed, and **the ground under it has since been
+  corrected rather than removed.** The reasoning first written here was:
+
+  > `H1BW_SINGLECORE_PREREG_2026-09-04.md` is frozen at `b4ac57c` (2026-09-04
+  > 21:22:22); the run directories under `logs/se_chi_h1bw_sc/` were created
+  > 21:48–21:50, i.e. **26 minutes after the registration was in git**; and the
+  > outcome plus `h1bw_singlecore.jsonl` landed separately at `6fa71f5`
+  > (22:07:17). Three independent orderings, all in the same direction.
+
+  Quoted rather than deleted, per `A6.19`, because the middle clause is a
+  **method error and not a typo**. `21:48–21:50` is the run directories'
+  **mtime**, and this harness writes `MANIFEST.json` and `DONE.json` at
+  *completion*, so the figure is a completion time wearing a creation time's
+  clothes. The committed data says so in band: `data/gem5/h1bw_singlecore.jsonl`
+  records `started` for all nine cells at **21:00:20–21:00:36** and its earliest
+  `ended` at **21:48:07**. The runs were therefore **already in flight 21 m 46 s
+  before** the registration was committed, and the mtimes agree with `ended`, not
+  with launch. **Two of the three orderings stand and the third reverses**: the
+  registration precedes the earliest reported result by **25 m 45 s** and
+  precedes the outcome-plus-data commit by 44 m 55 s, so the thresholds are
+  witnessed to have been in git before any cell reported — which is the ordering
+  `Appendix.tex:403`'s "pre-registered" needs, and which
+  `H1BW_SINGLECORE_OUTCOME_2026-09-04.md` establishes independently by recording
+  that all nine `stats.txt` were still 0 bytes at 21:22. It does **not** precede
+  launch. The outcome document needs no correction: its header already says
+  "before any cell emitted a statistic" and its §9 is candid about the 21:00
+  launch. **The general lesson is the one worth keeping**: a directory's mtime
+  tracks the last entry written into it, which is a property of the harness and
+  not of the campaign, so it means *launch* for a tool that populates its output
+  directory at startup and *completion* for one that closes it with a manifest.
+  The same command gave opposite answers on this campaign and on `FUSED_KNEE`
+  below, and only one of the two was ever checked against an in-band stamp.
 - **`Sec7_Evaluation.tex:238, 239, 274, 276, 277, 280`** — six passages, all
   resting on the same registration, and the strongest-worded of them is 238's
   "the five table sizes from 2.0 to 4.0~MB were registered before the runs
   ($45$ runs)". Witnessed, and twice over. `FUSED_KNEE_PREREG_2026-08-29.md`
   was committed at **`eb20d93`, 2026-08-29 22:58:37**, has **never been
-  modified since** (one commit in its whole history), and its data
-  (`kn_runs.jsonl`, `kb_runs.jsonl`) landed at `acc722a` **nine and a half
-  hours later**. Independently: the first run directory,
-  `/tmp/kn_cat4_t2.0_s1`, was created at **22:58:38.53 — one second after the
-  registration commit** — and the unregistered extension's `/tmp/kb_*`
-  directories at 2026-08-30 01:33, afterwards. So the registered/unregistered
-  distinction that `F15` narrowed the `fig:recovery` claim onto is the part of
-  the paper's registration story that **is** externally corroborated, which is
-  worth stating plainly given that this row could easily be misread as
-  undermining it.
+  modified since** (one commit in its whole history — the subject of that
+  sentence is the *file*; `eb20d93` itself sits on 502 ancestors, 503 commits
+  counting itself, and this is noted only because the clause is easy to misread
+  as a claim about the commit's ancestry), and its data (`kn_runs.jsonl`,
+  `kb_runs.jsonl`) landed at `acc722a` **nine and a half hours later**.
+
+  **The independent half of this bullet was measured wrongly and is now
+  measured from the artifacts themselves.** What it said, quoted rather than
+  deleted per `A6.19`:
+
+  > Independently: the first run directory, `/tmp/kn_cat4_t2.0_s1`, was created
+  > at **22:58:38.53 — one second after the registration commit** — and the
+  > unregistered extension's `/tmp/kb_*` directories at 2026-08-30 01:33,
+  > afterwards. So the registered/unregistered distinction that `F15` narrowed
+  > the `fig:recovery` claim onto is the part of the paper's registration story
+  > that **is** externally corroborated.
+
+  `22:58:38.53` is that directory's **mtime**; its birth time is
+  **`22:58:38.127`** (measured across all 45: birth `22:58:38.1248–.1551`, mtime
+  `22:58:38.5308–.5608`). **The verdict was right and the reasoning was not, and
+  it was right by luck** — here gem5 creates the output directory and finishes
+  writing its metadata inside half a second, so mtime and birth land in the same
+  second; the identical inference on the `H1BW_SINGLECORE` harness above is wrong
+  by 48 minutes. **The replacement is in-band and committed**, so it survives a
+  clone where no filesystem timestamp does: all **45** `kn_*` runs report
+  **`gem5 started Aug 29 2026 22:58:38`** in their own logs, one second after the
+  registration commit, and the runner's own completion stamps close the sweep at
+  **01:30:39** (`kn_sweep.done`, `KNEE_DONE 1788021039`). Tracked at `3ed6ff0`
+  under **`artifacts/fused_knee/`** as byte-for-byte originals — 65 files,
+  228,846 B (223.5 KiB) — with SHA-256 digests for the **504** larger originals
+  left on tmpfs in the same directory, and the whole selection argued in
+  `FUSED_KNEE_RUNLOG_PROVENANCE_2026-09-04.md`.
+
+  **"Externally corroborated" is an overclaim and is withdrawn in favour of a
+  narrower claim that is actually true.** The banner and the commit date come
+  from the same host clock, a git author date is settable by whoever makes the
+  commit, and `eb20d93` is **unsigned** (`%G?` = `N`, checked). What the evidence
+  establishes is that the launch time is **generated by the simulator rather than
+  asserted by the author** — 45 independent gem5 processes each wrote the same
+  start second into its own file, the runner's stamps bound each run's span, and
+  the uncommitted `stats.txt` and `config.ini` are digested and would have to
+  agree with all of it. Falsifying it now means **forging 45 coherent logs**, not
+  adjusting one number. That is weaker than third-party attestation and much
+  stronger than the document's own say-so, and it is the strongest form the
+  registration property takes anywhere in this project. So the
+  registered/unregistered distinction that `F15` narrowed the `fig:recovery`
+  claim onto is the part of the paper's registration story that is **corroborated
+  by the instrument rather than by the author**, which is worth stating plainly
+  given that this row could easily be misread as undermining it.
+
+  **One scope limit, because the campaign is easy to treat as 63 uniform runs.**
+  The 18 `kb_*` directories carry a **different** banner —
+  `gem5 started Aug 30 2026 01:33:02`, a separate launch **2 h 34 m 25 s** after
+  the registration commit and 2 m 23 s after the `kn` sweep closed. Both banners
+  postdate `eb20d93`, so registration-before-run holds for all **63** runs; it is
+  only the **one-second tightness that is `kn_*`-only**. This matters beyond
+  bookkeeping: `kb_runs.jsonl` is what the `fig:recovery` row above, this
+  ledger's `F15`, `FUSED_KNEE_CLOSED_2026-09-04.md`,
+  `RECOVERY_CURVE_OUTCOME_2026-09-04.md` and `make_recovery_curve.py` all read,
+  and the **8.0 MB endpoint carrying the headline "89.4% to 56.8%" is a `kb_*`
+  point** already logged under `F15` as in no pre-registration's design. The two
+  distinct banners are what makes that registered/unregistered split checkable
+  from a clone rather than taken on trust, which is the distinction `F15` exists
+  to protect.
 - **`Sec7_Evaluation.tex:143`, "The registered discrete comparison uses the
   cheapest observed mask with at least as much recovery".** **Not witnessed —
   this is the one.** It cites `COMPLETE_JOIN_PREREG_2026-09-01.md:91` ("Wedge,
@@ -526,7 +620,12 @@ committed, nine of them have no witness to their own precedence beyond their
 own dated attestation, and the one timestamp anybody would reach for is proved
 inverted. It is logged as a **limit on external verifiability, not a defect in
 the claims**, and the argument for that reading --- along with the argument
-against it --- is set out in "Status history" rather than asserted here.
+against it --- is set out in "Status history" rather than asserted here. *(Left
+as written, per `A6.19`, this paragraph being the record of what that pass found.
+Two of its clauses were superseded later the same day: the figure is **ten**, and
+the inverted timestamp is inverted only in **mtime** --- the birth times of the
+same pair run in the order the documents assert. Both corrections are in `F16`'s
+cell and in the final section of this document.)*
 
 Two things this pass deliberately did **not** do. It did not edit the paper:
 the eight registration-claiming passages were read, seven were found
@@ -812,3 +911,138 @@ was re-measured after this push and is unchanged by it. **The instruction
 stands and this is now its fourth demonstration in two passes: a
 remaining-untracked list, an unpushed-commit count, and a publication state are
 each a measurement with a timestamp, not a state.**
+
+**Update 2026-09-04, birth-time re-audit and evidence-preservation pass.** No
+defect registered, none closed, no number moved anywhere in this ledger or in the
+paper. What this pass did is **correct four passages of precedence reasoning,
+three of them in this file and one in `INDEX.md`, all four resting on the same
+method error**, and record one convention. Every figure below was measured in
+this pass; the two handbacks that proposed them were checked rather than trusted,
+on the strength of the previous pass having found three of its own handed-back
+figures wrong.
+
+**The error, stated once because it produced all four.** A directory's mtime is
+the time of the last entry written into it, which is a property of the *harness*
+and not of the campaign. `FUSED_KNEE`'s gem5 output directories are populated at
+startup, so their mtime is within half a second of launch; the `h1bw_*` harness
+writes `MANIFEST.json` and `DONE.json` when a cell finishes, so its mtime is
+completion. **The same `stat` gave the right answer on one campaign and an answer
+48 minutes wrong on the other, and neither was checked against anything in band.**
+Both corrections are in "Status history" above, with the superseded wording quoted
+per `A6.19` — which this pass applied to its own text from earlier the same day,
+the rule being no weaker against the author than against anyone else.
+
+**What did not verify, and it is one thing rather than a figure.** Every
+substantive measurement in both handbacks reproduced exactly: `H1BW_SLICE_BRACKET`'s
+in-band `started 09:11:27` against `e35cfa3` at `01:37:06` the next morning
+(**16 h 25 m 39 s**); `FB_ORACLE_PREREG` §"Arms" registering `qui`/`wb`/`h2`/`fbo`
+verbatim, which makes this ledger's own "named as an arm by no registration"
+false; the `/tmp/fbo_validate` pair's in-band banners at `13:06:48` and `13:21:50`,
+**1 d 12 h 25 m 56 s** before `e2b1b90`; `COMPLETE_JOIN`'s birth times `23:48:22`
+and `05:02:16` against inverted mtimes `05:32:58` and `05:32:53`; the registration
+birth preceding r5's fifteen-arm launch banner by **4 m 21 s**; the bulk-pass range
+of **28.9 s to 41 min 08 s**, whose two endpoints are `H1BW_SINGLECORE` and
+`SILICON_E2E` and which was re-derived campaign by campaign rather than accepted;
+`/tmp/kn_cat4_t2.0_s1` birth `22:58:38.127` against mtime `22:58:38.532`; all 45
+`kn_*` banners at `22:58:38` and all 18 `kb_*` at `01:33:02`, the latter
+**2 h 34 m 25 s** after `eb20d93`; `eb20d93` unsigned; `artifacts/fused_knee/` at
+65 evidence files and 228,846 B against 504 digested originals; `9 of 30`
+committed `.jsonl` carrying an in-band timestamp in two schemas; `−18.95%`;
+`h1bw_singlecore.jsonl`'s `started 21:00:20–21:00:36` and earliest `ended 21:48:07`
+against `b4ac57c` at `21:22:22` and `6fa71f5` at `22:07:17`. **One item did not
+survive, and it is the universe rather than a number.** The re-audit counts
+"**all sixteen registrations carrying a precedence claim**" and its arithmetic is
+internally exact for the set it names — `F16`'s fourteen plus `H1BW_SINGLECORE`
+plus `AMD_XSOCKET`, giving 4 witnessed / 11 unwitnessed / 1 indeterminate, all
+three of which reproduce here. But `INDEX.md`'s curated table now carries
+**seventeen** `*_PREREG_*` rows, and the seventeenth is **`FUSED_KNEE_PREREG`**,
+added at `INDEX.md:149` by `f425779` a few hours earlier — which is the row the
+same handback calls the strongest of all on in-band evidence. It was missed
+because it is the one `*_PREREG_*` row that carried no freeze citation, that
+citation convention having been introduced for the bulk pass and never applied
+backwards to a registration from 2026-08-29. **So the counts are right and the
+denominator is one short**; `INDEX.md` now tallies **seventeen** and gives
+`FUSED_KNEE_PREREG` the freeze citation it lacked. One smaller slip, corrected
+where it appears rather than argued: `eb20d93` has **502** ancestors, not 503 —
+`git rev-list --count` includes the commit it is given.
+
+**`F16` moves in both directions and the row is better founded than when it was
+written.** Within its fourteen: **10 unwitnessed, 3 witnessed, 1 indeterminate**,
+against the 9/5 first published. `H1BW_SLICE_BRACKET` was miscounted as witnessed
+and its own cell had already conceded the substance; `FB_ORACLE` moves to
+indeterminate because the witness rested on absence of data and data exists,
+uncommitted, on tmpfs. The three that survive — `DUCKDB_MMAP_SE_H2`,
+`AGGBW_WINDOW`, `IVF_FLAT_SILICON` — survive **for a reason the row now states
+explicitly**: their witness is a committed registration plus the absence of any
+data at all, which is a forward-looking guarantee that never consults a timestamp,
+so this error class cannot reach them. Against those two losses, the same audit
+found that the birth times of every bulk-pass registration checked **precede
+their campaigns' in-band launches**, by 29 seconds to 41 minutes, and that the
+mtime pair this row offers as its inversion proof inverts only in mtime. The
+filesystem therefore **corroborates** the ten attestations and merely cannot show
+a reviewer, which is what "a limit on external verifiability, not a defect in the
+claims" was asserting on an argument and now asserts on a measurement.
+
+**One overclaim of this ledger's own is withdrawn.** The `Sec7_Evaluation.tex:238`
+bullet called `FUSED_KNEE`'s registration "externally corroborated". It is not:
+the banner and the commit date come from the same host clock, a git author date is
+settable, and `eb20d93` is unsigned. What is true, and is what the bullet now
+says, is that the launch time is **generated by the simulator rather than asserted
+by the author**, and that falsifying it would mean forging 45 coherent logs.
+Weaker than external attestation, far stronger than a document's own say-so, and
+the strongest form the property takes anywhere in this project — which is why the
+`fig:recovery` caption's "registered before the runs" still should **not** be
+softened, and why `INDEX.md`'s "best-witnessed" ranking now puts `FUSED_KNEE`
+first and `H1BW_SINGLECORE` fourth. That ranking, and the criterion it is taken
+on, are stated in `INDEX.md` rather than here.
+
+**Two things handed back rather than applied**, both because this pass owns
+neither file. `H1BW_SINGLECORE_PREREG_2026-09-04.md` says "frozen before launch"
+at line 887 and "stated before launch" at line 44, and both are false about run
+start. **The recommendation is an addendum and not a rewrite** — it is a sealed
+registration and `A6.19` governs — and the addendum should be more precise than a
+flat retraction, because the document's position is better than "wrong": its own
+**birth time is `20:59:51`, 29 seconds before the first cell launched at
+`21:00:20`**, so the file existed before launch and only its *freeze*, in the
+sense this corpus uses the word, did not. Its **mtime is `21:07:00`**, so it was
+still being written seven minutes into the runs, and the commit followed at
+`21:22:22`. Suggested substance: the design was on disk before launch, the commit
+was not, no cell had reported a statistic when the commit landed, and the
+campaign's own outcome document already says exactly that. The
+`FUSED_KNEE_RUNLOG_PROVENANCE_2026-09-04.md` handback also asks whether the 48.4
+MiB of `stats.txt` and 19.4 MiB of `config.ini` should be committed so a reviewer
+can rebuild the two JSONL archives rather than trust `acc722a`'s extraction; that
+reverses a documented decision in `acc722a` and is **not this ledger's call**
+either. Both are recorded here so they are not lost, per `F11`.
+
+**One convention registered, folded into `F17` rather than numbered.** Standardise
+in-band `started`/`ended` in every committed per-run record. It sits beside
+`F17`'s two prevention notes because all three are the same kind of item: nothing
+measured is wrong, and the remedy is what the next harness does rather than a
+patch to anything already recorded.
+
+**The open count does not change.** Open: **four defects** — `F4`, `F15`, `F16`
+and `F17` — plus `tab:gem5`'s +H2 column, `tab:fused`'s way-sweep runner and the
+stale Sec5 inline table. `F13` remains closed, no number is reserved, and the next
+free defect number is still **`F18`**. `F16` stays open **on the same ground and
+with a different count**: it is still the one open item that cannot be closed by
+doing anything, and it is now the one whose evidence cuts both ways. Nothing on
+that list moves a cell in any table above; the ledger's 20/20 recomputation stands
+and `fig:recovery`'s 63/63 stands with one more value printed in its row than
+before.
+
+**State at the end of this pass, as a measurement and not a state.** `origin/main`
+is at `a0cfe302d2`; `main` is **four** commits ahead of it — `f425779`, `5584644`
+from the previous pass and `3ed6ff0`, `ebfd511` from the evidence-preservation
+pass — plus whatever this commit adds, and nothing was pushed. The
+remaining-untracked list four paragraphs above the previous section's end was
+re-derived: **167** untracked paths repository-wide, with
+`FUSED_KNEE_RUNLOG_PROVENANCE_2026-09-04.md` and the 66 paths under
+`artifacts/fused_knee/` having left it at `3ed6ff0`, and the working tree also
+carries uncommitted modifications to tracked files belonging to other workers,
+which is why this pass committed with `--only` and explicit paths. **Fifth
+demonstration of the same instruction in three passes.** One thing this pass adds
+to it: the evidence-preservation pass's own commit `ebfd511` exists because
+`3ed6ff0`'s handback listed an item that `f425779` had closed between the two
+being written, so the pattern is now symmetric — this ledger has had items closed
+underneath it by other workers, and it has closed items underneath them.
