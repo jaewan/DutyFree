@@ -613,3 +613,45 @@ states that the tarball holds a hand-written summary and **no per-run
 artifacts**, so it records what was claimed and is not provenance for it. One
 further clause is appropriate now that the table is certified: the tarball
 backs a **superseded** claim, and `tab:h1bw` no longer rests on it.
+
+---
+
+## Addendum 1 — 2026-09-04. Pointer to the pre-registration's "before launch" correction. No result moves.
+
+`H1BW_SINGLECORE_PREREG_2026-09-04.md` **Addendum 1** corrects that document's
+two "before launch" claims (its line 44 and line 887, plus the same error in
+deliverable 2 at line 888): the registration commit `b4ac57c` is **21:22:22**,
+which is **21 m 46 s after** the last of the nine cells launched, not before.
+What survives is the narrower and sufficient ordering — the commit precedes the
+**earliest `ended` (21:48:07) by 25 m 45 s**. Filed here as a pointer only.
+
+**This document's own claims are unaffected and are left exactly as written**,
+having been checked one by one against that addendum:
+
+- The header's "frozen at commit `b4ac57c` **before any cell emitted a
+  statistic**" is the git-witnessed ordering and is **correct as it stands**.
+- **§7 finding 2** already records the 21:07:00 mtime, the 21:00:20–21:00:28
+  launch and all nine `stats.txt` still 0 bytes at 21:22 — against the
+  campaign's own interest, and it is the finding the correction rests on. Its
+  launch window is the first three cells; the committed
+  `data/gem5/h1bw_singlecore.jsonl` puts all nine at **21:00:20–21:00:36**.
+- **§7 item 9** states the 21:00 launch and the 21:54 completion plainly.
+- **No number in §§1–6 depends on any of this**, and none moves.
+
+**One thing in this document is stale and is flagged rather than rewritten, per
+`A6.19`.** The proposed `INDEX.md` row in §9 above — a handback, explicitly not
+applied — ends its provenance clause:
+
+> Frozen at `b4ac57c` before
+> launch.
+
+`INDEX.md` **did not adopt that wording**. Its row was corrected at `7cd0405`
+to "Frozen at `b4ac57c`, **21:22:22, before any cell reported**", and it quotes
+the superseded phrasing itself. The handback above is therefore **superseded and
+should not be applied by anyone routing it**; the live text is the one in
+`INDEX.md`. The F3 wording proposed earlier in §9 is unaffected — it says
+"pre-registered at commit `b4ac57c` **before any cell emitted a statistic**",
+which is the correct ordering, and the ledger carries it as such.
+
+See also `A1_PROVENANCE_LEDGER_2026-08-28.md` **`F16`**, open as a limit on
+external verifiability rather than a defect in the claims.

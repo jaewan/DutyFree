@@ -935,3 +935,153 @@ cheap end of the bracketing trade that cost the multi-core campaign 0.7 GB.
   `gem5/src/arch/x86/pagetable_walker.cc`,
   `gem5/src/mem/ruby/protocol/chi/CHI-cache-{funcs,actions}.sm`.
   **`gem5/src/` was not modified and `gem5.opt` was not rebuilt.**
+
+---
+
+## Addendum 1 — 2026-09-04. "Before launch" is wrong in two places, and the correction runs in only one direction
+
+The body above is sealed and is **not edited**. The two passages this addendum
+concerns are quoted rather than corrected in place, per `A6.19`. Every figure
+below was re-verified against git and the filesystem for this addendum rather
+than carried over from the handback that prompted it.
+
+### The two passages, verbatim
+
+This file is byte-identical to its commit `b4ac57c`, so the line numbers are
+exact rather than approximate, and they will stay exact for as long as this
+addendum is the only thing appended to it.
+
+**Line 44**, the heading of the section claiming two structural properties:
+
+> `## Two things this design gets for free, stated before launch`
+
+**Line 887**, deliverable 1:
+
+> `1. This document, frozen before launch.`
+
+Both make the same claim in the same direction, and both overstate it in the
+same way: they date the **freeze**, when what the evidence dates is the
+**design**. The freeze is a commit, and the commit is 21 m 46 s late.
+
+**A third instance, found while verifying the first two and recorded here
+because it is the identical error rather than a separate one.** Line 888:
+
+> `2.` `experiments/asplos/run_h1bw_singlecore.sh` `— the runner, committed before`
+> `   launch.`
+
+`run_h1bw_singlecore.sh` has exactly one commit in its history, `b4ac57c`, the
+same commit and the same 21:22:22 as this document. Its *file* was final before
+launch — mtime `21:00:03`, seventeen seconds before the first cell started,
+which is what one expects of the script that did the launching — but its
+**commit** was not. The distinction is the whole of this addendum, and it
+applies to the runner exactly as it applies to the document.
+
+### The four timestamps, with the source of each
+
+| what | when (KST) | source | survives a clone? |
+|---|---|---|:--|
+| this document's **birth** on disk | **20:59:51** | `statx` birth time, this host | **no** |
+| the nine cells **launched** | **21:00:20 – 21:00:36** | `started` in the committed `data/gem5/h1bw_singlecore.jsonl` (`6fa71f5`) | **yes** |
+| this document's **mtime** | **21:07:00** | `statx`, this host | **no** |
+| the **registration commit** `b4ac57c` | **21:22:22** | git author and commit date | **yes** |
+| the earliest cell **reported** | **21:48:07** | earliest `ended` in the same committed JSONL | **yes** |
+
+Derived intervals, all recomputed here: birth precedes the first launch by
+**29 s**; the mtime falls **6 m 40 s** into the runs; the commit follows the
+first launch by **22 m 02 s** and the last by **21 m 46 s**; the commit precedes
+the earliest reported result by **25 m 45 s** and the outcome-plus-data commit
+`6fa71f5` (`22:07:17`) by **44 m 55 s**.
+
+Dates in this directory are project-local (UTC−7) and this addendum is dated
+**2026-09-04**; the wall-clock instants above are this host's clock, which is
+KST (UTC+9) and a day ahead, and are labelled as such for the reason
+`BUILD_PROVENANCE.md`'s dating note gives.
+
+### What each passage can carry, and what it cannot
+
+**Line 887, "frozen before launch": the word that fails is `frozen`.** A freeze
+is the commit, and `b4ac57c` landed 21 m 46 s after the last cell started. The
+passage **cannot** carry precedence over run start. It **can** carry, and does
+carry on git alone, precedence over **every reported result**: no cell had
+emitted a statistic at 21:22:22, the earliest `ended` being 25 m 45 s later, and
+§7 finding 2 of `H1BW_SINGLECORE_OUTCOME_2026-09-04.md` records all nine
+`stats.txt` still **0 bytes at 21:22**, with the first stats section appearing at
+21:36. Every threshold, band and prediction in this document was therefore fixed
+before the data that could have tuned them existed. That is the ordering the
+word "pre-registered" needs where the paper uses it, and it is witnessed rather
+than attested.
+
+**Line 44, "stated before launch": the claim is true of the design and is not
+provable to a reader.** The document was on disk at 20:59:51, **29 seconds**
+before the first cell started, so the two properties that section claims — no
+exposure to the `AGGBW_VALIDITY` §Q2 window-stagger limitation, and counters and
+bandwidth describing the same interval — were written down before the runs
+began. The witness is a filesystem birth time, which git does not record and
+which **does not survive a clone**. Two limits on it, both stated rather than
+glossed: it is checkable on this host only, and it is a birth time, not a
+content hash — the file was still being written at **21:07:00**, seven minutes
+into the runs, by the no-op cleanup pass that `H1BW_SINGLECORE_OUTCOME` §7
+finding 2 records and verifies stripped nothing. So "stated before launch" holds
+for the design and cannot be read as "unchanged since before launch".
+
+**The precise position, which is neither of the two obvious summaries.** The
+design was on disk before launch; the freeze was not. Flattening this into a
+bare retraction would be as wrong in the other direction as the original claim
+is in this one: **"the design postdates the runs" is false.** What changes is
+which ordering is *demonstrable to a third party*, and the honest form is that
+precedence over every reported result is **witnessed by git**, while precedence
+over run start is **corroborated by a filesystem birth time that does not
+travel**.
+
+### The error class this correction was chasing
+
+The reading that this campaign's registration was "witnessed three ways over"
+rested on run directories under `logs/se_chi_h1bw_sc/` having been "created
+21:48–21:50", i.e. after the commit. **That was directory mtime, and for this
+harness directory mtime is *completion*, not creation.** Re-measured here, the
+nine run directories' **birth** times are `21:00:20–21:00:36` and match the
+committed `started` fields to the second, while their **mtimes** are
+`21:48:07–21:51:22` and match `ended`. The mechanism is that the last entry
+created in each directory is `DONE.json`, written when the cell finishes;
+`MANIFEST.json` is written at **launch** and carries the launch time, so the
+directory's mtime tracks `DONE.json` alone. A directory mtime read as a creation
+time is off by the entire run — here by about 48 minutes, which is exactly the
+window the claim turned on.
+
+Worth keeping as method rather than as a one-off: this campaign is the only one
+in the corpus whose run-start ordering can be checked from a clone at all,
+because its harness commits `started` and `ended` per cell. It reads worse than
+registrations that are simply silent about when their runs began, and it reads
+worse **for being better instrumented**. That is a property of the evidence, not
+of the campaign.
+
+### Cross-references
+
+- **`A1_PROVENANCE_LEDGER_2026-08-28.md`, `F16`** — the row this correction
+  feeds, open as a **limit on external verifiability, not a defect in the
+  claims**. Its birth-time re-audit moved this campaign's classification and
+  moved its own headline count from nine to ten; the same audit found the
+  filesystem **corroborating** ten attestations at the same time as it removed
+  two git witnesses, and neither result is available to anybody holding only the
+  repository. `F16` also records this document's 28.9 s birth-before-launch
+  margin in its own list.
+- **`INDEX.md`, the `H1BW_SINGLECORE_PREREG_2026-09-04.md` row** — corrected at
+  `7cd0405`, which quotes its superseded "Frozen at `b4ac57c` **before launch**
+  … witnessed by git three ways over" per `A6.19` and replaces it with "Frozen
+  at `b4ac57c`, **21:22:22, before any cell reported**". That row also carries
+  the reclassification: **witnessed over results and over its outcome, not over
+  run start**, and fourth rather than first on the ranking criterion that file
+  states. Neither `A1_PROVENANCE_LEDGER_2026-08-28.md` nor `INDEX.md` is edited
+  by this addendum; both are another worker's, and both had already landed the
+  correction when this was written.
+- **`H1BW_SINGLECORE_OUTCOME_2026-09-04.md`** — **substantively needs nothing,
+  and carries a pointer to this addendum for one stale handback.** Its own
+  claims are correct as written and none is touched: the header claims only
+  "frozen at commit `b4ac57c` **before any cell emitted a statistic**", which is
+  the narrow git-witnessed ordering; §7 finding 2 records the 21:07:00 mtime and
+  the 0-byte `stats.txt` against the campaign's own interest; §7 item 9 states
+  the 21:00 launch plainly. What did need flagging is in its §9: the **proposed
+  `INDEX.md` row**, a handback explicitly not applied, ends "Frozen at `b4ac57c`
+  before launch" — wording `INDEX.md` never adopted and has since corrected, so
+  it is marked superseded there rather than rewritten. **No number in it moves**,
+  here or in the paper.
