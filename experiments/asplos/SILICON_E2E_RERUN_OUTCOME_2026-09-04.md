@@ -548,3 +548,178 @@ another worker.
 "The material shift, localised" above. The specific ask: do not cite
 flush-behind's tenant cost from either `75e0af94…` dataset without the caveat,
 and decide whether the falsifiable prefault experiment is worth running.
+
+---
+
+# §C. The cause, found: a non-hoisted string compare in the flush-behind loop
+
+Addendum from the other worker dispatched to this task (see "How the campaign
+was actually run"). It closes the question the section above leaves open, and
+corrects one of its conclusions. Everything above stands except the single
+clause noted below; the gate verdicts, the frontier, the delta table and
+`cat06` are unaffected.
+
+## C1. What `abccb31` did to the loop
+
+`abccb31` added the `--policy fbo` oracle arm **inside**
+`join_range_flushbehind`'s per-element loop:
+
+```cpp
+for (size_t i = begin; i < end; ++i) {
+    /* probe, matches, sum */
+    if (policy == "fbo") {              // <-- added by abccb31
+      /* one m5op per 4 KiB */
+    } else if (((i + 1) % ents_per_line) == 0 && i >= begin + flush_ents) {
+      _mm_clflushopt(...);
+      if (++batch >= 64) { _mm_sfence(); batch = 0; }
+    }
+}
+```
+
+`policy` is a `const std::string &`, and **the comparison is not hoisted out
+of the loop.** `_mm_clflushopt` carries memory side effects, so the compiler
+cannot prove the string's heap buffer is unmodified across an iteration and
+must re-evaluate the predicate every time. The `fb*` arms run `--policy wb`,
+so they take the unchanged `else if` — as the section above correctly says —
+but they now pay for *asking* on every row.
+
+## C2. Correction: the instruction census cannot see this, and it is codegen
+
+The section above concludes "**nor is it instruction emission**" on the
+strength of a census — 1 `clflushopt`, 0 `clflush`, 2 `sfence`,
+17 `prefetchnta` in both binaries. That census is correct and reproduces here.
+It is also the wrong instrument: the difference is not a *flush* instruction,
+and it is not a change in the *count* of anything the census enumerates. It is
+an added **`call`** in the loop body, which a per-opcode census of flush
+primitives cannot detect. Looking at the loop itself:
+
+```
+measured tenant a677c52d…, join_range_flushbehind, the hot loop:
+    9419: jne  9400                       <- probe loop back-edge
+    941b: mov  %r14,%rsi
+    941e: mov  %r13,%rdi
+    9421: call 36f0 <std::__cxx11::basic_string::compare(char const*)@plt>   ***
+    9426: mov  %eax,%r8d
+    942d: test %r8d,%r8d
+    9430: je   9460
+    9432: test $0x3,%al                   <- the flush-test guard
+    9436: cmp  %rbp,0x30(%rsp)
+    9442: clflushopt (%rsi,%rbx,1)
+    9454: sfence
+    9460: add  $0x10,%rbx
+    946d: jmp  9388                       <- outer loop back-edge
+
+defective tenant 75e0af94…, same function, same place:
+    9149: jne  9130                       <- probe loop back-edge
+    914b: lea  0x1(%r13),%rax             <- straight to the guard: NO call
+    914f: test $0x3,%al
+    9153: cmp  %r13,0x28(%rsp)
+    915f: clflushopt (%rcx,%r15,1)
+    9172: sfence
+    9180: add  $0x10,%r15
+    918c: jmp  90b0                       <- outer loop back-edge
+```
+
+The measured tenant executes an out-of-line PLT call to
+`std::string::compare(char const*)` **once per fact row — 536,870,912 times per
+arm** — where the defective tenant does three ALU operations. So the honest
+form of that clause is: *the flush instructions are identical, and the
+regression is nonetheless in the generated code, one level away from what the
+census counted.*
+
+## C3. It quantitatively accounts for the gap, using the measurements above
+
+From the matched pair at 1 GiB in "It is the binary, not the host", converted
+to time per tuple:
+
+| binary | `fd=0` | `fd=64 KiB` | **flush-behind adds** |
+| --- | --- | --- | --- |
+| `a677c52d…` (clean) | 42.78 Mt/s = 23.376 ns | 30.25 Mt/s = 33.058 ns | **9.682 ns/tuple** |
+| `75e0af94…` (defective) | 42.58 Mt/s = 23.486 ns | 40.44 Mt/s = 24.728 ns | **1.242 ns/tuple** |
+
+The defective binary's flush-behind costs **1.24 ns/tuple**, which is the real
+cost of the flushing: `ents_per_line` is `64/sizeof(Fact)` = 4, so that is one
+`clflushopt` per 4 tuples, ≈5.0 ns per flush, plus a batched `sfence` every 64.
+The clean binary's flush-behind costs **9.68 ns/tuple** — the *same* flushing
+plus **≈8.44 ns/tuple of something else**, present only on this path.
+
+At the 8462Y+'s 2.8–3.8 GHz that is **≈24–32 cycles per tuple**, which is the
+right size for a PLT-dispatched `std::string::compare`: an indirect call, a
+`strlen` over the literal, a `memcmp`, a return, and a conditional branch that
+cannot resolve until the call does. Four independent facts follow, and all four
+are what the sections above measured:
+
+1. **No dependence on flush distance.** The added cost is per *tuple*, not per
+   flush, so it is invariant as the distance sweeps 16 B → 1 MiB. That is
+   exactly the reported flat 30.24–30.34 vs 40.30–40.59 Mt/s and flat ≈1.33
+   ratio.
+2. **No dependence on `hit_rate`.** The predicate is evaluated before the flush
+   guard and independently of the probe result, so the gap survives at
+   `hit_rate` 0.0 — as reported, −24.5 % vs −10.5 %.
+3. **The plain join path is untouched.** `join_range` never received the
+   branch, so `fd=0` agrees to 0.5 % (42.78 vs 42.58) and `wb` reproduces to
+   +0.29 %.
+4. **The blast radius is exactly the three `fb*` arms.** Verified across all
+   105 records: `fb64k`/`fb256k`/`fb1m` carry `flush_distance` 65536/262144/
+   1048576 with `join_path=flushbehind`; `wb`, `nta` and all fifteen `cat*`
+   arms carry `flush_distance=0` with `join_path=join_range`. Only the `fb*`
+   arms enter the function that changed.
+
+The "sign problem" hypothesis — re-enabled post-`fill_fact` `prefault_region`
+calls changing the fact array's cache state — is not needed, and its sign
+problem was the correct reason to distrust it. **The third tenant that "is in
+no commit" does not need to be built.** The falsifiable experiment that
+remains is cheaper: hoist the predicate (§C4), rebuild from `HEAD`, and
+flush-behind cost should fall from ≈29 % to ≈5 % at the matched-pair geometry.
+
+## C4. The fix, and what it means for the numbers
+
+Hoist the predicate, which is loop-invariant by construction:
+
+```cpp
+const bool oracle = (policy == "fbo");     // once, before the loop
+for (size_t i = begin; i < end; ++i) {
+    ...
+    if (oracle) { /* one m5op per 4 KiB */ }
+    else if (((i + 1) % ents_per_line) == 0 && i >= begin + flush_ents) { ... }
+}
+```
+
+One line. It restores the defective binary's inner loop while keeping the
+`fbo` arm, and needs only the three `fb*` arms re-measured — the fifteen `cat*`
+arms, `nta`, `wb` and `qui` never enter this function and do not need
+re-running. `run_morsel`'s call site into the same function (`HEAD` line 2728)
+passes the same `policy` into the same loop and gets the same benefit.
+
+This **narrows** the conclusion above rather than overturning it. Still true:
+neither dataset's `fb*` tenant-cost numbers are publishable, and `fig:frontier`
+panel (b)'s three flush-behind points are open. Now also true, and it was not
+before: **the reason is known, it is a software overhead in the measuring
+tenant rather than anything about flush-behind or about CXL, the corrupted
+dataset's ≈5–6 % is the closer estimate of flush-behind's true tenant cost of
+the two, and the fix is one line rather than a research question.** Neither
+dataset should be published for these three points regardless: the defective
+one mis-joins, and the clean one measures a string comparison.
+
+## C5. `cat06` is bimodal in the clean run, which is why its median moved
+
+A small addition to "`cat06` deserves its own line", which reads the
+non-monotonicity in the corrupted data. The clean run's `cat06` reps are
+**bimodal**, and that is the more direct explanation of the −10.22 pp:
+
+```
+  arm     clean victim cyc/load, 5 reps                  median   corrupted median
+  cat05   121.77 117.69 118.18 116.75 115.25           117.691   116.603
+  cat06   135.85 123.93 137.17 123.61 135.36           135.356   126.198
+  cat07   135.96 133.02 134.26 132.94 149.84           134.261   134.003
+```
+
+Two clusters, ≈123.8 and ≈136.1, split 2–3. The median therefore lands in the
+upper cluster; a 3–2 split the other way would have moved it ≈12 cyc/load,
+about 10 pp of protection — the whole observed delta. The corrupted `cat06` is
+unimodal at ≈126, between the clean clusters, which is why it looked
+"oddly high" from that side. So the registered 3.42 pp envelope, bootstrapped
+from a unimodal spread, **understates `cat06`'s variance**; it could not have
+anticipated bimodality. This is a limitation of the envelope, not a defect in
+either dataset, and D1 still fired and is still recorded as a failure. If any
+claim ever rests on 6 ways, `cat06` needs more reps; none does.
