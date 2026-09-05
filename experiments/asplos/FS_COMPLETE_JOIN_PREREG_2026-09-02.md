@@ -683,3 +683,115 @@ reading. The remedy that worked, every time, was to **emit the quantity, not
 the boolean**: `cycle_len=98304/98304` rather than `cycle_ok=1`; twenty bucket
 values rather than a mean; `n` and half-range beside every average; a stats
 section cross-checked against an independent rdtsc bracket.
+
+---
+
+## Addendum 8 — 2026-09-04. Every comparison in this document against r5's LLC is wrong by a third, and the corrected statement is cleaner than the one it replaces
+
+Filed by the ledger/index pass, not by this campaign's worker, against
+`NONPOW2_SETS_MEASURED_2026-09-04.md` (superproject `c3101b2`, gem5
+`c030d776ee`). **Appended, not applied**: this is a sealed registration, so the
+superseded wording is quoted in place and nothing above this line is edited, per
+`A6.19`. Every figure below was re-derived rather than taken from the handback
+that raised it.
+
+**Nothing in this campaign moves.** Its own geometry is clean and was verified,
+not assumed: `--num-l3caches=2 --l3_size=5MiB --l3_assoc=20` gives 4,096 sets
+per slice, a power of two, so 10 MiB requested is 10 MiB realized, and the
+`fs_restore_chi` run directories' own `config.ini` say so. r6b–r6e's results,
+addendum 7's closure, and this registration's `victim/LLC = 0.533` and
+`table/LLC = 0.400` all stand exactly as recorded.
+
+**What is wrong is every comparison drawn against r5**, because r5's LLC was
+never 7.5 MiB. gem5's Ruby `CacheMemory::init()` computes
+`(size/assoc)/block` sets and then takes `floorLog2` of it for the index width,
+so `--l3_size=7680KiB --l3_assoc=20` allocates **6,144** sets, indexes only
+**4,096**, and realizes **5,242,880 B — 66.7% of what was configured**. This is
+`[F9.4]`'s arithmetic, on record since 2026-08-23; what is new is that it is now
+**measured**, `7680KiB`/20 being bit-identical to `5MiB`/20 on all 2,014
+simulated quantities that a gem5 run emits. The record-keeping half is
+registered as **`F18`** in `A1_PROVENANCE_LEDGER_2026-08-28.md`.
+
+### The six places, and the one that matters most
+
+The handback named the sentence at line 123. There are six, and the last two are
+the consequential ones.
+
+| # | where | as written | realized |
+|---|---|---|---|
+| 1 | line 57 | "The SE complete-join campaign ran at **7.5 MiB**" | **5.0 MiB** |
+| 2 | line 62, geometry table | `LLC \| 10 MiB \| **7.5 MiB** \| 5 MiB \| 60 MiB` | r5 = **5 MiB** |
+| 3 | line 63, geometry table | `table/LLC \| 0.400 \| **0.533** \| 0.800 \| 0.533` | r5 = **0.800** |
+| 4 | line 64, geometry table | `victim/LLC \| 0.533 \| **0.345** \| 0.518 \| 0.533` | r5 = **0.518** |
+| 5 | line 123 | "What differs is the LLC -- 10 MiB here against **7.5 MiB** there" | **10 MiB against 5 MiB — exactly 2×** |
+| 6 | lines 237–238 | "10 MiB (2 slices x 5 MiB) against r5's 7.5 MiB single slice -- **33% more capacity**, hence less eviction pressure" | **100% more capacity** |
+
+Line 642 repeats item 5's premise ("this machine's LLC is 10 MiB … against r5's
+7.5 MiB, so the byte geometries do not transfer") and is corrected with it. Note
+what that particular correction does **not** do: the byte geometries still do not
+transfer, so addendum 3's justification for changing the geometry and addendum
+7's ruling that this campaign's protection number cannot enter the same table as
+the +8.42% headline both **survive unchanged**. A 2× gap is no more transferable
+than a 1.33× one.
+
+**Item 5 is a better fact than the one it replaces.** 10 MiB against 5 MiB is
+**exactly 2×**, a round ratio between two power-of-two set counts, where 1.33×
+was an artifact of comparing this machine's realized capacity against r5's
+requested one.
+
+**Item 6 is the one to read carefully, because it is a causal claim resting on
+the wrong number.** Line 237 explains r6b's smaller effect partly by 33% more
+capacity; the true figure is **100%**, so the mechanism the sentence names is
+**twice as strong as stated** and the reasoning is strengthened rather than
+undermined. That is the opposite of what happened to the same class of error in
+r5's own outcome, where the correction *removed* an explanation
+(`COMPLETE_JOIN_OUTCOME_2026-09-01.md` add. 2, item 6). Both are recorded here
+so that the distinction is not lost: a void number can strengthen an argument or
+destroy one, and which it does has to be checked case by case.
+
+### The geometry table's r5 column becomes its r3 column, and the sentence under it does not survive
+
+This is the finding that goes beyond arithmetic. Correcting items 2–4 leaves the
+table reading:
+
+| | this campaign | r5 (SE) | r3 (SE) | silicon |
+|---|---:|---:|---:|---:|
+| LLC | 10 MiB | **5 MiB** | 5 MiB | 60 MiB |
+| table/LLC | 0.400 | **0.800** | 0.800 | 0.533 |
+| victim/LLC | **0.533** | **0.518** | 0.518 | 0.533 |
+
+**r5's column is now identical to r3's on all three rows**, which is not a
+coincidence: r5 ran r3's cache geometry exactly, with the same 4 MiB table and
+the same 2650 KiB victim against the same realized 5,242,880 B
+(4,194,304/5,242,880 = 0.800 and 2,713,600/5,242,880 = 0.518, re-derived here).
+The sentence immediately below the table therefore fails. Quoted rather than
+deleted, per `A6.19`:
+
+> The victim is sized to silicon's ratio, **which r5 missed** — its own audit
+> named that miss as the reason its victim was under-stressed and its tax fell.
+
+**The first clause survives and the second does not.** r5 did miss silicon's
+victim ratio — 0.518 against 0.533 — but it missed it by 0.015 rather than by
+0.188, and r5's own audit attributed its fallen tax to a *shrunken* victim ratio
+that never occurred. That audit's explanation is void
+(`COMPLETE_JOIN_OUTCOME_2026-09-01.md` add. 2), so it cannot be cited here in
+support of anything. **This campaign's own reason for sizing the victim to
+silicon's ratio is untouched** — matching silicon is a sufficient reason on its
+own, and it does not need r5's miss to justify it. What is lost is a
+corroborating citation, not a design decision. (The sentence quoted above is at
+lines 66–67; the table it sits under is lines 60–64.)
+
+The related claim at lines 69–70 that "at a 10 MiB LLC no power of two lands on
+0.533" is about `probe()` masking the *table* to a power of two and is a
+different quantization entirely. It is unaffected and correct, as is line 70's
+closing "One ratio is matched and one is not; both are stated."
+
+### What is deliberately not done
+
+**`run_complete_join.sh` is not corrected, and must not be.** It is the committed
+transcript of what r5 actually ran, and `F13`'s lesson is that a launcher's whole
+value is that it reproduces its run. Changing `7680KiB` to `5MiB` there would
+make it reproduce a *different* run — bit-identically, as §1 of the source record
+proves, which is exactly what would make the substitution undetectable. The same
+applies to this document above the line: it is what was registered, and it is
+corrected by this addendum rather than by revision.
