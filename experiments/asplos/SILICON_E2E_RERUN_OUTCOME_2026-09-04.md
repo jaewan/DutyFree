@@ -110,6 +110,30 @@ for three reasons.
    same resources as this campaign — so the two have to be sequenced by
    whoever owns them.
 
+### Addendum, same day: the predecessor's owner has closed it
+
+Recorded after this document's first commit.  `e13e9d2` publishes
+`IVF_FLAT_SILICON_OUTCOME_2026-09-04.md` and
+`data/ivf_flat_silicon.jsonl` (105 records), and reaches the same reading of
+the same record independently:
+
+> One record rejected: cat05 rep2, clos_b deleted mid-measurement by a foreign
+> process.  Its qps and victim are wb's values, so admitting it would have
+> been a false null; the mask_held guard that SILICON_E2E addendum 1 added for
+> exactly this TOCTOU caught it on the next campaign.
+
+and *"That does not change any verdict: `cat05` is not the arm any gate
+reads."*  So the predecessor is closed, published, and its owner judges the
+loss immaterial — and the "foreign process" is named here.
+
+This does **not** clear G-pred, and the campaign is still not started.  The
+gate's predicate is "every record `status=ok`", which remains false, and it is
+not this worker's place to reinterpret a predicate it wrote yesterday because
+today's news is reassuring.  What the addendum changes is the *cost* of
+waiving it: the one failure has a fully identified, non-environmental cause,
+so a waiver now carries no residual doubt about the host or the apparatus.
+That waiver is the user's to give.
+
 ## Positive control: PASS
 
 Registered as pre-flight, not a result.  Run after the registration commit and
@@ -322,14 +346,15 @@ another worker.
 > `SILICON_E2E_RERUN_PREREG_2026-09-04.md` (`afdeb8f`); the 105-record
 > re-run itself is **not yet measured**, blocked on G-pred.
 
-**For the IVF campaign's record:**
+**For `IVF_FLAT_SILICON_OUTCOME_2026-09-04.md`, naming the "foreign process":**
 
-> `ivf_silicon.jsonl` `cat05`/rep2 (ts 11:40:02) is `gate_fail` on
-> G-mask-after and its numbers are `wb`'s, not `cat05`'s: a concurrent
-> `run_hashjoin.py --self-test-only` from the silicon-e2e re-run worker
-> executed the module's `finally: teardown()` and deleted `clos_b` during the
-> arm. Cause identified and reproduced; the other 104 records verified their
-> masks before and after and are unaffected.
+> The process that deleted `clos_b` during `cat05`/rep2 (ts 11:40:02) is
+> identified: a concurrent `run_hashjoin.py --self-test-only` from the
+> silicon-e2e re-run worker, whose module-level `finally: teardown()` fires on
+> every exit path including that early return.  Reproduced on the idle host
+> afterwards. It was not a stray campaign and not a host fault, so it carries
+> no implication for the other 104 records, each of which verified its mask
+> before and after. Apologies for the lost rep.
 
 **Proposed runner fix, for whoever owns `run_hashjoin.py`:**
 
