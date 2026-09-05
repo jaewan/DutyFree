@@ -1,10 +1,55 @@
+# Hash-join — official STREAMING application benchmark
+
+**This is the STREAMING application's unit.** One-pass fact stream vs a reused
+hot hash table; the neighbour is a pointer-chase victim. Do not substitute HNSW,
+GAPBS, DuckDB, or RocksDB for the STREAMING-vs-CAT cell.
+
+| platform | campaign | metric | STREAMING? |
+|---|---|---|---|
+| gem5 SE m5op | **r5 complete join** | tuples/s + victim cyc/load | **yes** (H2) |
+| silicon SPR (mos182) | silicon e2e | tuples/s + victim cyc/load | **no** (CAT / nta / flush-behind only) |
+
+Recompute the STREAMING cell from committed data (`make official-bench` at the
+repo root). That does **not** re-run 4.6 hours of gem5.
+
+```bash
+# from DutyFree/
+make official-bench
+# equivalent:
+python3 experiments/asplos/analyze_complete_join.py \
+    experiments/asplos/data/gem5/r5_runs.jsonl
+```
+
+r5 (45/45, P5 PASS): H2 R = **22.59%**, tenant **+5.35%** vs wb. Wedge
+**+9.97%** vs cheapest CAT with R ≥ H2 (w=16); **+8.42%** interpolated at
+matched R (post-hoc). Quote both. Victim/LLC is **0.345** (r3 and silicon are
+~0.53) — disclose that. Do not write "~1.07×" model↔silicon calibration.
+
+| document | role |
+|---|---|
+| `experiments/asplos/COMPLETE_JOIN_PREREG_2026-09-01.md` | thresholds, before data |
+| `experiments/asplos/COMPLETE_JOIN_OUTCOME_2026-09-01.md` | verdict + **addendum 1** |
+| `experiments/asplos/run_complete_join.sh` | gem5 launcher (`--l3_size=7680KiB`, never `7.5MiB`) |
+| `experiments/asplos/data/gem5/r5_runs.jsonl` | 45 archived runs |
+| `experiments/asplos/SILICON_E2E_OUTCOME_2026-09-01.md` | shipping knobs on SPR |
+| `experiments/asplos/data/silicon_e2e_hashjoin.jsonl` | 105 silicon records |
+
+`wm20` uses empty `requestor_masks` (same as wb). Bit-identity is tautological,
+not a mask-path control. Do not quote `cyc_per_access` from r5 JSONL (stale
+`ITERS=3e6`); use `cyc_per_load`. r12 `mprotect` is mechanism, not this cell.
+
+The rest of this file is the binary's native/CXL characterization harness. Those
+numbers are not the STREAMING application cell.
+
+---
+
 # CXL Streaming-vs-Hot-Set Hash-Join Benchmark
 
 Portable C++17 benchmark for measuring cacheable one-pass stream interference against a reused hot hash table on real hardware, with a clean seam for later gem5 SE runs.
 
 The benchmark was built for the CXL/hash-join experiment in this repository: native execution is the source of real-silicon measurements; gem5 support is limited to a static `-DGEM5` binary and fact-region bound reporting for the simulator harness.
 
-## Current Status
+## Native characterization (not the STREAMING cell)
 
 The latest real-hardware findings are recorded in [docs/RESULTS.md](docs/RESULTS.md). Headline numbers on this host:
 
