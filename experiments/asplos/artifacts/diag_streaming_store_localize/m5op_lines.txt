@@ -1,0 +1,6 @@
+34743860642: global: pseudo_inst::pseudoInst(86)
+34743860642: global: pseudo_inst::bindpool(addr=0x7ffff2e84000, size=0x10000, pool=1)
+34743860642: global: bindpool: addr=0x7ffff2e84000 size=0x10000 pool=1 -> 16 allocated, 0 skipped
+35355920028: global: pseudo_inst::pseudoInst(85)
+35355920028: global: pseudo_inst::setstreaming(addr=0, size=0x10000)
+35355920028: global: setstreaming: addr=0 size=0x10000 -> 16/16 pages marked

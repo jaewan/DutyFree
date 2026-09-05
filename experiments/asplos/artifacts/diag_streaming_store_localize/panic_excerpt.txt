@@ -1,0 +1,8 @@
+DIAGNOSTIC_RUN not_an_arm campaign=NONE purpose=localize_streaming_store 2026-09-05T08:42:29+09:00
+NOT AN ARM OF DUCKDB_MMAP_SE_H2. Debug-flag run; output stays out of data/.
+DIAG_GEM5 d4e798601e7205c526868c8bdefbb75c4dde4f05f2b6b6a54a802df0b9c74a83  build_Intel_8592/gem5.opt
+DIAG_TENANT 2139aa85efb386692b14c561df27eeb6ac257d89c9acb5b6c60aa8dc636fd84b  /home/domin/DutyFree/benchmarks/e2e/duckdb_mmap_probe/build/mmap_probe.gem5
+build_Intel_8592/mem/ruby/protocol/CHI/Cache_Controller.cc:1946: panic: Runtime Error at CHI-cache-actions.sm:159: STREAMING request is not a load/fetch for machine system.cpu1.l1d.
+Memory Usage: 269515388 KBytes
+Program aborted at tick 35428746306
+--- BEGIN LIBC BACKTRACE ---

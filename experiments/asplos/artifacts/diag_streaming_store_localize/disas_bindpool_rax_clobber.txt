@@ -1,0 +1,22 @@
+# map_probe() in mmap_probe.gem5: gem5_bind_pool clobbers %rax, which the
+# compiler still believes holds mmap()'s return value.
+
+000000000000523f <main+0x11ff>:
+    523f:	e8 ac e7 ff ff       	call   39f0 <mmap@plt>
+    5244:	48 89 c5             	mov    %rax,%rbp
+    5247:	48 83 f8 ff          	cmp    $0xffffffffffffffff,%rax
+    524b:	0f 84 ed 0b 00 00    	je     5e3e <main+0x1dfe>
+    5251:	48 8b 35 78 60 00 00 	mov    0x6078(%rip),%rsi        # b2d0 <_ZL7g_probe+0x30>
+    5258:	ba 01 00 00 00       	mov    $0x1,%edx
+    525d:	48 89 c7             	mov    %rax,%rdi
+    5260:	0f 04 56 00          	[M5OP_BIND_POOL]  <-- gem5 sets Rax = 0 here
+    5264:	48 8b 7c 24 28       	mov    0x28(%rsp),%rdi
+    5269:	48 8d 35 e3 2e 00 00 	lea    0x2ee3(%rip),%rsi        # 8153 <_IO_stdin_used+0x153>
+    5270:	48 89 05 49 60 00 00 	mov    %rax,0x6049(%rip)        # b2c0 <_ZL7g_probe+0x20>
+    5277:	c6                   	.byte 0xc6
+
+# and the SET_STREAMING site, which reloads g_probe.keys from memory:
+00000000000053f4 <main+0x13b4>:
+    53f4:	48 8b 3d c5 5e 00 00 	mov    0x5ec5(%rip),%rdi        # b2c0 <_ZL7g_probe+0x20>
+    53fb:	48 8b 35 ce 5e 00 00 	mov    0x5ece(%rip),%rsi        # b2d0 <_ZL7g_probe+0x30>
+    5402:	0f 04 55 00          	[M5OP_SET_STREAMING]  <-- receives rdi = 0
