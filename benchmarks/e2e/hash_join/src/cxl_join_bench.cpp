@@ -15,6 +15,7 @@
 #include <iostream>
 #include <map>
 #include <mutex>
+#include <new>
 #include <numeric>
 #include <sstream>
 #include <string>
@@ -29,6 +30,7 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <x86intrin.h>
 
@@ -100,6 +102,15 @@ struct Config {
   // variant is not called. k > 1 software-pipelines the probe so k independent
   // hash-table loads are in flight at once.
   int probe_batch = 0;
+  uint64_t iterations = 4ull << 20;  // fs-e2e-calibrate victim dereferences
+  // fs-e2e-join victim chase footprint.  Distinct from --hot-bytes, which
+  // that mode gives to the tenant's hash table exactly as --mode single does.
+  uint64_t victim_bytes = 0;
+  // Stats-section bracketing around run_stream()'s measured loop, specified in
+  // AGGBW_WINDOW_PREREG_2026-09-03.md section 1.  Default OFF, and off is
+  // bit-for-bit the unbracketed code path, so a binary built from this source
+  // reproduces the runs that predate the option.
+  bool window_brackets = false;
 };
 
 static inline uint64_t rdtsc() {
@@ -178,7 +189,7 @@ std::vector<int> parse_cpus(const std::string &s) {
 }
 
 void pin_cpu(int cpu) {
-#ifdef GEM5
+#if defined(GEM5) && !defined(GEM5_FS)
   (void)cpu;
 #else
   cpu_set_t set;
@@ -199,8 +210,35 @@ void pin_cpu(int cpu) {
 // PTEs and flushes TLBs; bind_pool must land before first touch). Without it
 // the compiler may sink a store below, or hoist one above, the op.
 static inline void gem5_set_streaming(void *addr, long size) {
+    uint64_t m5_rax;
     __asm__ volatile(".byte 0x0f, 0x04, 0x55, 0x00"
-                     : : "D"(addr), "S"(size) : "memory");
+                     : "=a"(m5_rax) : "D"(addr), "S"(size) : "memory");
+    (void)m5_rax;
+}
+static inline void gem5_reset_stats_now() {
+    uint64_t m5_rax;
+    __asm__ volatile(".byte 0x0f, 0x04, 0x40, 0x00"
+                     : "=a"(m5_rax) : "D"(0L), "S"(0L) : "memory");
+    (void)m5_rax;
+}
+// M5OP_DUMP_STATS=0x41.  Needed so the ROI has an exact closing boundary: the
+// rcS `m5 dumpstats` fires only after the process has printed its JSON and
+// exited, and gem5's own exit dump is cumulative on top of that.  Measuring
+// either of those attributes post-ROI teardown to the ROI.
+static inline void gem5_dump_stats_now() {
+    uint64_t m5_rax;
+    __asm__ volatile(".byte 0x0f, 0x04, 0x41, 0x00"
+                     : "=a"(m5_rax) : "D"(0L), "S"(0L) : "memory");
+    (void)m5_rax;
+}
+// M5OP_EXIT=0x21.  Ends the simulation at the tenant's JSON, so a complete
+// join (--reps 1) owns the measured window instead of waiting for the victim's
+// m5_exit.  Truncated campaigns (--reps 100) never reach this call.
+static inline void gem5_exit_now() {
+    uint64_t m5_rax;
+    __asm__ volatile(".byte 0x0f, 0x04, 0x21, 0x00"
+                     : "=a"(m5_rax) : "D"(0ULL) : "memory");
+    (void)m5_rax;
 }
 // SE mode has no working NUMA syscalls -- mbind is registered ignoreFunc
 // (src/arch/x86/linux/syscall_tbl64.cc), a silent no-op, which is why
@@ -210,11 +248,29 @@ static inline void gem5_set_streaming(void *addr, long size) {
 // pool (0=DRAM, 1=CXL, process.hh:301). Must be called before first
 // touch -- SE cannot migrate an already-backed page.
 static inline void gem5_bind_pool(void *addr, uint64_t size, uint64_t pool) {
+    uint64_t m5_rax;
     __asm__ volatile(".byte 0x0f, 0x04, 0x56, 0x00"
-                     : : "D"(addr), "S"(size), "d"(pool) : "memory");
+                     : "=a"(m5_rax) : "D"(addr), "S"(size), "d"(pool) : "memory");
+    (void)m5_rax;
+}
+// FLUSH-BEHIND ORACLE (M5OP_FLUSH_RANGE=0x57).  Functionally invalidates
+// [addr,addr+size) in the shared LLC slices at zero latency and zero fabric
+// traffic.  Used only by --policy fbo, which prices flush-behind's BEST case
+// against an admission policy: gem5's CHI has no handler for a real CLFLUSH,
+// so clflushopt is a silent no-op here, and on silicon the converse holds.
+// An UPPER BOUND on flush-behind, not a model of it.
+static inline void gem5_flush_range(void *addr, uint64_t size) {
+    uint64_t m5_rax;
+    __asm__ volatile(".byte 0x0f, 0x04, 0x57, 0x00"
+                     : "=a"(m5_rax) : "D"(addr), "S"(size) : "memory");
+    (void)m5_rax;
 }
 #else
 static inline void gem5_set_streaming(void *, long) {}
+static inline void gem5_reset_stats_now() {}
+static inline void gem5_dump_stats_now() {}
+static inline void gem5_exit_now() {}
+static inline void gem5_flush_range(void *, uint64_t) {}
 #endif
 
 // W8: how the Streaming declaration reaches the simulator.
@@ -238,6 +294,11 @@ static inline void gem5_set_streaming(void *, long) {}
 enum class DeclareVia { M5OP, MPROTECT };
 static DeclareVia g_declare = DeclareVia::M5OP;
 
+// Sample counts from the last declare_streaming(), surfaced in JSON so the
+// analyser can require a minimum, and so "verified" is never read as "uniform".
+static unsigned g_pte_samples = 0;
+static unsigned g_pte_passed = 0;
+
 // W8 gate: read the installed PTE back out of the kernel.
 //
 // This is the artifact the whole full-system task exists to produce. mprotect
@@ -251,7 +312,7 @@ static DeclareVia g_declare = DeclareVia::M5OP;
 // Slot number is read off the same three bits the gem5 walker reads
 // (pagetable_walker.cc:360-390): PAT<<2 | PCD<<1 | PWT, where PAT is bit 7 of a
 // 4K PTE and bit 12 of a 2M leaf. Streaming is slot 6 -- PAT=1, PCD=1, PWT=0.
-static void streaming_pte_readback(uintptr_t vaddr) {
+static bool streaming_pte_readback(uintptr_t vaddr) {
   const char *dir = "/sys/kernel/debug/streaming/pte_query";
   char buf[32];
   std::snprintf(buf, sizeof(buf), "%lx", (unsigned long)vaddr);
@@ -260,13 +321,13 @@ static void streaming_pte_readback(uintptr_t vaddr) {
     std::cerr << "DECLARE_PTE_READBACK unavailable: cannot open " << dir << ": "
               << std::strerror(errno) << " (debugfs not mounted, or a kernel without "
                  "CONFIG_PAT_STREAMING) -- the declaration is UNVERIFIED\n";
-    return;
+    return false;
   }
   if (std::fwrite(buf, 1, std::strlen(buf), w) != std::strlen(buf)) {
     std::cerr << "DECLARE_PTE_READBACK failed on write: " << std::strerror(errno)
               << " -- the declaration is UNVERIFIED\n";
     std::fclose(w);
-    return;
+    return false;
   }
   std::fflush(w);
   std::rewind(w);
@@ -274,26 +335,28 @@ static void streaming_pte_readback(uintptr_t vaddr) {
   if (!std::fgets(line, sizeof(line), w)) {
     std::cerr << "DECLARE_PTE_READBACK failed on read -- UNVERIFIED\n";
     std::fclose(w);
-    return;
+    return false;
   }
   std::fclose(w);
   unsigned long qv = 0, pteval = 0;
   unsigned lvl = 0;
   if (std::sscanf(line, "%lx %lx %u", &qv, &pteval, &lvl) != 3) {
     std::cerr << "DECLARE_PTE_READBACK unparsed: " << line << " -- UNVERIFIED\n";
-    return;
+    return false;
   }
   unsigned pwt = (pteval >> 3) & 1u;
   unsigned pcd = (pteval >> 4) & 1u;
   unsigned pat = (lvl >= 21) ? ((pteval >> 12) & 1u) : ((pteval >> 7) & 1u);
   unsigned slot = (pat << 2) | (pcd << 1) | pwt;
+  const bool pass = slot == 6;
   std::cerr << "DECLARE_PTE_READBACK vaddr=0x" << std::hex << qv
             << " pte=0x" << pteval << std::dec
             << " level_shift=" << lvl
             << " PAT=" << pat << " PCD=" << pcd << " PWT=" << pwt
             << " pat_slot=" << slot
-            << (slot == 6 ? "  GATE=PASS(slot6=Streaming)" : "  GATE=FAIL(expected slot 6)")
+            << (pass ? "  GATE=PASS(slot6=Streaming)" : "  GATE=FAIL(expected slot 6)")
             << "\n";
+  return pass;
 }
 
 static void declare_streaming(void *addr, uint64_t bytes) {
@@ -314,12 +377,39 @@ static void declare_streaming(void *addr, uint64_t bytes) {
   }
   std::cerr << "DECLARE_STREAMING via=mprotect base=0x" << std::hex << base
             << " len=0x" << (end - base) << std::dec << " rc=0\n";
-  streaming_pte_readback(base);
+  // A successful syscall is not sufficient evidence: prove that representative
+  // pages at both ends (and the middle for multi-page objects) carry the exact
+  // slot gem5's walker consumes.  This is deliberately fail-closed; allowing
+  // an unverified OS declaration would turn a null result into an H2 result.
+  // Sample every 2 MiB boundary, not only the ends: a THP split leaving an
+  // interior hole is the realistic failure mode for a prototype, and three
+  // points out of thousands of PTEs cannot see it.  The count is reported so the
+  // analyser gates on evidence rather than one PASS substring, and so nobody
+  // reads "verified" as "uniform" (I0) when it means "N samples passed".
+  const uintptr_t last = end - pg;
+  unsigned samples = 0, passed = 0;
+  const uintptr_t step = (2ull << 20) > pg ? (uintptr_t)(2ull << 20) : pg;
+  for (uintptr_t a = base; a <= last; a += step) {
+    ++samples;
+    if (streaming_pte_readback(a)) ++passed;
+  }
+  if (((last - base) % step) != 0) {          // always include the final page
+    ++samples;
+    if (streaming_pte_readback(last)) ++passed;
+  }
+  g_pte_samples = samples;
+  g_pte_passed = passed;
+  std::cerr << "DECLARE_PTE_SAMPLES total=" << samples << " passed=" << passed << "\n";
+  if (samples == 0 || passed != samples) {
+    std::cerr << "FATAL: STREAMING declaration did not install verified slot-6 PTEs ("
+              << passed << "/" << samples << " samples)\n";
+    std::exit(13);
+  }
 }
 
 void *alloc_bytes(uint64_t bytes, int node, bool huge2m, const char *name) {
   void *p = nullptr;
-#ifdef GEM5
+#if defined(GEM5) && !defined(GEM5_FS)
   (void)huge2m;
   int flags = MAP_PRIVATE | MAP_ANONYMOUS;
   p = mmap(nullptr, bytes, PROT_READ | PROT_WRITE, flags, -1, 0);
@@ -373,7 +463,7 @@ void *alloc_bytes(uint64_t bytes, int node, bool huge2m, const char *name) {
 }
 
 void free_bytes(void *p, uint64_t bytes, bool huge2m) {
-#ifdef GEM5
+#if defined(GEM5) && !defined(GEM5_FS)
   munmap(p, bytes);
 #else
   (void)huge2m;
@@ -382,9 +472,9 @@ void free_bytes(void *p, uint64_t bytes, bool huge2m) {
 }
 
 bool check_pages_on_node(void *p, uint64_t bytes, int node, std::string *detail) {
-#ifdef GEM5
+#if defined(GEM5) && !defined(GEM5_FS)
   (void)p; (void)bytes; (void)node;
-  if (detail) *detail = "GEM5 no NUMA placement check";
+  if (detail) *detail = "gem5 SE no NUMA placement check";
   return true;
 #else
   size_t pages = std::min<uint64_t>((bytes + 4095) / 4096, 4096);
@@ -410,7 +500,36 @@ bool check_pages_on_node(void *p, uint64_t bytes, int node, std::string *detail)
 #endif
 }
 
-void prefault_region(void *p, uint64_t bytes) {
+// FAULT-IN ONLY, and valid ONLY on a region nothing has written yet.
+//
+// This MUTATES, and it has to: a pure read of fresh anonymous memory resolves to
+// the shared zero page and faults nothing in, so the touch must be a write.  That
+// makes a call placed after the buffer is populated silently destructive -- it
+// increments one byte per 4 KiB page, plus the last byte of the region.
+//
+// It has cost this project two campaigns.  In r6d it pushed next[0] off its line
+// alignment and the victim chased two cache lines instead of 98,304.  On silicon
+// it corrupted exactly one fact key per page -- 262,144 of 67,108,864 tuples at a
+// 1 GiB fact -- and every cross-arm equality check still passed, because the
+// damage is identical in every arm.  Both survived review as plausible numbers.
+//
+// So the precondition is now checked rather than documented.  Reading the first
+// byte of a page maps the shared zero page and does not fault the page in, so the
+// guard costs a cheap read pass and does not defeat the prefault it protects.
+void prefault_region(void *p, uint64_t bytes, const char *what = "region") {
+  const volatile char *chk = static_cast<const volatile char *>(p);
+  uint64_t bad = UINT64_MAX;
+  for (uint64_t off = 0; off < bytes; off += 4096) {
+    if (chk[off] != 0) { bad = off; break; }
+  }
+  if (bad == UINT64_MAX && bytes && chk[bytes - 1] != 0) bad = bytes - 1;
+  if (bad != UINT64_MAX) {
+    std::cerr << "FATAL: prefault_region(" << what << ", " << bytes << ") called on"
+              << " memory that has already been written (nonzero byte at +" << bad
+              << ").  This function mutates: it must run BEFORE the region is"
+              << " populated, never after.\n";
+    std::exit(14);
+  }
   volatile char *q = static_cast<volatile char *>(p);
   for (uint64_t off = 0; off < bytes; off += 4096) {
     q[off] = static_cast<char>(q[off] + 1);
@@ -511,7 +630,15 @@ void build_table(std::vector<Entry> &table, std::vector<int64_t> &keys, uint64_t
 
 void fill_fact(Fact *fact, size_t n, const std::vector<int64_t> &keys, double hit_rate, uint64_t seed) {
   SplitMix64 rng(seed ^ 0xBAD5EED1234ull);
-  uint64_t threshold = static_cast<uint64_t>(hit_rate * static_cast<double>(UINT64_MAX));
+  // (double)UINT64_MAX rounds up to exactly 2^64, so at hit_rate 1.0 this product
+  // is not representable as uint64_t and the conversion is undefined.  With
+  // -march=native the AVX-512 vcvttsd2usi saturates to UINT64_MAX and the arm is
+  // correct; the plain-SSE2 build used for every gem5 binary wraps to 0, which
+  // turns a 100%-hit request into a 0%-hit arm with nothing in the JSON to say so.
+  // Saturate explicitly so the two builds cannot disagree.
+  const double hr = hit_rate < 0.0 ? 0.0 : (hit_rate > 1.0 ? 1.0 : hit_rate);
+  const uint64_t threshold = (hr >= 1.0) ? UINT64_MAX
+                                         : static_cast<uint64_t>(hr * 18446744073709549568.0);
   for (size_t i = 0; i < n; ++i) {
     uint64_t r = rng.next();
     if (r <= threshold) {
@@ -594,8 +721,19 @@ Result join_range_flushbehind(const std::vector<Entry> &table, const Fact *fact,
       r.matches++;
       r.sum += fact[i].measure;
     }
-    // one clflushopt per line, once we are flush_ents past the start
-    if (((i + 1) % ents_per_line) == 0 && i >= begin + flush_ents) {
+    if (policy == "fbo") {
+      // ORACLE arm: one m5op per 4 KiB of trailing data instead of one
+      // clflushopt per 64 B line, so the guest pays ~1 instruction per 64
+      // lines rather than one per line -- flush-behind with its software cost
+      // removed, and the invalidation itself functional and free.
+      const size_t blk = 4096 / sizeof(Fact);
+      if (((i + 1) % blk) == 0 && i >= begin + flush_ents + blk) {
+        gem5_flush_range(const_cast<void *>(static_cast<const void *>(
+                             &fact[i - flush_ents - blk + 1])), 4096);
+      }
+    } else if (((i + 1) % ents_per_line) == 0 && i >= begin + flush_ents) {
+      // one clflushopt per line -- a silent no-op under gem5 Ruby/CHI, which
+      // is exactly why the oracle above exists
       _mm_clflushopt(const_cast<void *>(static_cast<const void *>(&fact[i - flush_ents])));
       if (++batch >= 64) { _mm_sfence(); batch = 0; }
     }
@@ -982,10 +1120,14 @@ void emit_json_prefix(const Config &c, void *fact, uint64_t fact_bytes, const st
   std::cout << "\"fact_bytes\":" << fact_bytes << ",";
   std::cout << "\"hot_bytes\":" << c.hot_bytes << ",";
   std::cout << "\"flush_distance\":" << c.flush_distance << ",";
+  std::cout << "\"huge2m\":" << (c.huge2m ? "true" : "false") << ",";
   std::cout << "\"line_stride\":" << (c.line_stride ? "true" : "false") << ",";
   std::cout << "\"fact_node\":" << c.fact_node << ",";
   std::cout << "\"hot_node\":" << c.hot_node << ",";
   std::cout << "\"threads\":" << c.threads << ",";
+  std::cout << "\"reps\":" << c.reps << ",";
+  std::cout << "\"warmups\":" << c.warmups << ",";
+  std::cout << "\"iterations\":" << c.iterations << ",";
   std::cout << "\"pf_distance\":" << c.pf_distance << ",";
   std::cout << "\"stream_count\":" << c.stream_count << ",";
   std::cout << "\"seed\":" << c.seed << ",";
@@ -1036,12 +1178,21 @@ void run_stream(Config c) {
   Fact *fact = static_cast<Fact *>(alloc_bytes(c.fact_bytes, c.fact_node, c.huge2m, "fact"));
   std::vector<Entry> table;
   std::vector<int64_t> keys;
-  build_table(table, keys, 1ull << 20, c.seed);
+  // Report what was BUILT, not the config default: emit_json_prefix prints
+  // c.hot_bytes, so a hardcoded size here would be published as 2 MiB while a
+  // 1 MiB table was instantiated.  That is the F9 pattern -- a request reported
+  // as a fact -- and it has cost this project five times.
+  c.hot_bytes = 1ull << 20;
+  build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
+  // No prefault_region here.  fill_fact has written every tuple, so every page
+  // is already faulted in, and prefault_region MUTATES -- see its definition.
+  // The bracket below therefore times the declaration alone, which is what the
+  // emitted field now says; it previously timed a prefault plus a declaration
+  // under a name that claimed only the first.
   auto pf0 = std::chrono::steady_clock::now();
-  prefault_region(fact, c.fact_bytes);
   if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
-  double prefault_sec = seconds_since(pf0);
+  double declare_sec = seconds_since(pf0);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
   if (!placed) {
@@ -1056,6 +1207,18 @@ void run_stream(Config c) {
   std::vector<double> samples;
   samples.reserve(c.reps);
   double total_sec = 0.0;
+  // Window-scoped counters.  The k-th AGGBW_WINDOW_* marker in console.log is
+  // the k-th stats section boundary in stats.txt: stderr and the stats dumps
+  // are both ordered by simulated time, and the OPEN marker precedes its op
+  // while the CLOSE marker follows its op.  simTicks is reset by the pair
+  // (Root::RootStats::resetStats sets startTick = curTick()), so the section
+  // between them is exactly the measured loop.
+  if (c.window_brackets) {
+    std::cerr << "AGGBW_WINDOW_OPEN cpu=" << cpus[0] << " reps=" << c.reps << "\n";
+    std::cerr.flush();
+    gem5_dump_stats_now();
+    gem5_reset_stats_now();
+  }
   for (int r = 0; r < c.reps; ++r) {
     auto t0 = std::chrono::steady_clock::now();
     checksum ^= c.line_stride ? stream_read_lines(fact, n) : stream_read(fact, n, c.policy, c.pf_distance, c.stream_count);
@@ -1063,12 +1226,20 @@ void run_stream(Config c) {
     total_sec += sec;
     samples.push_back(static_cast<double>(c.fact_bytes) / sec / 1e9);
   }
+  if (c.window_brackets) {
+    gem5_dump_stats_now();
+    gem5_reset_stats_now();
+    std::cerr << "AGGBW_WINDOW_CLOSE cpu=" << cpus[0] << " seconds="
+              << std::setprecision(9) << total_sec << "\n";
+    std::cerr.flush();
+  }
   getrusage(RUSAGE_SELF, &ru_after);
   double bytes = static_cast<double>(c.fact_bytes) * c.reps;
   SmapsInfo smi = smaps_info(fact);
   emit_json_prefix(c, fact, c.fact_bytes, cpus);
   std::cout << "\"placement\":\"" << json_escape(placement) << "\",";
-  std::cout << "\"prefault_seconds\":" << std::setprecision(9) << prefault_sec << ",";
+  std::cout << "\"declare_seconds\":" << std::setprecision(9) << declare_sec << ",";
+  std::cout << "\"window_brackets\":" << (c.window_brackets ? "true" : "false") << ",";
   std::cout << "\"anon_huge_kb\":" << smi.anon_huge_kb << ",";
   std::cout << "\"kernel_page_kb\":" << smi.kernel_page_kb << ",";
   std::cout << "\"mmu_page_kb\":" << smi.mmu_page_kb << ",";
@@ -1080,6 +1251,846 @@ void run_stream(Config c) {
   std::cout << "\"checksum\":" << checksum << ",";
   std::cout << "\"status\":\"ok\"}\n";
   free_bytes(fact, c.fact_bytes, c.huge2m);
+}
+
+// S2 of E2E_BRIDGE_DESIGN: a two-process calibration, intentionally not an
+// application result. The child is the CXL stream; the parent is a dependent,
+// LLC-resident victim. Forking is essential: a fused thread cannot establish
+// whether object-scoped admission protects a different execution context.
+#ifdef GEM5_FS
+struct FsE2EShared {
+  std::atomic<int> ready;
+  std::atomic<int> go;
+  std::atomic<int> stream_started;
+  std::atomic<int> victim_done;
+  int stream_cpu;
+  int stream_affinity_ok;
+  int stream_placed;
+  int child_exit;
+  int victim_affinity_ok;
+  uint64_t stream_fact_base;
+  uint64_t stream_fact_bytes;
+  char stream_placement[128];
+  uint64_t stream_checksum;
+  uint64_t victim_checksum;
+  uint64_t stream_start_cycles;
+  uint64_t stream_end_cycles;
+  uint64_t victim_start_cycles;
+  uint64_t victim_end_cycles;
+  double stream_seconds;
+  double victim_seconds;
+  // fs-e2e-join adds a second completion edge: the victim stops when the
+  // tenant's join finishes, so its window is exactly the contended one.
+  std::atomic<int> tenant_done;
+  // Set by the parent once the in-process stats dump has closed the ROI.  The
+  // contended child must not write its JSON line through the simulated UART or
+  // munmap its 32 MiB fact before that, or both land inside the measured
+  // window -- and they land there only in wb/h2, never in qui, whose child
+  // frees nothing.  That asymmetry contaminated every insertion count and miss
+  // rate used to explain a result.
+  std::atomic<int> stats_dumped;
+  uint64_t victim_loads;
+  uint64_t tenant_matches;
+  int64_t tenant_sum;
+  uint64_t tenant_hot_bytes;
+};
+
+// PAUSE, never sched_yield().  Every wait in this mode used to yield, and a
+// yield is a syscall into the guest scheduler, which takes runqueue
+// qspinlocks.  Two cores hammering those locks under gem5's CHI is W8.7's
+// queued-spinlock livelock -- the defect the single-threaded FS arms were
+// deliberately shaped to avoid.  It cost 5 arms across r6b and r6e: the hung
+// arms ran 24 h at 99.7% KERNEL instructions with the sibling core quiesced
+// for 4.56e9 cycles, while a healthy arm runs at 95% user instructions.
+// Both roles are pinned to distinct guest CPUs, so nothing needs to yield for
+// the other to make progress; a pause spin never enters the kernel at all.
+void wait_for_go(FsE2EShared *s) {
+  while (s->go.load(std::memory_order_acquire) == 0) __builtin_ia32_pause();
+}
+
+// A setup failure in the child must not leave the parent spinning forever
+// before the measurement boundary.  This is deliberately a liveness guard,
+// not a timeout: gem5 timing is not stable enough for a host-time limit to be
+// a scientific gate.  Reaping an exited child makes the failed setup explicit.
+bool child_reached_ready_or_exited(FsE2EShared *s, pid_t child, int *status) {
+  while (s->ready.load(std::memory_order_acquire) < 1) {
+    pid_t got = waitpid(child, status, WNOHANG);
+    if (got == child) return false;
+    if (got < 0) return false;
+    __builtin_ia32_pause();
+  }
+  return true;
+}
+
+bool pinned_to_cpu(int expected) {
+  cpu_set_t set;
+  CPU_ZERO(&set);
+  if (sched_getaffinity(0, sizeof(set), &set) != 0) return false;
+  return CPU_COUNT(&set) == 1 && CPU_ISSET(expected, &set) && sched_getcpu() == expected;
+}
+
+void flush_cache_region(const void *p, uint64_t bytes) {
+  const char *q = static_cast<const char *>(p);
+  for (uint64_t off = 0; off < bytes; off += 64)
+    _mm_clflush(q + off);
+  _mm_mfence();
+}
+
+// A cache scrub that actually works under gem5 Ruby/CHI.
+//
+// CLFLUSH/CLFLUSHOPT are a SILENT NO-OP there: they retire as instructions and
+// generate zero memory-system activity, so flush_cache_region() above leaves
+// every level warm while appearing to succeed.  Measured: 512 flushed lines gave
+// +511 dcache misses on gem5's classic hierarchy and +4 (noise) under CHI, at
+// identical instruction counts.  See
+// experiments/asplos/GEM5_RUBY_CLFLUSH_NOOP_2026-09-01.md.
+//
+// So displace rather than flush: read a disjoint ordinary-WB buffer several
+// times larger than every cache combined.  A large contiguous region spans all
+// HNF slices by address interleave, and because the buffer is never declared
+// STREAMING it really allocates -- which makes the eviction terminal instead of
+// dependent on the evicted line's own admission policy.  That is precisely what
+// makes the scrub symmetric across the WB and STREAMING arms.
+//
+// Sized for the FS geometry: L1D 48 KiB + L2 2 MiB + HNF 2 x 5 MiB = ~12 MiB.
+// 32 MiB is 2.7x that; two passes defeat residual LRU retention.
+static const uint64_t SCRUB_BYTES = 32ull << 20;
+static const int SCRUB_PASSES = 2;
+
+static uint64_t scrub_caches(void *buf, uint64_t bytes, int passes) {
+  // WRITE, do not read.  Two reasons, both learned the hard way:
+  //
+  // (a) alloc_bytes() mmaps without touching, and a READ of fresh anonymous
+  //     memory faults onto Linux's SHARED ZERO PAGE -- 8192 pages collapse onto
+  //     one 4 KiB frame, so a read sweep touches 64 lines, not 524288, and
+  //     displaces nothing.  A write forces a distinct frame per page.
+  // (b) This HNF is a non-inclusive victim cache: alloc_on_read{shared,unique,
+  //     once}=false, alloc_on_writeback=true.  ONLY writebacks allocate.  A
+  //     clean read sweep can evict the fact from L2 but can never displace it
+  //     from the HNF -- which is the level this experiment is about.  Dirty
+  //     lines evict as WriteBackFull and do allocate, which is what scrubs it.
+  //
+  // The first version of this routine read, and was therefore inert in exactly
+  // the way the CLFLUSH scrub it replaced was inert.  See
+  // experiments/asplos/GEM5_RUBY_CLFLUSH_NOOP_2026-09-01.md.
+  volatile unsigned char *b = static_cast<volatile unsigned char *>(buf);
+  for (int pass = 0; pass < passes; ++pass)
+    for (uint64_t off = 0; off < bytes; off += 64)
+      b[off] = static_cast<unsigned char>((off >> 6) + pass);  // volatile store
+  _mm_mfence();
+  uint64_t sink = 0;                       // read one line back per pass so the
+  for (int pass = 0; pass < passes; ++pass)  // marker is non-zero when it worked
+    sink += b[(bytes - 64) - static_cast<uint64_t>(pass) * 64];
+  return sink;
+}
+
+// H2 admission proof: deliberately smaller than an application benchmark and
+// deliberately stricter than stream-smoke.  It starts with a producer-like WB
+// initialization, seals the consumer mapping, removes *all* local cache
+// residue, and resets gem5 statistics immediately before the first consumer
+// load.  Thus the final stats section is an admission experiment, not a blend
+// of allocator, producer, TLB-shootdown, and consumer work.
+void run_h2_admission(Config c) {
+  if (c.policy != "wb" && c.policy != "stream") {
+    std::cerr << "FATAL: h2-admission requires --policy wb or stream\n";
+    std::exit(2);
+  }
+  if (c.warmups != 0 || c.reps != 1 || !c.line_stride) {
+    std::cerr << "FATAL: h2-admission requires --warmups 0 --reps 1 --line-stride\n";
+    std::exit(2);
+  }
+  if (c.policy == "stream" && g_declare != DeclareVia::MPROTECT) {
+    std::cerr << "FATAL: h2-admission STREAMING arm requires --declare mprotect\n";
+    std::exit(2);
+  }
+  std::vector<int> cpus = parse_cpus(c.cpu_list);
+  pin_cpu(cpus[0]);
+  const size_t n = c.fact_bytes / sizeof(Fact);
+  c.fact_bytes = n * sizeof(Fact);
+  if (n == 0 || c.fact_bytes % 64 != 0) {
+    std::cerr << "FATAL: h2-admission requires a nonzero 64-byte-aligned fact size\n";
+    std::exit(2);
+  }
+  Fact *fact = static_cast<Fact *>(alloc_bytes(c.fact_bytes, c.fact_node, false, "h2_admission_fact"));
+  std::vector<Entry> table;
+  std::vector<int64_t> keys;
+  // Report what is BUILT, not the config default: emit_json_prefix prints
+  // c.hot_bytes, so a hardcoded size here publishes 2 MiB while a 1 MiB table
+  // was instantiated -- the F9 pattern, a request reported as a fact.
+  c.hot_bytes = 1ull << 20;
+  build_table(table, keys, c.hot_bytes, c.seed);
+  fill_fact(fact, n, keys, c.hit_rate, c.seed);
+  // No prefault_region here.  fill_fact has written every tuple, so every page
+  // is already faulted in, and prefault_region MUTATES -- see its definition.
+  // Placed here it corrupted exactly one fact key per 4 KiB page.
+  if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
+  // Experimental cache-state control, not a STREAMING API step.  Identical for
+  // WB and STREAMING, and applied AFTER declaration so the state entering the
+  // ROI is the declared state.  Coldness is NOT asserted here: the analyser
+  // proves it from HNF demand hits inside the ROI (gate A3r).
+  void *scrub = alloc_bytes(SCRUB_BYTES, c.hot_node, false, "h2_admission_scrub");
+  const uint64_t scrub_sink = scrub_caches(scrub, SCRUB_BYTES, SCRUB_PASSES);
+  std::string placement;
+  const bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
+  if (!placed) {
+    std::cerr << "FATAL: h2-admission fact placement failed: " << placement << "\n";
+    std::exit(10);
+  }
+  std::cerr << "H2_ADMISSION_PHASE initialized_wb=1 sealed=" << (c.policy == "stream" ? 1 : 0)
+            << " cold_scrub=evictbuf_" << (SCRUB_BYTES >> 20) << "MiBx" << SCRUB_PASSES
+            << " scrub_sink=" << scrub_sink << " complete=1\n";
+  std::cerr << "H2_ADMISSION_ROI_START policy=" << c.policy << "\n";
+  struct rusage ru_before {}, ru_after {};
+  getrusage(RUSAGE_SELF, &ru_before);
+  // Reset last and dump first, so the console writes that frame the ROI fall
+  // outside the counted window instead of inside it.
+  gem5_reset_stats_now();
+  auto t0 = std::chrono::steady_clock::now();
+  const uint64_t checksum = stream_read_lines(fact, n);
+  const double sec = seconds_since(t0);
+  gem5_dump_stats_now();
+  getrusage(RUSAGE_SELF, &ru_after);
+  std::cerr << "H2_ADMISSION_ROI_END policy=" << c.policy << "\n";
+  emit_json_prefix(c, fact, c.fact_bytes, cpus);
+  std::cout << "\"h2_kind\":\"cold_admission\","
+            << "\"cold_start_protocol\":\"wb_initialize;seal_if_stream;evict_buffer_scrub;mfence;resetstats;one_line_pass\","
+            << "\"scrub_bytes\":" << SCRUB_BYTES << ","
+            << "\"scrub_passes\":" << SCRUB_PASSES << ","
+            << "\"pte_samples\":" << g_pte_samples << ","
+            << "\"pte_samples_passed\":" << g_pte_passed << ","
+            << "\"cold_scrub_complete\":true,"
+            << "\"roi_stats_reset\":true,"
+            << "\"pte_verified\":" << (c.policy == "stream" ? "true" : "null") << ","
+            << "\"placement\":\"" << json_escape(placement) << "\","
+            << "\"timed_minor_faults\":" << (ru_after.ru_minflt - ru_before.ru_minflt) << ","
+            << "\"timed_major_faults\":" << (ru_after.ru_majflt - ru_before.ru_majflt) << ","
+            << "\"seconds\":" << std::setprecision(9) << sec << ","
+            << "\"bandwidth_gbps\":" << (static_cast<double>(c.fact_bytes) / sec / 1e9) << ","
+            << "\"checksum\":" << checksum << ","
+            << "\"status\":\"ok\"}\n";
+  free_bytes(fact, c.fact_bytes, false);
+}
+#endif
+
+void run_fs_e2e_calibrate(Config c) {
+#ifndef GEM5_FS
+  (void)c;
+  std::cerr << "FATAL: fs-e2e-calibrate requires the GEM5_FS binary\n";
+  std::exit(2);
+#else
+  if (c.threads != 1) {
+    std::cerr << "FATAL: fs-e2e-calibrate owns its two process roles; use --threads 1\n";
+    std::exit(2);
+  }
+  FsE2EShared *s = static_cast<FsE2EShared *>(mmap(nullptr, sizeof(*s),
+      PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  if (s == MAP_FAILED) { std::perror("mmap shared barrier"); std::exit(2); }
+  new (&s->ready) std::atomic<int>(0);
+  new (&s->go) std::atomic<int>(0);
+  new (&s->stream_started) std::atomic<int>(0);
+  new (&s->victim_done) std::atomic<int>(0);
+  s->stream_cpu = -1; s->stream_affinity_ok = 0; s->stream_placed = 0; s->child_exit = -1;
+  s->victim_affinity_ok = 0;
+  s->stream_fact_base = s->stream_fact_bytes = 0;
+  s->stream_placement[0] = '\0';
+  s->stream_checksum = s->victim_checksum = 0;
+  s->stream_start_cycles = s->stream_end_cycles = 0;
+  s->victim_start_cycles = s->victim_end_cycles = 0;
+  s->stream_seconds = s->victim_seconds = 0.0;
+
+  pid_t child = fork();
+  if (child < 0) { std::perror("fork streamer"); std::exit(2); }
+  if (child == 0) {
+    pin_cpu(0);
+    s->stream_cpu = sched_getcpu();
+    s->stream_affinity_ok = pinned_to_cpu(0) ? 1 : 0;
+    if (c.policy == "quiet") {
+      s->stream_placed = 1;
+      std::snprintf(s->stream_placement, sizeof(s->stream_placement), "quiescent");
+      std::cerr << "FS_E2E_STREAM_READY pid=" << getpid() << " cpu=" << s->stream_cpu
+                << " placement=quiescent policy=quiet\n";
+      s->ready.fetch_add(1, std::memory_order_release);
+      wait_for_go(s);
+      s->stream_start_cycles = rdtsc();
+      s->stream_started.store(1, std::memory_order_release);
+      while (s->victim_done.load(std::memory_order_acquire) == 0) __builtin_ia32_pause();
+      s->stream_end_cycles = rdtsc();
+      _exit(0);
+    }
+    size_t n = c.fact_bytes / sizeof(Fact);
+    Fact *fact = static_cast<Fact *>(alloc_bytes(n * sizeof(Fact), c.fact_node,
+                                                  false, "e2e_stream_fact"));
+    // These are the *realized* streamed object properties.  The parent emits
+    // the one combined record after reaping us, so never substitute its hot
+    // victim buffer for this object in the provenance record.
+    s->stream_fact_base = reinterpret_cast<uintptr_t>(fact);
+    s->stream_fact_bytes = n * sizeof(Fact);
+    // No prefault_region after this loop: the loop writes every tuple, so every
+    // page is faulted in, and prefault_region MUTATES -- see its definition.
+    for (size_t i = 0; i < n; ++i) fact[i] = Fact{static_cast<int64_t>(i), static_cast<int64_t>(i * 7)};
+    if (c.policy == "stream") declare_streaming(fact, n * sizeof(Fact));
+    // Setup writes allocate normally. Remove their residue before the victim
+    // is warmed; otherwise WB and H2 begin from an uncontrolled, polluted LLC.
+    //
+    // This used flush_cache_region() -- i.e. CLFLUSH -- which is a SILENT NO-OP
+    // under gem5 Ruby/CHI (512 flushed lines: +511 dcache misses on the classic
+    // hierarchy, +4 under CHI, identical instruction counts).  Every S2 result
+    // produced with it began from an uncontrolled LLC while reporting that it
+    // had been scrubbed.  See GEM5_RUBY_CLFLUSH_NOOP_2026-09-01.md and the same
+    // fix already applied to the h2-admission path.
+    void *s2_scrub = alloc_bytes(SCRUB_BYTES, c.hot_node, false, "s2_scrub");
+    const uint64_t s2_scrub_sink = scrub_caches(s2_scrub, SCRUB_BYTES, SCRUB_PASSES);
+    std::string placement;
+    s->stream_placed = check_pages_on_node(fact, n * sizeof(Fact), c.fact_node, &placement) ? 1 : 0;
+    std::snprintf(s->stream_placement, sizeof(s->stream_placement), "%s", placement.c_str());
+    std::cerr << "FS_E2E_STREAM_READY pid=" << getpid() << " cpu=" << s->stream_cpu
+              << " placement=" << placement << " policy=" << c.policy
+              << " scrub=evictbuf_" << (SCRUB_BYTES >> 20) << "MiBx" << SCRUB_PASSES
+              << " scrub_sink=" << s2_scrub_sink << "\n";
+    s->ready.fetch_add(1, std::memory_order_release);
+    wait_for_go(s);
+    auto t0 = std::chrono::steady_clock::now();
+    s->stream_start_cycles = rdtsc();
+    s->stream_started.store(1, std::memory_order_release);
+    uint64_t sum = 0;
+    for (int r = 0; r < c.reps; ++r) sum ^= stream_read_lines(fact, n);
+    s->stream_end_cycles = rdtsc();
+    s->stream_seconds = seconds_since(t0);
+    s->stream_checksum = sum;
+    free_bytes(fact, n * sizeof(Fact), false);
+    _exit(0);
+  }
+
+  // The streamer's allocation, declaration, and cache cleanup must finish
+  // before the victim is constructed/warmed. The previous concurrent setup
+  // made the state at reset scheduler-dependent.
+  int setup_status = 0;
+  if (!child_reached_ready_or_exited(s, child, &setup_status)) {
+    const int child_code = (setup_status >= 0 && WIFEXITED(setup_status))
+        ? WEXITSTATUS(setup_status) : 255;
+    std::cerr << "FATAL: fs-e2e-calibrate streamer failed before readiness"
+              << " (exit=" << child_code << ")\n";
+    munmap(s, sizeof(*s));
+    std::exit(2);
+  }
+  pin_cpu(1);
+  int victim_cpu = sched_getcpu();
+  s->victim_affinity_ok = pinned_to_cpu(1) ? 1 : 0;
+  // The victim is a pointer chase over 64-byte-aligned slots, built the same way
+  // as the fs-e2e-join victim.  It used to be next[i] = (i + n/2 - 1) & (n - 1),
+  // which is a Hamiltonian cycle and so satisfied every structural property one
+  // would think to assert -- but two hops of it land on (i - 2), a dense backward
+  // sweep at 8-byte granularity.  Measured on that construction, 83.6% of hops
+  // stayed inside a line the previous hop had already touched, so the private L2
+  // served most of the chase and the mode measured a bandwidth tax rather than a
+  // latency one.  That is the same fault the fs-e2e-join victim was rebuilt to
+  // remove; the comment there names this mode as the remaining offender.
+  const size_t LINE_BYTES_V = 64;
+  const size_t ELEMS_PER_LINE = LINE_BYTES_V / sizeof(uint64_t);
+  const size_t vlines = c.hot_bytes / LINE_BYTES_V;
+  if (vlines < 2 || (c.hot_bytes % LINE_BYTES_V) != 0) {
+    std::cerr << "FATAL: fs-e2e-calibrate --hot-bytes must be a multiple of 64 and >= 128\n";
+    std::exit(2);
+  }
+  const size_t n = vlines * ELEMS_PER_LINE;
+  uint64_t *next = static_cast<uint64_t *>(alloc_bytes(n * sizeof(uint64_t), c.hot_node,
+                                                        false, "e2e_victim_hot"));
+  // PREFAULT FIRST, before the chain exists: prefault_region MUTATES, and run
+  // after the build it walked next[] off its stride exactly as it did to the
+  // r6d victim.  Same defect, same mode, found later.
+  prefault_region(next, n * sizeof(uint64_t), "e2e_calibrate_victim");
+  for (size_t i = 0; i < vlines; ++i) next[i * ELEMS_PER_LINE] = i * ELEMS_PER_LINE;
+  // Sattolo: j < i on every step yields exactly one cycle over all vlines slots.
+  // Seeded from --seed rather than a literal, so the permutation is reproducible
+  // without being frozen; the arms of a calibration differ by policy, not seed,
+  // so they still share a victim.
+  SplitMix64 vrng(c.seed ^ 0x5A77010Full);
+  for (size_t i = vlines - 1; i > 0; --i) {
+    const size_t j = static_cast<size_t>(vrng.next() % i);
+    const size_t ai = i * ELEMS_PER_LINE, bi = j * ELEMS_PER_LINE;
+    const uint64_t t = next[ai]; next[ai] = next[bi]; next[bi] = t;
+  }
+  // Emit the cycle LENGTH, not a boolean.  "Follow the chain vlines times and
+  // return to the start" is satisfied by any cycle whose length divides vlines,
+  // 2 included -- which is precisely how the r6d two-line victim passed a gate
+  // whose own comment warned about this.  Walk until the chain closes, and
+  // require every hop to be in range and line-aligned.
+  size_t cyc_len = 0, walk = 0;
+  bool victim_structure_ok = true;
+  do {
+    const uint64_t nxt = next[walk];
+    if (nxt >= n || (nxt % ELEMS_PER_LINE) != 0) { victim_structure_ok = false; break; }
+    walk = static_cast<size_t>(nxt);
+    ++cyc_len;
+  } while (walk != 0 && cyc_len <= vlines);
+  const bool victim_cycle_ok = victim_structure_ok && (cyc_len == vlines);
+  volatile uint64_t warm_idx = 0;
+  for (size_t i = 0; i < vlines; ++i) warm_idx = next[warm_idx];
+  (void)warm_idx;
+  std::string victim_placement;
+  bool victim_placed = check_pages_on_node(next, n * sizeof(uint64_t), c.hot_node,
+                                            &victim_placement);
+  std::cerr << "FS_E2E_VICTIM_READY pid=" << getpid() << " cpu=" << victim_cpu
+            << " placement=" << victim_placement
+            << " victim_bytes=" << (n * sizeof(uint64_t))
+            << " victim_lines=" << vlines
+            << " cycle_len=" << cyc_len << "/" << vlines
+            << " cycle_ok=" << (victim_cycle_ok ? 1 : 0) << "\n";
+  s->ready.fetch_add(1, std::memory_order_release);
+  while (s->ready.load(std::memory_order_acquire) != 2) __builtin_ia32_pause();
+  // This is the measurement boundary: both mappings, page placement, H2 PTE
+  // installation, and warm touches precede it. The parent alone resets global
+  // gem5 stats and then releases both roles.
+  gem5_reset_stats_now();
+  std::cerr << "FS_E2E_MEASURE_START policy=" << c.policy << "\n";
+  s->go.store(1, std::memory_order_release);
+  while (s->stream_started.load(std::memory_order_acquire) == 0) __builtin_ia32_pause();
+  auto t0 = std::chrono::steady_clock::now();
+  s->victim_start_cycles = rdtsc();
+  uint64_t idx = 0;
+  for (uint64_t i = 0; i < c.iterations; ++i) idx = next[idx];
+  s->victim_end_cycles = rdtsc();
+  s->victim_seconds = seconds_since(t0);
+  s->victim_checksum = idx;
+  s->victim_done.store(1, std::memory_order_release);
+  int status = 0;
+  if (waitpid(child, &status, 0) < 0) { std::perror("waitpid streamer"); status = -1; }
+  s->child_exit = (status >= 0 && WIFEXITED(status)) ? WEXITSTATUS(status) : 255;
+  emit_json_prefix(c, reinterpret_cast<void *>(s->stream_fact_base),
+                   s->stream_fact_bytes, {1}, {"victim"});
+  std::cout << "\"e2e_kind\":\"calibration\","
+            << "\"victim_cpu\":" << victim_cpu << ","
+            << "\"stream_cpu\":" << s->stream_cpu << ","
+            << "\"victim_affinity_ok\":" << (s->victim_affinity_ok ? "true" : "false") << ","
+            << "\"stream_affinity_ok\":" << (s->stream_affinity_ok ? "true" : "false") << ","
+            << "\"stream_placement\":\"" << json_escape(s->stream_placement) << "\","
+            << "\"victim_placement\":\"" << json_escape(victim_placement) << "\","
+            << "\"stream_placement_ok\":" << (s->stream_placed ? "true" : "false") << ","
+            << "\"victim_placement_ok\":" << (victim_placed ? "true" : "false") << ","
+            << "\"stream_checksum\":" << s->stream_checksum << ","
+            << "\"victim_checksum\":" << s->victim_checksum << ","
+            << "\"stream_seconds\":" << std::setprecision(9) << s->stream_seconds << ","
+            << "\"victim_seconds\":" << s->victim_seconds << ","
+            << "\"stream_start_cycles\":" << s->stream_start_cycles << ","
+            << "\"stream_end_cycles\":" << s->stream_end_cycles << ","
+            << "\"victim_start_cycles\":" << s->victim_start_cycles << ","
+            << "\"victim_end_cycles\":" << s->victim_end_cycles << ","
+            << "\"victim_cycles_per_access\":"
+            << (c.iterations ? static_cast<double>(s->victim_end_cycles - s->victim_start_cycles) / c.iterations : 0.0) << ","
+            << "\"stream_bytes\":" << (s->stream_fact_bytes * static_cast<uint64_t>(c.reps)) << ","
+            << "\"victim_iterations\":" << c.iterations << ","
+            << "\"victim_bytes\":" << (n * sizeof(uint64_t)) << ","
+            << "\"victim_lines\":" << vlines << ","
+            << "\"victim_cycle_len\":" << cyc_len << ","
+            << "\"victim_cycle_ok\":" << (victim_cycle_ok ? "true" : "false") << ","
+            << "\"victim_shuffle_seed\":" << c.seed << ","
+            << "\"child_exit\":" << s->child_exit << ","
+            << "\"status\":\"" << ((s->child_exit == 0 && victim_placed && s->stream_placed &&
+                 s->victim_affinity_ok && s->stream_affinity_ok && victim_cycle_ok &&
+                 s->stream_start_cycles <= s->victim_start_cycles &&
+                 s->stream_end_cycles >= s->victim_end_cycles) ? "ok" : "failed") << "\"}\n";
+  free_bytes(next, n * sizeof(uint64_t), false);
+  munmap(s, sizeof(*s));
+#endif
+}
+
+// The full-system analogue of the SE complete-join campaign.  It exists
+// because every wedge number in the paper so far comes from --mode single
+// under SE, where the declaration is an m5op backdoor: a simulator told to
+// skip LLC fills will report skipped fills.  Here the tenant is a complete
+// hash join whose stream is declared through the real kernel path
+// (--declare mprotect), so the admission decision is made by the page tables
+// the OS actually installed.
+//
+// Roles mirror fs-e2e-calibrate, which established that a fused thread cannot
+// show whether object-scoped admission protects a *different* execution
+// context.  Child on cpu0 is the tenant; parent on cpu1 is the LLC-resident
+// victim.  Two differences from that mode:
+//
+//   1. The child joins instead of streaming.  It calls the same join_range()
+//      that --mode single calls, so the SE and FS arms run the same kernel.
+//   2. The victim stops when the tenant finishes rather than running a fixed
+//      count, so its measured window is exactly the contended one.  Under
+//      --policy quiet there is no tenant and the victim runs the full
+//      --iterations cap: that is the uncontended baseline that protection is
+//      normalised against.
+void run_fs_e2e_join(Config c) {
+#ifndef GEM5_FS
+  (void)c;
+  std::cerr << "FATAL: fs-e2e-join requires the GEM5_FS binary\n";
+  std::exit(2);
+#else
+  if (c.threads != 1) {
+    std::cerr << "FATAL: fs-e2e-join owns its two process roles; use --threads 1\n";
+    std::exit(2);
+  }
+  if (c.victim_bytes < 4096 || c.victim_bytes % 64 != 0) {
+    std::cerr << "FATAL: fs-e2e-join needs --victim-bytes (>=4096, multiple of 8);"
+              << " --hot-bytes is the tenant's table, not the victim\n";
+    std::exit(2);
+  }
+  FsE2EShared *s = static_cast<FsE2EShared *>(mmap(nullptr, sizeof(*s),
+      PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0));
+  if (s == MAP_FAILED) { std::perror("mmap shared barrier"); std::exit(2); }
+  new (&s->ready) std::atomic<int>(0);
+  new (&s->go) std::atomic<int>(0);
+  new (&s->stream_started) std::atomic<int>(0);
+  new (&s->victim_done) std::atomic<int>(0);
+  new (&s->tenant_done) std::atomic<int>(0);
+  new (&s->stats_dumped) std::atomic<int>(0);
+  s->stream_cpu = -1;
+  s->stream_affinity_ok = 0;
+  s->stream_placed = 0;
+  s->child_exit = 0;
+  s->victim_affinity_ok = 0;
+  s->stream_fact_base = s->stream_fact_bytes = 0;
+  s->stream_placement[0] = '\0';
+  s->stream_checksum = s->victim_checksum = 0;
+  s->stream_start_cycles = s->stream_end_cycles = 0;
+  s->victim_start_cycles = s->victim_end_cycles = 0;
+  s->stream_seconds = s->victim_seconds = 0.0;
+  s->victim_loads = 0;
+  s->tenant_matches = 0;
+  s->tenant_sum = 0;
+  s->tenant_hot_bytes = 0;
+
+  const size_t tuples = c.fact_bytes / sizeof(Fact);
+
+  pid_t child = fork();
+  if (child < 0) { std::perror("fork tenant"); std::exit(2); }
+  if (child == 0) {
+    pin_cpu(0);
+    s->stream_cpu = sched_getcpu();
+    s->stream_affinity_ok = pinned_to_cpu(0) ? 1 : 0;
+    if (c.policy == "quiet") {
+      // THE BASELINE MUST DIFFER FROM THE CONTENDED ARMS IN EXACTLY ONE WAY:
+      // no stream.  r6b's quiet arm returned here before build_table, so its
+      // records read instantiated_hot_bytes=0 and its victim owned the LLC with
+      // 4 MiB of headroom the contended victims never had.  (wb - qui) then
+      // conflated harm from the STREAMING-eligible fact stream with harm from
+      // the tenant's non-streaming hash table -- and H2 can only ever remove
+      // the former, so R had a structural ceiling unrelated to H2's quality and
+      // the tax was not stream-attributable.  Build the table, scrub exactly as
+      // the contended arms do, and keep probing it for the whole window.
+      std::vector<Entry> table;
+      std::vector<int64_t> keys;
+      build_table(table, keys, c.hot_bytes, c.seed);
+      s->tenant_hot_bytes = static_cast<uint64_t>(table.size()) * sizeof(Entry);
+      void *scrub = alloc_bytes(SCRUB_BYTES, c.hot_node, false, "e2e_join_scrub");
+      const uint64_t scrub_sink = scrub_caches(scrub, SCRUB_BYTES, SCRUB_PASSES);
+      warm_table(table);
+      s->stream_placed = 1;
+      std::snprintf(s->stream_placement, sizeof(s->stream_placement),
+                    "quiescent_table_resident");
+      std::cerr << "FS_E2E_JOIN_TENANT_READY pid=" << getpid() << " cpu=" << s->stream_cpu
+                << " placement=quiescent_table_resident policy=quiet declared=no"
+                << " fact_bytes=0"
+                << " instantiated_hot_bytes=" << s->tenant_hot_bytes
+                << " scrub=evictbuf_" << (SCRUB_BYTES >> 20) << "MiBx" << SCRUB_PASSES
+                << " scrub_sink=" << scrub_sink << "\n";
+      s->ready.fetch_add(1, std::memory_order_release);
+      wait_for_go(s);
+      s->stream_start_cycles = rdtsc();
+      s->stream_started.store(1, std::memory_order_release);
+      // tenant_done is deliberately never set: the victim runs its full cap.
+      //
+      // Probing the table rather than __builtin_ia32_pause()-spinning.  r6b's quiet arm
+      // spun on __builtin_ia32_pause() and generated MORE HNF data-array writes (3.71M)
+      // than the stream under test (3.14M) -- essentially all of it cpu0's
+      // syscall loop, so the "uncontended" baseline had a syscall-thrashing
+      // neighbour that the contended arms did not.  Re-reading the table is
+      // also what the contended tenant actually does to it, which keeps the
+      // table's residency comparable across arms.
+      while (s->victim_done.load(std::memory_order_acquire) == 0) warm_table(table);
+      s->stream_end_cycles = rdtsc();
+      _exit(0);
+    }
+    Fact *fact = static_cast<Fact *>(alloc_bytes(tuples * sizeof(Fact), c.fact_node,
+                                                 c.huge2m, "e2e_join_fact"));
+    std::vector<Entry> table;
+    std::vector<int64_t> keys;
+    build_table(table, keys, c.hot_bytes, c.seed);
+    fill_fact(fact, tuples, keys, c.hit_rate, c.seed);
+    // NO prefault_region(fact, ...) here.  fill_fact has already written every
+    // byte, so every page is faulted in -- and prefault_region MUTATES:
+    // q[off] = q[off] + 1 on the first byte of each page and on the last.
+    // fact[i].fk is an int64_t at offset 0 of each page, so it corrupted the
+    // low byte of the key on 8,192 of 2,097,152 tuples (0.39%), and those
+    // probes then missed.  Symmetric across arms at a seed, so the matches
+    // cross-check passed and the measurement was not materially moved -- but
+    // the tenant was not computing the join it reported.  Same defect class as
+    // the victim-chase corruption: found there, not checked here.
+    if (c.policy == "stream") declare_streaming(fact, tuples * sizeof(Fact));
+    s->stream_fact_base = reinterpret_cast<uintptr_t>(fact);
+    s->stream_fact_bytes = tuples * sizeof(Fact);
+    s->tenant_hot_bytes = static_cast<uint64_t>(table.size()) * sizeof(Entry);
+    // Setup writes allocate normally; remove their residue before the victim
+    // is warmed, or WB and H2 both begin from an uncontrolled LLC.  CLFLUSH is
+    // a silent no-op under Ruby/CHI, so this displaces by writing.
+    void *scrub = alloc_bytes(SCRUB_BYTES, c.hot_node, false, "e2e_join_scrub");
+    const uint64_t scrub_sink = scrub_caches(scrub, SCRUB_BYTES, SCRUB_PASSES);
+    // The table is a reused structure, unlike the stream, and --mode single
+    // warms it before its timed window.  The victim's own warm follows this
+    // one and will evict some of it; that transient is identical in every arm,
+    // so it cannot bias the wb/h2 contrast this campaign exists to measure.
+    warm_table(table);
+    std::string placement;
+    s->stream_placed = check_pages_on_node(fact, tuples * sizeof(Fact), c.fact_node,
+                                           &placement) ? 1 : 0;
+    std::snprintf(s->stream_placement, sizeof(s->stream_placement), "%s", placement.c_str());
+    std::cerr << "FS_E2E_JOIN_TENANT_READY pid=" << getpid() << " cpu=" << s->stream_cpu
+              << " placement=" << placement << " policy=" << c.policy
+              << " declared=" << (c.policy == "stream" ? "yes" : "no")
+              << " fact_bytes=" << (tuples * sizeof(Fact))
+              << " instantiated_hot_bytes=" << s->tenant_hot_bytes
+              << " scrub=evictbuf_" << (SCRUB_BYTES >> 20) << "MiBx" << SCRUB_PASSES
+              << " scrub_sink=" << scrub_sink << "\n";
+    s->ready.fetch_add(1, std::memory_order_release);
+    wait_for_go(s);
+    auto t0 = std::chrono::steady_clock::now();
+    s->stream_start_cycles = rdtsc();
+    s->stream_started.store(1, std::memory_order_release);
+    Result out;
+    for (int r = 0; r < c.reps; ++r) {
+      Result rr = join_range(table, fact, 0, tuples, c.policy, c.pf_distance);
+      out.matches += rr.matches;
+      out.sum += rr.sum;
+    }
+    s->stream_end_cycles = rdtsc();
+    s->stream_seconds = seconds_since(t0);
+    s->tenant_matches = out.matches;
+    s->tenant_sum = out.sum;
+    s->tenant_done.store(1, std::memory_order_release);
+    // Wait for the parent's dump before doing anything that touches memory or
+    // the console: the UART write and the 32 MiB munmap (with its TLB
+    // shootdowns) are teardown, not measured work.
+    while (s->stats_dumped.load(std::memory_order_acquire) == 0)
+      __builtin_ia32_pause();
+    std::cerr << "FS_E2E_JOIN_TENANT_END seconds=" << std::setprecision(9)
+              << s->stream_seconds << " matches=" << out.matches << std::endl;
+    free_bytes(fact, tuples * sizeof(Fact), c.huge2m);
+    _exit(0);
+  }
+
+  int setup_status = 0;
+  if (!child_reached_ready_or_exited(s, child, &setup_status)) {
+    const int child_code = (setup_status >= 0 && WIFEXITED(setup_status))
+        ? WEXITSTATUS(setup_status) : 255;
+    std::cerr << "FATAL: fs-e2e-join tenant failed before readiness"
+              << " (exit=" << child_code << ")\n";
+    munmap(s, sizeof(*s));
+    std::exit(2);
+  }
+  pin_cpu(1);
+  int victim_cpu = sched_getcpu();
+  s->victim_affinity_ok = pinned_to_cpu(1) ? 1 : 0;
+  // Element width and permutation deliberately match the SE campaign's victim
+  // (gem5/testcase/dutyfree/victim.c): 32-bit elements shuffled by Sattolo's
+  // algorithm, which gives a single random cycle for any N.  A constant-stride
+  // cycle -- what fs-e2e-calibrate uses -- is a materially easier victim, and
+  // the SE numbers this campaign will be read beside were produced against the
+  // random one.  Nothing here needs a power of two, which is what lets the
+  // footprint sit exactly on silicon's victim/LLC ratio rather than near it.
+  // ONE LIVE ELEMENT PER 64-BYTE LINE.
+  //
+  // The first version of this mode packed 16 live ints into every line, which
+  // is what r5's victim.c does.  At this L2 size that is a measurement fault,
+  // not a detail: each line was then touched 16 times per traversal, so the
+  // private L2 served 66% of the chase.  H2 governs the *shared* LLC, so that
+  // traffic is structurally beyond its reach -- and of the 34% that did reach
+  // the LLC, 97.6% still hit under full load.  The campaign therefore measured
+  // a fabric/bandwidth tax, which H2 cannot remove, rather than the capacity
+  // tax it exists to remove.  Striding to one element per line makes the
+  // footprint the L2 sees equal to the footprint actually requested.
+  const size_t LINE_BYTES_V = 64;
+  const size_t ELEMS_PER_LINE = LINE_BYTES_V / sizeof(int);
+  const size_t vlines = c.victim_bytes / LINE_BYTES_V;
+  if (vlines < 2) {
+    std::cerr << "FATAL: fs-e2e-join --victim-bytes too small\n";
+    std::exit(2);
+  }
+  const size_t vn = vlines * ELEMS_PER_LINE;
+  int *next = static_cast<int *>(alloc_bytes(vn * sizeof(int), c.hot_node,
+                                             false, "e2e_victim_hot"));
+  // PREFAULT FIRST.  prefault_region() does q[off] = q[off] + 1 on the first
+  // byte of every page and on the last byte -- it MUTATES.  Running it after
+  // the shuffle (r6d) incremented next[0] from 1191728 to 1191729, which is no
+  // longer a multiple of ELEMS_PER_LINE, so the chase landed in a never-written
+  // slot holding 0, bounced straight back to index 0, and the victim chased
+  // TWO cache lines for the whole campaign.
+  prefault_region(next, vn * sizeof(int), "e2e_join_victim");
+  for (size_t i = 0; i < vlines; ++i)
+    next[i * ELEMS_PER_LINE] = static_cast<int>(i * ELEMS_PER_LINE);
+  std::srand(42);
+  for (size_t i = vlines - 1; i > 0; --i) {
+    const size_t j = static_cast<size_t>(std::rand()) % i;  // j < i => one cycle
+    const size_t ai = i * ELEMS_PER_LINE, bi = j * ELEMS_PER_LINE;
+    const int t = next[ai]; next[ai] = next[bi]; next[bi] = t;
+  }
+  // Measure the TRUE cycle length.  The previous check asked only whether
+  // following the chain vlines times returns to the start -- which ANY cycle
+  // whose length divides vlines satisfies, 2 included, since vlines is
+  // 2^15 * 3.  That is exactly how the r6d corruption passed a gate whose own
+  // comment warned about this failure.  Walk until we come back, and require
+  // the length to be the whole object; also require every hop to be a live,
+  // in-range, line-aligned slot.
+  size_t cyc_len = 0, probe = 0;
+  bool structure_ok = true;
+  do {
+    const int nxt = next[probe];
+    if (nxt < 0 || static_cast<size_t>(nxt) >= vn ||
+        (static_cast<size_t>(nxt) % ELEMS_PER_LINE) != 0) { structure_ok = false; break; }
+    probe = static_cast<size_t>(nxt);
+    ++cyc_len;
+  } while (probe != 0 && cyc_len <= vlines);
+  const bool victim_cycle_ok = structure_ok && (cyc_len == vlines);
+  volatile int warm_idx = 0;
+  for (size_t i = 0; i < vlines; ++i) warm_idx = next[warm_idx];
+  (void)warm_idx;
+  std::string victim_placement;
+  bool victim_placed = check_pages_on_node(next, vn * sizeof(int), c.hot_node,
+                                           &victim_placement);
+  std::cerr << "FS_E2E_JOIN_VICTIM_READY pid=" << getpid() << " cpu=" << victim_cpu
+            << " placement=" << victim_placement
+            << " victim_bytes=" << (vn * sizeof(int))
+            << " victim_lines=" << vlines
+            << " cycle_len=" << cyc_len << "/" << vlines
+            << " cycle_ok=" << (victim_cycle_ok ? 1 : 0) << "\n";
+  s->ready.fetch_add(1, std::memory_order_release);
+  while (s->ready.load(std::memory_order_acquire) != 2) __builtin_ia32_pause();
+  // Measurement boundary: both mappings, placement, any H2 PTE installation,
+  // and both warm passes precede it.
+  gem5_reset_stats_now();
+  std::cerr << "FS_E2E_JOIN_MEASURE_START policy=" << c.policy << "\n";
+  s->go.store(1, std::memory_order_release);
+  while (s->stream_started.load(std::memory_order_acquire) == 0) __builtin_ia32_pause();
+  auto t0 = std::chrono::steady_clock::now();
+  // Sample the victim's cost across the window.  An 8 MiB single-pass stream
+  // cannot fill a 10 MiB LLC even once, so in r6b displacement rose
+  // monotonically for the whole window and the reported cyc/load was the mean
+  // of a ramp, not a rate.  These buckets make the difference measurable
+  // instead of assumed: if the last bucket differs from the mean, the number
+  // is still a transient and must be reported as one.
+  // FIXED ABSOLUTE bucket size, not c.iterations/VBUCKETS.  --iterations is a
+  // CAP, and a contended arm stops on tenant_done long before reaching it: at
+  // --iterations 20000000 the divisor gave a 1,000,000-load bucket against
+  // ~1.2M actual loads, i.e. ONE bucket equal to the whole-window mean -- so
+  // the plateau instrument was blind in exactly the arms that need it, and
+  // 20-buckets-wide only in the quiet arm that has no stream to ramp against.
+  static const int VBUCKETS = 64;
+  static const uint64_t VBUCKET_LOADS = 25000;
+  uint64_t bucket_cyc[VBUCKETS] = {0};
+  uint64_t bucket_ld[VBUCKETS] = {0};
+  const uint64_t bucket_every = VBUCKET_LOADS;
+  int bucket = 0;
+  uint64_t bucket_l0 = 0;
+  s->victim_start_cycles = rdtsc();
+  uint64_t bucket_t0 = s->victim_start_cycles;
+  int idx = 0;
+  uint64_t loads = 0;
+  for (uint64_t i = 0; i < c.iterations; ++i) {
+    idx = next[idx];
+    ++loads;
+    // Polled rather than per-iteration: the chase is dependent, so a relaxed
+    // load every 1024 dereferences costs almost nothing, and it bounds how far
+    // past the tenant's finish the victim can run -- which is what makes the
+    // victim's window a contended window.
+    if ((i & 1023ull) == 1023ull && s->tenant_done.load(std::memory_order_relaxed)) break;
+    if (loads - bucket_l0 >= bucket_every && bucket < VBUCKETS) {
+      const uint64_t now = rdtsc();
+      bucket_cyc[bucket] = now - bucket_t0;
+      bucket_ld[bucket] = loads - bucket_l0;
+      ++bucket;
+      bucket_t0 = now;
+      bucket_l0 = loads;
+    }
+  }
+  s->victim_end_cycles = rdtsc();
+  // CLOSE THE ROI HERE, in process.  Previously nothing called
+  // gem5_dump_stats_now() in this mode, so the first stats section ran on to
+  // the rcS's `m5 dumpstats` -- i.e. through the child's munmap and TLB
+  // shootdowns, waitpid, the JSON write over the UART, the victim's own munmap,
+  // process teardown, the shell, and a fork+exec of /sbin/m5.
+  gem5_dump_stats_now();
+  s->stats_dumped.store(1, std::memory_order_release);
+  s->victim_seconds = seconds_since(t0);
+  s->victim_checksum = static_cast<uint64_t>(idx);
+  s->victim_loads = loads;
+  s->victim_done.store(1, std::memory_order_release);
+  int status = 0;
+  if (waitpid(child, &status, 0) < 0) { std::perror("waitpid tenant"); status = -1; }
+  s->child_exit = (status >= 0 && WIFEXITED(status)) ? WEXITSTATUS(status) : 255;
+
+  const double victim_cpa = loads
+      ? static_cast<double>(s->victim_end_cycles - s->victim_start_cycles) / loads : 0.0;
+  const bool ran_join = (c.policy != "quiet");
+  const double tenant_mtps = (ran_join && s->stream_seconds > 0.0)
+      ? static_cast<double>(tuples) * c.reps / s->stream_seconds / 1e6 : 0.0;
+  // The victim's window must be a *contended* window.  It cannot be strictly
+  // contained in the tenant's, because the victim stops precisely because the
+  // tenant finished and so always ends one poll interval later; requiring
+  // containment (which is what fs-e2e-calibrate requires of its stream) would
+  // fail every well-formed run of this mode.  What must hold is that the
+  // tenant started first and that the uncontended tail is negligible.
+  const uint64_t victim_span = (s->victim_end_cycles > s->victim_start_cycles)
+      ? s->victim_end_cycles - s->victim_start_cycles : 0;
+  const uint64_t overshoot = (ran_join && s->victim_end_cycles > s->stream_end_cycles)
+      ? s->victim_end_cycles - s->stream_end_cycles : 0;
+  const double overshoot_frac = victim_span ? static_cast<double>(overshoot) / victim_span : 0.0;
+  const bool covered = !ran_join ||
+      (s->stream_start_cycles <= s->victim_start_cycles && overshoot_frac <= 0.02);
+  const bool capped = (loads >= c.iterations);
+
+  emit_json_prefix(c, reinterpret_cast<void *>(s->stream_fact_base),
+                   s->stream_fact_bytes, {1}, {"victim"});
+  std::cout << "\"e2e_kind\":\"complete_join\","
+            << "\"victim_cpu\":" << victim_cpu << ","
+            << "\"tenant_cpu\":" << s->stream_cpu << ","
+            << "\"victim_affinity_ok\":" << (s->victim_affinity_ok ? "true" : "false") << ","
+            << "\"tenant_affinity_ok\":" << (s->stream_affinity_ok ? "true" : "false") << ","
+            << "\"tenant_placement\":\"" << json_escape(s->stream_placement) << "\","
+            << "\"victim_placement\":\"" << json_escape(victim_placement) << "\","
+            << "\"tenant_placement_ok\":" << (s->stream_placed ? "true" : "false") << ","
+            << "\"victim_placement_ok\":" << (victim_placed ? "true" : "false") << ","
+            << "\"victim_bytes\":" << (vn * sizeof(int)) << ","
+            << "\"victim_lines\":" << vlines << ","
+            << "\"victim_cycle_ok\":" << (victim_cycle_ok ? "true" : "false") << ","
+            << "\"victim_cycle_len\":" << cyc_len << ","
+            << "\"victim_iterations_cap\":" << c.iterations << ","
+            << "\"victim_loads\":" << loads << ","
+            << "\"victim_capped\":" << (capped ? "true" : "false") << ","
+            << "\"victim_overshoot_cycles\":" << overshoot << ","
+            << "\"victim_overshoot_frac\":" << overshoot_frac << ","
+            << "\"victim_checksum\":" << s->victim_checksum << ","
+            << "\"victim_seconds\":" << std::setprecision(9) << s->victim_seconds << ","
+            << "\"victim_cycles_per_access\":" << victim_cpa << ","
+            << "\"victim_cpa_buckets\":[";
+  for (int b = 0; b < bucket; ++b)
+    std::cout << (b ? "," : "")
+              << (bucket_ld[b] ? static_cast<double>(bucket_cyc[b]) / bucket_ld[b] : 0.0);
+  std::cout << "],"
+            << "\"victim_cpa_bucket_loads\":" << bucket_every << ","
+            << "\"victim_start_cycles\":" << s->victim_start_cycles << ","
+            << "\"victim_end_cycles\":" << s->victim_end_cycles << ","
+            << "\"tenant_ran_join\":" << (ran_join ? "true" : "false") << ","
+            << "\"tenant_seconds\":" << s->stream_seconds << ","
+            << "\"tenant_start_cycles\":" << s->stream_start_cycles << ","
+            << "\"tenant_end_cycles\":" << s->stream_end_cycles << ","
+            << "\"instantiated_hot_bytes\":" << s->tenant_hot_bytes << ","
+            << "\"join_mtuples_per_s\":" << tenant_mtps << ","
+            << "\"matches\":" << s->tenant_matches << ","
+            << "\"sum\":" << s->tenant_sum << ","
+            << "\"tenant_covers_victim\":" << (covered ? "true" : "false") << ","
+            << "\"child_exit\":" << s->child_exit << ","
+            << "\"status\":\"" << ((s->child_exit == 0 && victim_placed && s->stream_placed &&
+                 s->victim_affinity_ok && s->stream_affinity_ok && covered &&
+                 victim_cycle_ok &&
+                 (ran_join ? !capped : capped)) ? "ok" : "failed") << "\"}\n";
+  std::cout.flush();
+  std::cerr.flush();
+  free_bytes(next, vn * sizeof(int), false);
+  munmap(s, sizeof(*s));
+#endif
 }
 
 void run_latency(Config c) {
@@ -1160,7 +2171,9 @@ void run_single(Config c) {
   std::vector<int64_t> keys;
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
-  prefault_region(fact, c.fact_bytes);
+  // No prefault_region here.  fill_fact has written every tuple, so every page
+  // is already faulted in, and prefault_region MUTATES -- see its definition.
+  // Placed here it corrupted exactly one fact key per 4 KiB page.
   if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
@@ -1171,9 +2184,21 @@ void run_single(Config c) {
   Result ref;
   if (c.check) ref = scalar_join(table, fact, n);
   Result out;
+  // --flush-distance was a silent no-op in --mode single: the flag was parsed
+  // and echoed into JSON while join_range (no clflushopt) still ran.  That is
+  // the CLFLUSH-under-Ruby pattern on silicon.  Dispatch here so the fb arm's
+  // identity can be read back from join_path, not from the launcher's intent.
+  const size_t flush_distance = c.flush_distance;
+  auto do_join = [&]() {
+    if (flush_distance > 0 || c.policy == "fbo") {
+      return join_range_flushbehind(table, fact, 0, n, c.policy, c.pf_distance,
+                                    flush_distance);
+    }
+    return join_range(table, fact, 0, n, c.policy, c.pf_distance);
+  };
   for (int i = 0; i < c.warmups; ++i) {
     warm_table(table);
-    out = join_range(table, fact, 0, n, c.policy, c.pf_distance);
+    out = do_join();
   }
   warm_table(table);
   ProbeTiming pt = probe_timing(table, keys, std::min<size_t>(keys.size(), 1 << 20));
@@ -1181,19 +2206,38 @@ void run_single(Config c) {
   samples.reserve(c.reps);
   double total_sec = 0.0;
   out = {};
+  // Start the measured window after build_table/fill_fact/prefault/declaration.
+  // Measured on the superseded campaign: setup costs ~113M cycles for an 8 MiB
+  // fact at the observed tenant IPC of 0.204, which was 38-55% of the victim's
+  // window -- and STREAMING is not declared for any of it.  A no-op off gem5.
+  gem5_reset_stats_now();
+  const uint64_t instantiated_hot = static_cast<uint64_t>(table.size()) * sizeof(Entry);
+  std::cerr << "JOIN_MEASURE_BEGIN"
+            << " fact_bytes=" << c.fact_bytes
+            << " instantiated_hot_bytes=" << instantiated_hot
+            << " flush_distance=" << flush_distance
+            << " policy=" << c.policy
+            << " pf_distance=" << c.pf_distance
+            << " cpu=" << cpus[0]
+            << std::endl;
   for (int r = 0; r < c.reps; ++r) {
     auto t0 = std::chrono::steady_clock::now();
-    Result rr = join_range(table, fact, 0, n, c.policy, c.pf_distance);
+    Result rr = do_join();
     double sec = seconds_since(t0);
     total_sec += sec;
     samples.push_back(static_cast<double>(n) / sec / 1e6);
     out.matches += rr.matches;
     out.sum += rr.sum;
   }
+  std::cerr << "JOIN_MEASURE_END seconds=" << std::setprecision(9) << total_sec
+            << std::endl;
   bool ok = !c.check || (out.matches == ref.matches * static_cast<uint64_t>(c.reps) &&
                          out.sum == ref.sum * static_cast<int64_t>(c.reps));
   emit_json_prefix(c, fact, c.fact_bytes, cpus);
   std::cout << "\"placement\":\"" << json_escape(placement) << "\",";
+  std::cout << "\"instantiated_hot_bytes\":" << instantiated_hot << ",";
+  std::cout << "\"join_path\":\""
+            << (flush_distance > 0 ? "flushbehind" : "join_range") << "\",";
   emit_samples(samples);
   std::cout << "\"seconds\":" << std::setprecision(9) << total_sec << ",";
   std::cout << "\"join_mtuples_per_s\":" << (static_cast<double>(n) * c.reps / total_sec / 1e6) << ",";
@@ -1204,6 +2248,15 @@ void run_single(Config c) {
   std::cout << "\"sum\":" << out.sum << ",";
   std::cout << "\"correct\":" << (ok ? "true" : "false") << ",";
   std::cout << "\"status\":\"" << (ok ? "ok" : "bad_result") << "\"}\n";
+  std::cout.flush();
+  std::cerr.flush();
+#if defined(GEM5) && !defined(GEM5_FS)
+  // Complete-join campaigns: tenant ends the sim so stats cover one finished
+  // pass, not the victim's leftover chase.  Truncated campaigns never get here.
+  std::cerr << "JOIN_M5_EXIT\n";
+  std::cerr.flush();
+  gem5_exit_now();
+#endif
   free_bytes(fact, c.fact_bytes, c.huge2m);
   if (!ok) std::exit(11);
 }
@@ -1232,7 +2285,9 @@ void run_breakdown(Config c) {
   std::vector<int64_t> keys;
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
-  prefault_region(fact, c.fact_bytes);
+  // No prefault_region here.  fill_fact has written every tuple, so every page
+  // is already faulted in, and prefault_region MUTATES -- see its definition.
+  // Placed here it corrupted exactly one fact key per 4 KiB page.
   if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
@@ -1286,7 +2341,9 @@ void run_probe_workload(Config c) {
   std::vector<int64_t> keys;
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
-  prefault_region(fact, c.fact_bytes);
+  // No prefault_region here.  fill_fact has written every tuple, so every page
+  // is already faulted in, and prefault_region MUTATES -- see its definition.
+  // Placed here it corrupted exactly one fact key per 4 KiB page.
   if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
@@ -1428,7 +2485,9 @@ void run_split(Config c) {
   std::vector<int64_t> keys;
   build_table(table, keys, c.hot_bytes, c.seed);
   fill_fact(fact, n, keys, c.hit_rate, c.seed);
-  prefault_region(fact, c.fact_bytes);
+  // No prefault_region here.  fill_fact has written every tuple, so every page
+  // is already faulted in, and prefault_region MUTATES -- see its definition.
+  // Placed here it corrupted exactly one fact key per 4 KiB page.
   if (c.policy == "stream") declare_streaming(fact, c.fact_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, c.fact_bytes, c.fact_node, &placement);
@@ -1615,8 +2674,10 @@ void run_morsel(Config c) {
             << " kernel_page_kb=" << table_smi.kernel_page_kb
             << " mmu_page_kb=" << table_smi.mmu_page_kb
             << "\n";
+  // No prefault_region here.  fill_fact has written every tuple, so every page
+  // is already faulted in, and prefault_region MUTATES -- see its definition.
+  // This is the site that corrupted one key per page in every morsel campaign.
   fill_fact(fact, local_n, keys, c.hit_rate, c.seed);
-  prefault_region(fact, phys_bytes);
   if (c.policy == "stream") declare_streaming(fact, phys_bytes);
   std::string placement;
   bool placed = check_pages_on_node(fact, phys_bytes, alloc_node, &placement);
@@ -1839,6 +2900,8 @@ Config parse(int argc, char **argv) {
     else if (a == "--threads") c.threads = std::stoi(need("--threads"));
     else if (a == "--reps") c.reps = std::stoi(need("--reps"));
     else if (a == "--warmups") c.warmups = std::stoi(need("--warmups"));
+    else if (a == "--iterations") c.iterations = std::stoull(need("--iterations"));
+    else if (a == "--victim-bytes") c.victim_bytes = parse_size(need("--victim-bytes"));
     else if (a == "--vector") c.vector = std::stoi(need("--vector"));
     else if (a == "--pf-distance") c.pf_distance = std::stoi(need("--pf-distance"));
     else if (a == "--stream-count") c.stream_count = std::stoi(need("--stream-count"));
@@ -1855,6 +2918,7 @@ Config parse(int argc, char **argv) {
     else if (a == "--result-hash") c.result_hash = true;
     else if (a == "--scan-memcpy") c.scan_memcpy = true;
     else if (a == "--no-stream") c.no_stream = true;
+    else if (a == "--window-brackets") c.window_brackets = true;
     else if (a == "--flush-distance") c.flush_distance = static_cast<size_t>(std::stoull(need("--flush-distance")));
     else if (a == "--line-stride") c.line_stride = true;
     else if (a == "--declare") {
@@ -1885,6 +2949,16 @@ int main(int argc, char **argv) {
     return 0;
   }
   if (c.mode == "stream-smoke" || c.mode == "stream-nta") run_stream(c);
+  else if (c.mode == "fs-e2e-calibrate") run_fs_e2e_calibrate(c);
+  else if (c.mode == "fs-e2e-join") run_fs_e2e_join(c);
+  else if (c.mode == "h2-admission") {
+#ifdef GEM5_FS
+    run_h2_admission(c);
+#else
+    std::cerr << "FATAL: h2-admission requires the GEM5_FS binary\n";
+    return 2;
+#endif
+  }
   else if (c.mode == "latency") run_latency(c);
   else if (c.mode == "single") run_single(c);
   else if (c.mode == "breakdown") run_breakdown(c);
