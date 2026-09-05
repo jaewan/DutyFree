@@ -5,7 +5,7 @@ LDFLAGS ?= -pthread
 BUILD := build
 SRC := src/cxl_join_bench.cpp
 
-.PHONY: all native gem5 gem5fs w7 test clean
+.PHONY: all native gem5 gem5fs h3-dirty-owner h3-dirty-owner-fs w7 test clean
 
 # W7 (W7_PREREGISTRATION_2026-08-23.md) builds to SEPARATE names. The pre-W7
 # binaries are the provenance of every published hash_join number and are not
@@ -27,9 +27,36 @@ $(BUILD)/cxl_join_bench: $(SRC)
 
 gem5: $(BUILD)/cxl_join_bench.gem5
 
+h3-dirty-owner: $(BUILD)/streaming_h3_dirty_owner.gem5
+
+$(BUILD)/streaming_h3_dirty_owner.gem5: src/streaming_h3_dirty_owner.cpp
+	mkdir -p $(BUILD)
+	$(CXX) -O2 -std=c++17 -Wall -Wextra -Wpedantic -static -pthread -o $@ $<
+
+h3-dirty-owner-fs: $(BUILD)/streaming_h3_dirty_owner.gem5fs
+
+$(BUILD)/streaming_h3_dirty_owner.gem5fs: src/streaming_h3_dirty_owner.cpp
+	mkdir -p $(BUILD)
+	$(CXX) -O2 -std=c++17 -Wall -Wextra -Wpedantic -DGEM5_FS -static -pthread -o $@ $<
+
 $(BUILD)/cxl_join_bench.gem5: $(SRC)
 	mkdir -p $(BUILD)
-	$(CXX) -O3 -std=c++17 -Wall -Wextra -Wpedantic -DGEM5 -static -pthread -o $@ $<
+	$(CXX) -O3 -std=c++17 -Wall -Wextra -Wpedantic -mclflushopt -DGEM5 -static -pthread -o $@ $<
+
+# H1BW single-core certification (H1BW_SINGLECORE_PREREG_2026-09-04.md).  A
+# SEPARATE name, for the reason the W7/W8 targets above are separate names:
+# build/cxl_join_bench.gem5 sha256 cac9e27ab42448a89c7c51e93749107357795ced6456
+# babf2f51bfe625140f93 is the provenance of all 24 h1bw_mc_* cells and of the
+# h1bw_multicore / h1bw_cxlbw / h1bw_slice_bracket campaigns, and overwriting a
+# binary that published magnitudes are attributed to is exactly the F13 defect
+# BUILD_PROVENANCE.md was written to stop.  Same source, same flags; the only
+# behavioural difference is reachable through --window-brackets, which defaults
+# off.
+gem5-window: $(BUILD)/cxl_join_bench.gem5wbrk
+
+$(BUILD)/cxl_join_bench.gem5wbrk: $(SRC)
+	mkdir -p $(BUILD)
+	$(CXX) -O3 -std=c++17 -Wall -Wextra -Wpedantic -mclflushopt -DGEM5 -static -pthread -o $@ $<
 
 test: native
 	./$(BUILD)/cxl_join_bench --self-test reference
@@ -46,7 +73,7 @@ $(BUILD)/cxl_join_bench_w7: $(SRC)
 
 $(BUILD)/cxl_join_bench_w7.gem5: $(SRC)
 	mkdir -p $(BUILD)
-	$(CXX) -O3 -std=c++17 -Wall -Wextra -Wpedantic -DGEM5 -static -pthread -o $@ $<
+	$(CXX) -O3 -std=c++17 -Wall -Wextra -Wpedantic -mclflushopt -DGEM5 -static -pthread -o $@ $<
 
 # W8 (GEM5_FS_OS_CONTRACT_*): the full-system binary. Separate name again --
 # this one carries the --declare mprotect path (PROT_READ|PROT_STREAMING),
@@ -57,4 +84,6 @@ gem5fs: $(BUILD)/cxl_join_bench.gem5fs
 
 $(BUILD)/cxl_join_bench.gem5fs: $(SRC)
 	mkdir -p $(BUILD)
-	$(CXX) -O3 -std=c++17 -Wall -Wextra -Wpedantic -DGEM5 -static -pthread -o $@ $<
+	# GEM5_FS is deliberately distinct from GEM5/SE: FS has real Linux NUMA
+	# syscalls, whereas GEM5/SE needs the bindpool pseudo-op.
+	$(CXX) -O3 -std=c++17 -Wall -Wextra -Wpedantic -mclflushopt -DGEM5 -DGEM5_FS -static -pthread -o $@ $<
