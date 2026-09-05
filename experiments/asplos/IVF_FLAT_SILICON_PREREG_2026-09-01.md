@@ -69,3 +69,37 @@ the cell is void.
 No exclusive mos182 IVF run, no JSONL, no gem5 H2, no paper E5 second-domain
 sentence from this operator. This file is a gate and a kill list, not a
 result.
+
+---
+
+# Addendum 1 — 2026-09-04: the campaign ran; and this file's gem5 HNF line is invalid
+
+The sealed body above is left verbatim (A6.19). Two notes.
+
+**1. This registration has now been executed.** Outcome:
+`IVF_FLAT_SILICON_OUTCOME_2026-09-04.md`. `--require-ratio` **passed** at a
+realized 0.533333, `recall@k` was 0.5083 on all 99 tenant records, and `wb`
+taxed the chase 2.094×, so neither the small-codebook kill nor the S1-style
+void fired. The **CAT-tax kill did fire**: cat01 recovers 91.5% of the victim
+tax for a 9.31% tenant QPS cost, below the registered 10% bar. Per this file's
+own kill list, **gem5 H2 / `ivf-gem5-conditional` is not to be run.** The
+sentence "No exclusive mos182 IVF run, no JSONL" under *What has not happened*
+is superseded by that outcome; STREAMING remains unmeasured on this operator.
+
+**2. The gem5 HNF line is invalid and cannot start.** Superseded wording quoted
+rather than deleted, per A6.19:
+
+> Gem5 HNF target (not this campaign): 4 MiB codebook / 7680 KiB, same ratio,
+> e.g. `--nlist 1024 --dim 1024`. Not launched from this prereg.
+
+`NONPOW2_SETS_MEASURED_2026-09-04.md` §1 measured that `--l3_size 7680KiB
+--l3_assoc 20` realizes **5,242,880 B**, not 7,864,320 B (6144 sets, 4096
+reachable under `floorLog2`). A 4 MiB codebook against that is **0.800**, which
+`--require-ratio` **aborts** — the registered gem5 geometry would be refused by
+this cell's own TE-A gate. Corrected geometry, recommended and **not acted on**:
+`--l3_size=5MiB --l3_assoc=20` on the launcher, and `--nlist 683 --dim 1024
+--llc-bytes 5242880` for the kernel, giving a 2,797,568 B codebook at ratio
+**0.533594**. Rationale, alternates, and two further inheritors of the bad pair
+(`ivf_gates.py`'s self-test and the `ivf_flat` README/`--help`) are in the
+outcome document's handback section. This correction makes the record right; it
+does not make the campaign motivated, and note 1 says it is not.
