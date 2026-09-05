@@ -332,3 +332,265 @@ whether the corrected ones agree with them.  And it cannot reproduce
 (`e8d10458…`, matching no commit), so the corrupted dataset is not
 regenerable, which is precisely why the original file is retained rather than
 replaced.
+
+---
+
+# Addendum 1 — the apparatus is changed after results were seen
+
+Date: 2026-09-04 (project-local).  Written and committed **after** the first
+clean campaign produced a verdict and **before** the second campaign emits any
+statistic.  This is a disclosure, not an absorption: the registration above is
+not edited, the thresholds are not moved, and the reason for touching the
+tenant at all is recorded here so a reader can judge it rather than discover
+it.
+
+## A1.1  What happened, and why this addendum exists
+
+The clean re-run registered above **ran, and returned a split verdict**:
+
+- **`G-exact` PASSED.**  All 100 tenant records reported `matches` exactly
+  536,870,912, deficit 0.  The purpose of the re-run was met.
+- **`D1` and `D2` FAILED**, on the three flush-behind arms.  `fb64k`,
+  `fb256k` and `fb1m` moved **−26.0, −26.2, −26.4 pp** in tenant cost against
+  a D2 limit of 1.0 pp, and **+12.2, +13.6, +16.1 pp** in protection.  `D3`
+  and `D4` passed; the fifteen CAT arms and `nta` moved as predicted.
+
+Per the D1–D4 clause above, that failure was reported loudly rather than
+relabelled, and every silicon e2e flush-behind number was declared open
+pending diagnosis.  Full record: `SILICON_E2E_RERUN_OUTCOME_2026-09-04.md`,
+commit `7a72050`, with the localisation in its "material shift" section and a
+first diagnosis in its §C (commit `49ffecb`).
+
+The diagnosis has now been **verified independently** and a **repair made**.
+Because that repair changes the measuring instrument after a result was seen,
+it is registered here before it is used.
+
+## A1.2  The diagnosis, verified rather than inherited
+
+`abccb31` — the same commit that fixed the `prefault_region` corruption —
+added the `--policy fbo` oracle arm as a `policy == "fbo"` test **inside**
+`join_range_flushbehind`'s per-element loop.  `policy` is a
+`const std::string &`, and `_mm_clflushopt`'s memory clobber prevents the
+compiler proving the string's buffer is unmodified across an iteration, so the
+predicate was re-evaluated as an out-of-line PLT call to
+`std::string::compare(char const*)` **once per fact row — 536,870,912 times
+per arm** — for an oracle that only functions under gem5.
+
+Three checks were run against the two binaries themselves, not taken on trust
+from the outcome document:
+
+1. **Source.**  `join_range_flushbehind` in `HEAD`'s `b843d465…` differs from
+   c4's uncommitted `e8d10458…` — the source `75e0af94…` was built from — by
+   the added `fbo` branch and nothing else.  The `policy == "nta"` compare in
+   the same loop is present in both.
+2. **Call-site census, per function.**  Counting
+   `std::string::compare(char const*)@plt` call sites inside each `join_range*`
+   function:
+
+   | function | `75e0af94…` | `a677c52d…` |
+   | --- | --- | --- |
+   | `join_range` (`wb`, `nta`, all `cat*`) | 1 | 1 |
+   | `join_range_batched` | 1 | 1 |
+   | `join_range_flushbehind` (`fb*` only) | **1** | **2** |
+
+3. **Loop structure.**  In `a677c52d…` both calls are inside the loop body
+   (`0x9388`–`0x946d`), against the `'nta'` literal at `0x17b73` and the
+   `'fbo'` literal at `0x17070`.  In `75e0af94…` the single call is the `nta`
+   one; the flush guard is reached with three ALU operations.
+
+**This refines the account in the outcome document's §C**, which reads the
+delta as "a `call` where the defective tenant does three ALU operations".
+That is true at the point in the loop §C's excerpt starts, but the excerpt
+begins *after* the `nta` call site, and so omits that `75e0af94…` also pays
+one string compare per tuple.  The correct statement is that the regression is
+**exactly one added compare per tuple**: the `nta` compare is in both binaries
+and in *both* functions, so it cancels when flush-behind is differenced
+against the plain join, and the `fbo` compare — which exists only in
+`join_range_flushbehind` — does not cancel and is the entire delta.  The
+quantitative accounting in §C is unaffected: the ≈8.44 ns/tuple it attributes
+to the added call is the cost of one compare, which is what was added.
+
+The four independently-measured symptoms all follow, and none of them
+discriminate against this cause: confined to the flush-behind path
+(`join_range` unchanged at one compare in both, and it is the path all
+eighteen non-`fb` tenant arms take); flat across flush distances from 16 B to
+1 MiB (the cost is per tuple, not per flush); independent of `hit_rate`
+(the predicate is evaluated regardless of the probe result, and the gap
+survives at `hit_rate` 0.0); and invisible to a flush-instruction census
+(`clflushopt` 1, `clflush` 0, `sfence` 2, `prefetchnta` 17 in both — re-run
+here and confirmed identical).  Blast radius re-verified against all 105
+records of the clean run: exactly `fb64k`/`fb256k`/`fb1m` carry
+`join_path=flushbehind`; `wb`, `nta` and all fifteen `cat*` carry
+`join_path=join_range`.
+
+## A1.3  The repair, and the fact that it is a repair
+
+**Commit `77e06b66fd5756bf73b768ae7635a9d54c1751cf`**, one file, 8 insertions
+and 1 deletion:
+
+    const bool fbo = (policy == "fbo");   // once, before the loop
+    ...
+    if (fbo) { /* oracle */ } else if (/* flush guard, unchanged */) { ... }
+
+**Exactly one thing is hoisted.**  The `policy == "nta"` compare in the same
+loop has the same shape, and hoisting it would be faster, but it is present in
+`75e0af94…` too — removing it would make this tenant non-comparable to the
+archived dataset in a second, new way.  It is deliberately left alone.  After
+the change the loop contains one string compare, as `75e0af94…`'s does.
+
+**This removes an unintended regression; it does not tune toward a desired
+number.**  Three things distinguish the two, and all three are checkable:
+
+- The predicate is **loop-invariant by construction** — `policy` is a `const`
+  reference the loop never writes — so the transformation is semantics-
+  preserving and its result cannot depend on the data. `matches` and `sum` are
+  bit-identical by inspection of the change.
+- It was chosen from the **mechanism**, before the repaired binary was ever
+  timed, not from the direction of a discrepancy.  Nothing about it can be
+  adjusted to move a number: there is no parameter in it.
+- The target it restores is the **archived** binary's behaviour, which is the
+  reference D1/D2 are defined against.  It is not the direction that would
+  make the paper's flush-behind claim more attractive; as the outcome document
+  records, whichever way this lands, the ≈5–6 % figure means flush-behind's
+  measured cost is what the *corrupted* dataset already reported, and the
+  clean dataset's ≈32 % was an artefact of the measuring tenant.
+
+## A1.4  The new tenant
+
+| | |
+| --- | --- |
+| source | `benchmarks/e2e/hash_join/src/cxl_join_bench.cpp` at `77e06b6` |
+| source sha256 | `d197cf846b3bcc5c9fcf4984c301a4eb88b422a46a232d7f46daba66afe386ff` |
+| build | `make BUILD=/home/domin/sil_e2e_fix/build native`, on c4, g++ 11.4.0, `-O3 -march=native`, no warnings |
+| **tenant sha256** | **`344846d22b6c4d5fb2f73290dbaa861c8a53205a5791a7965aa7194e5a781209`** |
+| victim | `026e357ae21a99717cae3ebf4ed05fa2cd146bda4f110afe4a2f7b829ef2db50`, reused not rebuilt, unchanged since the original 105 |
+| runner | `run_hashjoin.py` `a4ce56a99db78a412ef6c2921f913670fdaf2a813833414476ca757a58989079` |
+| `gates.py` | `0e63ebdeae826f5f11e008596d540ccaf173e9b23d754db1091b9887cf303013`, unchanged from the registration above |
+
+Built from a `git archive` of `77e06b6` into `/home/domin/sil_e2e_fix/head_tree`
+(the same 102 tracked paths the previous campaign staged), so the binary
+corresponds to a commit.  That matters more than usual here: the *reason*
+`75e0af94…` could not be bisected is that its source is in no commit, and
+repeating that mistake on the binary sent to fix it would be worse than the
+original.
+
+**`G-tenant` is amended, and only in its target value.**  Every record's
+`sha_join` must equal `344846d2…`, and must not equal `75e0af94…` or
+`a677c52d…`.  `sha_victim` is unchanged at `026e357a…`.  Nothing else about
+the gate changes.
+
+## A1.5  A/B parity evidence, taken before this commit
+
+Apparatus qualification, the analogue of the registered positive control:
+`silicon_e2e/fb_parity_ab.py`, committed with this addendum.  Three binaries
+run head to head, interleaved round-robin with the binary order rotated per
+rep so host drift cannot alias onto one of them.  1 GiB fact, 32 MiB hash
+table, `--huge2m`, tenant cpu 4, `hit_rate` 1.0, `--policy wb`, node 0 at its
+as-found 1024 hugepages; 7 reps × 4 flush distances × 3 binaries = 84 runs, on
+the idle host.  Raw: `/home/domin/sil_e2e_fix/out/fb_parity_ab.jsonl`.
+
+Throughput, Mt/s, median over 7 reps:
+
+    binary                          fd=0     fd=64 KiB    fd=256 KiB    fd=1 MiB
+    75e0af94...  (published)      42.538        40.436        40.367      40.299
+    a677c52d...  (regressed)      42.748        30.306        30.270      30.247
+    344846d2...  (repaired)       42.737        40.475        40.439      40.370
+
+Flush-behind cost, `100*(t_fd/t_fd0 - 1)`, each binary against its own `fd=0`,
+medians of the per-rep ratio:
+
+    binary                     fd=64 KiB    fd=256 KiB      fd=1 MiB
+    75e0af94...  (published)     -5.015        -5.088        -5.201
+    a677c52d...  (regressed)    -29.104       -29.154       -29.145
+    344846d2...  (repaired)      -5.229        -5.419        -5.474
+
+**The 1.34× gap is gone.**  `a677c52d…`/`75e0af94…` on the flush-behind path
+was 0.7495 / 0.7499 / 0.7506 — a factor of 1.334.  `344846d2…`/`75e0af94…` is
+**1.0010 / 1.0018 / 1.0018**, i.e. the repaired tenant is **+0.12 / +0.12 /
++0.18 %** *faster* than the published one on the very path that regressed,
+against a within-binary spread of 0.15–0.54 % across reps.
+
+**The residual, stated rather than rounded away.**  In the D2 coordinate the
+repaired tenant sits **−0.21 / −0.33 / −0.27 pp** from `75e0af94…`, against a
+pooled run-to-run standard deviation of 0.17 / 0.22 / 0.20 pp — about 1.2–1.5
+sd, and 3–5× inside D2's 1.0 pp limit.  A second, independent 5-rep run put it
+at −0.15 / −0.14 / −0.11 pp, so it is not stable in magnitude and is
+consistent with noise.  Its sign is also accounted for without reference to
+the `fbo` branch: on the **plain join** at `fd=0`, a path this change does not
+touch and where both binaries emit one compare, the repaired tenant is
+**+0.50 %** faster than `75e0af94…`, and the regressed build is +0.49 % faster
+— i.e. the `fd=0` baseline difference between the archived binary and *either*
+`HEAD` build is larger than the flush-behind difference, and it is that
+baseline, not the flush-behind path, that makes the derived ratio ≈0.3 pp more
+negative.  The flush-behind paths now agree with each other better than the
+plain-join paths do.
+
+**Whether a bool test was enough was measured, not assumed.**  A bool is still
+a branch.  A fourth binary was built with the loop **split**, so the non-`fbo`
+path carries no `fbo` test at all
+(`c47dde3101873dc19281f5120a3300b339a4f6c3dcd760996f789cc205da482f`, a
+throwaway probe outside the repository, not committed and not used for any
+campaign), and A/B'd the same way over 5 reps.  Its flush-behind cost is
+−4.89 / −5.02 / −5.11 %, i.e. **+0.08 / +0.13 / +0.16 pp** from `75e0af94…`,
+where the committed one-line hoist is −0.15 / −0.14 / −0.11 pp in the same
+run.  Both sit inside run-to-run spread and the split is not systematically
+closer.  **The one-line hoist is therefore what is used**, and the minimal
+change is kept.
+
+**Correctness, at the same time and not traded against parity.**  `--mode
+single --hit-rate 1.0 --reps 1 --warmups 0 --hot-bytes 33554432 --fact-node 0
+--hot-node 0 --cpu-list 4 --policy wb`, at two `fact_bytes` a factor of 4
+apart, on both page paths and both join paths, exit status 0 throughout:
+
+    tenant       fact_bytes       pages    fd       matches       deficit
+    344846d2...   268,435,456        4K     0    16,777,216             0
+    344846d2...   268,435,456        4K   64K    16,777,216             0
+    344846d2...   268,435,456   MAP_HUGETLB  0   16,777,216             0
+    344846d2...   268,435,456   MAP_HUGETLB 64K  16,777,216             0
+    344846d2... 1,073,741,824        4K     0    67,108,864             0
+    344846d2... 1,073,741,824        4K   64K    67,108,864             0
+    344846d2... 1,073,741,824  MAP_HUGETLB  0    67,108,864             0
+    344846d2... 1,073,741,824  MAP_HUGETLB 64K   67,108,864             0
+    75e0af94...   268,435,456   MAP_HUGETLB 64K  16,711,680        65,536 = fact/4096
+    75e0af94... 1,073,741,824  MAP_HUGETLB 64K  66,846,720       262,144 = fact/4096
+
+Deficit is exactly 0 for the repaired tenant on the `MAP_HUGETLB` path the
+campaign uses, at both sizes, on the flush-behind path as well as the plain
+one — and all 28 of its flush-behind runs in the 84-run A/B above also
+reported deficit 0.  The archived binary reproduces `fact_bytes/4096` on
+demand in the same conditions.  Both required properties hold simultaneously.
+
+## A1.6  What is *not* amended
+
+Stated explicitly, because the temptation after a gate fires is to widen it.
+
+- **`G-exact` keeps its threshold.**  `matches` = 536,870,912 exactly, any
+  deficit voids.
+- **`D1`–`D4` keep their registered thresholds and the frozen
+  `ENVELOPE_P95` table above, unchanged.**  `D1` is **not** loosened because
+  it is now known what it caught.  If the flush-behind arms fail `D1`/`D2`
+  again, that is a second uncontrolled difference between the binaries and is
+  to be reported as a finding, in the terms the D1–D4 clause already requires.
+- **`G-pred` remains `WAIVED`.**  Its condition FAILED; it was waived by the
+  campaign owner at `d709bf7`, restored at `34f478a`.  It is not relabelled
+  `PASS` here or anywhere.
+- All other gates, the 21 arms, the 5 reps, the geometry, the operational
+  pinning and the output-outside-the-repo rule are unchanged.
+- The previous campaign's output is **preserved, not overwritten**: the clean
+  105-record run stays at
+  `/home/domin/sil_e2e_rerun/out/silicon_e2e_hashjoin_clean.jsonl`
+  (`40f15aea…`) and this campaign writes a new file.
+
+## A1.7  Precedence, checkable
+
+- The repair is commit `77e06b6`; this addendum and `fb_parity_ab.py` are
+  committed **after** it and **before** the campaign is launched.
+- The A/B and correctness numbers quoted in A1.5 necessarily predate this
+  commit — they are the evidence *for* it, and they are apparatus
+  qualification at a geometry the campaign does not use (1 GiB, no victim, no
+  CAT), not a campaign statistic.  This is the same standing the registered
+  positive control has above.
+- **No statistic from the second campaign predates this commit.**  The
+  campaign's JSONL carries a per-record `ts`; the first record's `ts` is to be
+  compared against this commit's author date, in-band and in git, never
+  against a directory mtime.
