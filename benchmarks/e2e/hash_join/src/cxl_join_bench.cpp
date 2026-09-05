@@ -710,6 +710,13 @@ Result join_range_flushbehind(const std::vector<Entry> &table, const Fact *fact,
   int pfd = std::max(0, pf_distance);
   const size_t ents_per_line = 64 / sizeof(Fact);          // 4
   const size_t flush_ents = std::max<size_t>(ents_per_line, flush_distance / sizeof(Fact));
+  // Loop-invariant, but _mm_clflushopt's memory clobber stops the compiler proving the
+  // string's buffer is unmodified across an iteration, so it re-evaluated the predicate
+  // once per fact row. That cost ~8.4 ns/tuple and was measured as a 1.34x flush-behind
+  // regression against the binary that produced data/silicon_e2e_hashjoin.jsonl. The
+  // `policy == "nta"` compare below is deliberately left in place: it is present in that
+  // binary too, so hoisting it would break comparability with the archived dataset.
+  const bool fbo = (policy == "fbo");
   int batch = 0;
   for (size_t i = begin; i < end; ++i) {
     if (policy == "nta" && i + static_cast<size_t>(pfd) < end) {
@@ -721,7 +728,7 @@ Result join_range_flushbehind(const std::vector<Entry> &table, const Fact *fact,
       r.matches++;
       r.sum += fact[i].measure;
     }
-    if (policy == "fbo") {
+    if (fbo) {
       // ORACLE arm: one m5op per 4 KiB of trailing data instead of one
       // clflushopt per 64 B line, so the guest pays ~1 instruction per 64
       // lines rather than one per line -- flush-behind with its software cost
