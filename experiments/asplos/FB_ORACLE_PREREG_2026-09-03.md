@@ -167,6 +167,101 @@ wording is quoted rather than deleted, per `A6.19`.
 
 **as amended:** "different LLC (**5.0 MiB** vs 320 MiB per socket)".
 
+---
+
+## Amendment 2 — 2026-09-04, still before any arm has run: as registered, the `fbo` arm would have hung, and three of the four predictions were unreachable
+
+Appended by the ledger/index pass, not by this campaign's worker, against
+`M5OP_RAX_CLOBBER_AUDIT_2026-09-04.md` (commit `964fbf1`). **Appended, not
+applied**: this is a sealed registration, so nothing above this line is edited
+and the superseded reading is quoted, per `A6.19`. Every figure below was
+re-derived in this pass rather than accepted from the handback that raised it.
+
+**The defect.** gem5 decodes the magic instruction with a body ending
+`Rax = result;` — written **unconditionally**
+(`arch/x86/isa/decoder/two_byte_opcodes.isa:163`) — and `pseudo_inst.hh:140`
+sets `result = 0` before dispatch, so **every void m5op leaves `%rax == 0`**.
+The guest wrappers in this tree declared only `"memory"`, so the compiler
+believed `%rax` survived. This is registered as **`F19`** in
+`A1_PROVENANCE_LEDGER_2026-08-28.md`.
+
+**What that does to this registration specifically.** In
+`join_range_flushbehind` — the function `--policy fbo` exists to reach — the
+compiler placed the **loop induction variable in `%rax`**, compared against its
+bound in `%rbp`, across the `FLUSH_RANGE` m5op. Re-verified here by running the
+committed instrument `audit_m5op_rax.py` against all three binaries that contain
+the function:
+
+| binary | m5op site | reads `%rax` at | verdict |
+|---|---|---|---|
+| `cxl_join_bench.gem5` | `0x40ced1` | `0x40cedd`, `cmp %rbp,%rax` | **UNSAFE** |
+| `cxl_join_bench.gem5wbrk` | `0x40cf11` | `0x40cf1d`, `cmp %rbp,%rax` | **UNSAFE** |
+| `cxl_join_bench.gem5fs` | `0x40d7b1` | `0x40d7bd`, `cmp %rbp,%rax` | **UNSAFE** |
+
+The m5op zeroes the induction variable on every iteration, so **the loop cannot
+terminate**. This is the only UNSAFE site in any of the three binaries; every
+other site in each is SAFE.
+
+**The consequence for this document, stated plainly: it could not have run as
+written.** Not "would have produced a suspect number" — the primary arm would
+have **hung**. And the campaign's predictions do not degrade gracefully around
+that, because three of the four are defined on `fbo` cells:
+
+- **`P-O1`** ("the oracle works") is measured *on* `fbo`. Unreachable.
+- **`P-O3`** (`R(h2) > R(fbo)`) needs an `R(fbo)`. Unreachable.
+- **`P-O4`** (tenant tuples/s under `h2` ≥ under `fbo`) needs an `fbo` cell.
+  Unreachable.
+
+Only `P-O2`, the `qui`/`wb`/`h2` reproduction of r5 that Amendment 1 above
+strengthened, is unaffected — it does not touch the `fbo` path.
+
+So the §"12 runs" design — `qui`/`wb`/`h2`/`fbo` at three seeds — would have
+delivered **9 completed cells and 3 hangs**, and the registered headline
+comparison is the part that would not have arrived.
+
+**The reading this replaces, quoted rather than deleted.** The `M5OP_FLUSH_RANGE`
+section above presents the mechanism as settled and costed:
+
+> The guest side (`--policy fbo`) issues one m5op per 4 KiB of trailing data
+> instead of one `clflushopt` per 64 B line, so the software cost is
+> ~1 instruction per 64 lines rather than one per line.
+
+That arithmetic is correct and is **not** what is amended. What is amended is the
+unstated premise that the loop issuing those m5ops terminates. It does not, in
+any binary currently on disk.
+
+**Why this is good news rather than bad, and it is worth being explicit.** The
+failure mode is a **hang, not a wrong number**. This registration was never run,
+so nothing is retracted — but the same code path is present in three committed
+binaries, and had any campaign taken it, the operator would have seen a
+simulation that never finished rather than a plausible flush-behind result that
+survived reading. **`BUILD_PROVENANCE.md`'s standing note that this opcode is
+"compiled in but inert" is therefore superseded in the campaign's favour: it is
+stronger than inert.** A silent wrong answer is the outcome this project has been
+burned by repeatedly; this defect could not produce one.
+
+**Launch precondition, registered here rather than left to be discovered.**
+Before any `fbo` cell is launched:
+
+1. The guest-side fix must be **built and pinned**. The correct form is to
+   declare `%rax` as an output operand — a register cannot be both an input
+   constraint and a clobber — and with that declared, the compiler moves the
+   induction variable out of `%rax` and the loop terminates. **The fix is applied
+   in the working tree but is *not committed*, because `cxl_join_bench.cpp` is
+   another worker's in-flight path**; so at the time of writing, no committed
+   binary can run this arm.
+2. The rebuilt tenant's hash must be recorded in this document and in the run
+   logs, per `F13`/`F19`. This campaign's own audit trail is what makes the
+   difference between "the binary is lost" and "we cannot even say what was
+   lost", and `run_complete_join.sh` is the model to copy — it writes the tenant
+   hash into every run log.
+3. `P-O1`'s threshold should be re-read once a *terminating* `fbo` cell exists.
+   It was set against a mechanism nobody had observed complete.
+
+**Nothing else in this registration moves.** The geometry as amended in
+Amendment 1, the UPPER-BOUND framing, the idealisation list and `P-O2` all stand
+exactly as written.
+
 ### Why — and why it costs this registration nothing
 
 `--l3_size=7680KiB --l3_assoc=20` at 64 B lines gives
