@@ -34,6 +34,14 @@ int main(int argc, char **argv) {
     if (!strcmp(c, "readfile")) {
         static char buf[8192];
         uint64_t off = 0, n;
+
+        /*
+         * m5_read_file() writes through gem5's functional virtual-memory
+         * proxy, not through a guest instruction.  Touch the buffer first so
+         * Linux has populated every demand-paged PTE; otherwise gem5 cannot
+         * translate an untouched .bss page and aborts in writeBlob().
+         */
+        memset(buf, 0, sizeof(buf));
         while ((n = m5_read_file(buf, sizeof(buf), off)) > 0) {
             if (fwrite(buf, 1, (size_t)n, stdout) != (size_t)n) return 1;
             off += n;
