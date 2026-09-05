@@ -1,0 +1,4 @@
+# Build outputs.  build/mmap_probe.gem5 is the tenant pin DUCKDB_MMAP_SE_H2
+# registered (2139aa85...); it is preserved on disk, never tracked, and must not
+# be rebuilt in place -- see experiments/asplos/BENCH_SOURCE_PROVENANCE_2026-09-04.md.
+/build/
