@@ -32,9 +32,13 @@ STAGE=${STAGE:-/tmp/w8_rootfs}
 FS_MB=${FS_MB:-256}
 BENCH="$HJ/build/cxl_join_bench.gem5fs"
 M5DIR="$HJ/w8/guest"
+EXTRA_BINS=${EXTRA_BINS:-}
 
 for f in "$BENCH" "$M5DIR/m5mini.c" "$M5DIR/m5ops.S"; do
   [ -e "$f" ] || { echo "FAIL missing $f" >&2; exit 2; }
+done
+for f in $EXTRA_BINS; do
+  [ -x "$f" ] || { echo "FAIL missing/non-executable EXTRA_BINS entry $f" >&2; exit 2; }
 done
 command -v busybox >/dev/null || { echo "FAIL no busybox on the host" >&2; exit 2; }
 # ldd exits 1 on a static binary, which `set -o pipefail` turns into a failure
@@ -66,6 +70,10 @@ chmod 755 "$STAGE/sbin/m5"
 # ---- the benchmark -------------------------------------------------------
 cp "$BENCH" "$STAGE/root/cxl_join_bench.gem5fs"
 chmod 755 "$STAGE/root/cxl_join_bench.gem5fs"
+for f in $EXTRA_BINS; do
+  cp "$f" "$STAGE/root/$(basename "$f")"
+  chmod 755 "$STAGE/root/$(basename "$f")"
+done
 
 # ---- init ----------------------------------------------------------------
 # Replicates configs/boot/hack_back_ckpt.rcS. The environment-variable trick in
@@ -115,6 +123,10 @@ This is NOT x86-ubuntu-18.04-img-hashjoin-v2 and cannot reproduce its rows.
 busybox $("$STAGE/bin/busybox" 2>&1 | head -1 | cut -d, -f1)
 bench sha256 $(sha256sum "$BENCH" | cut -d' ' -f1)
 PROV
+for f in $EXTRA_BINS; do
+  printf 'extra %s sha256 %s\n' "$(basename "$f")" \
+    "$(sha256sum "$f" | cut -d' ' -f1)" >> "$STAGE/etc/W8-PROVENANCE"
+done
 
 # ---- filesystem, then partition table ------------------------------------
 mkdir -p "$OUT"
@@ -137,3 +149,10 @@ echo "== T4 image built =="
 ls -la "$IMG"
 sfdisk -l "$IMG" 2>/dev/null | tail -3
 echo "sha256 $(sha256sum "$IMG" | cut -d' ' -f1)"
+# This sidecar is a provenance input, not a convenience checksum: the image
+# digest binds the embedded /etc/W8-PROVENANCE and hence the guest executable.
+# Runners must record these values, never hash a mutable host build after a run.
+printf 'image_sha256=%s\nguest_bench_sha256=%s\n' \
+  "$(sha256sum "$IMG" | cut -d' ' -f1)" \
+  "$(sha256sum "$BENCH" | cut -d' ' -f1)" > "$IMG.provenance"
+echo "provenance $IMG.provenance"
