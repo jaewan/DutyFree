@@ -10,6 +10,25 @@ reproducible from outside the binary.
 This closes the `F20` exposure on the IVF-Flat campaign. It does not fix the two
 gates, which remain in the `F20` class; §7 proposes the wording for that.
 
+> **Correction and strengthening, 2026-09-04 later the same day — see §11.**
+> Two changes, in opposite directions.
+>
+> *Stronger:* the anchor is confirmed against the **campaign's own 38 records on
+> `c4`**, not merely a local rebuild. 37 of 38 (all the search records) carry
+> `id_sum = 147039988`, produced by a different build on a different
+> microarchitecture. A NumPy reimplementation and two independently built
+> binaries all agree on the same exact 64-bit integer, so the result is robust to
+> instruction selection (§11.2).
+>
+> *Corrected:* §9's build-provenance claim was mis-scoped. What I hashed as "the
+> live binary" is the **local `mos181`** build (`b17ddd4c…`, 104 344 B); the
+> campaign is executing `1b63e006…` (100 832 B). Because `CXXFLAGS` carries
+> `-march=native` and the hosts differ in CPU and compiler, two binaries are the
+> *correct* outcome — but byte-reproducibility is therefore a **machine-local**
+> property here, not a property of the campaign's binary (§11.1, §11.3).
+> **Nothing in the correctness verdict depends on this**; it bears on `F13`'s
+> prognosis, handed back in §11.6.
+
 ---
 
 ## 1. Why the campaign needed this
@@ -84,13 +103,24 @@ immaterial to every decision the search makes:
 The generated vectors genuinely differ in the last bit, and `hits`, `recall` and
 `id_sum` are nevertheless identical. Incidentally the `fma` variant's
 `dist_sum` lands ~9× closer to the tenant's (7.7e-11 vs 7.0e-10 relative),
-which agrees with the disassembly: the live binary contains `vfmadd231ss`, so
-GCC did contract. Nothing in the verdict rests on this.
+which agrees with the disassembly: the **local** binary contains `vfmadd231ss`,
+so `g++ 15.2.0` did contract here. Whether `c4`'s `g++ 11.4.0` build contracts
+identically is not known and does not matter — §11.2 shows both builds return the
+same `id_sum`, and the `dist_sum` column is the only thing FMA placement moves.
+Nothing in the verdict rests on this.
 
 ## 4. Configurations compared
 
 Both sides run the same `(geometry, seed)`; the tenant is invoked with
-`--reps 1 --warmups 0`. Three quantities are diffed:
+`--reps 1 --warmups 0`.
+
+Every **`tenant`** column in this section was produced by the scratch build on
+`mos181` (`sha256 b17ddd4c…`, `g++ 15.2.0`), *not* by the binary the campaign is
+running on `c4` (`1b63e006…`, `g++ 11.4.0`) — see §11.1. §11.2 compares the
+reference against `c4`'s own records independently, and the campaign-geometry
+`id_sum` agrees there too.
+
+Three quantities are diffed:
 
 * **`recall_at_k`** — the number under audit. Compared as the integer hit count
   `recall * k * nq`, because both sides accumulate the same rational as a
@@ -284,7 +314,12 @@ it is writing. Recommended for after it lands:
    geometry, from this document: `id_sum = 147039988` at
    `(nlist 8192, dim 1024, nb 32768, nq 1000, nprobe 16, k 10, kmeans_iters 1,
    train_n 16384, seed 0x1F1FCAFE1234)`. The gate then fails if the *first* arm
-   is wrong, which today it cannot.
+   is wrong, which today it cannot. **Strengthened by §11.2:** that constant is
+   now corroborated by 37 live campaign records produced on a *different build
+   and microarchitecture*, so pinning it risks no false failure from
+   instruction-selection differences between the host that pre-registers it and
+   the host that runs the campaign — which for a `-march=native` tenant (§11.3)
+   was the obvious objection to pinning an exact integer.
 2. **Replace `--require-recall`'s `(0,1]` with a window.** `recall_at_k` for that
    geometry is `0.5083` and is deterministic — no timing dependence, `reps` and
    `warmups` do not enter it, and `--policy nta` / `--flush-distance` provably do
@@ -322,17 +357,38 @@ same, almost all of it the single-threaded index build.
 * **Nothing was built in place.** The build went to
   `/home/domin/ivf_ref_scratch/build_native` via
   `make BUILD=/home/domin/ivf_ref_scratch/build_native`.
-* **The live binary is untouched.**
-  `benchmarks/e2e/ivf_flat/build/ivf_flat_bench` was
+* **The local binary is untouched.** `benchmarks/e2e/ivf_flat/build/ivf_flat_bench`
+  **on `mos181`** was
   `sha256 b17ddd4c3ad166e20c442255bfe6d6647671e4368b2cd9776212530bf02c8e6c`,
   `size 104344`, `mtime 2026-09-02 16:20:47` before this work and identical
-  after. The `build/` directory has no new entries.
-* **Incidental provenance finding, worth keeping.** The scratch build is
-  **bit-identical** to the live binary — same `sha256 b17ddd4c…`. So the live
-  binary is byte-reproducible from the current untracked
-  `src/ivf_flat_bench.cpp` (`sha256 e25278e0…`) with the committed `Makefile`
-  flags on this host's toolchain, and every comparison above was made against
-  the same machine code the campaign is executing.
+  after. The `build/` directory has no new entries. **This is not the binary the
+  campaign is executing** — see §11.
+  *(Wording superseded 2026-09-04 later the same day, quoted rather than deleted
+  per `A6.19`, because the mis-scoping is the point of §11:*
+  > **The live binary is untouched.**
+  > `benchmarks/e2e/ivf_flat/build/ivf_flat_bench` was
+  > `sha256 b17ddd4c…`, `size 104344`, `mtime 2026-09-02 16:20:47` before this
+  > work and identical after.
+
+  *)*
+* **Local build reproducibility — scope corrected in §11.** The scratch build is
+  **bit-identical to the local binary** (`sha256 b17ddd4c…`), which establishes
+  byte-reproducibility **on this host and toolchain only** (`mos181`, Emerald
+  Rapids Xeon Platinum 8592+, `g++ 15.2.0`). It does **not** establish anything
+  about `c4`'s binary.
+  *(Wording superseded 2026-09-04 later the same day, quoted rather than deleted
+  per `A6.19`:*
+  > **Incidental provenance finding, worth keeping.** The scratch build is
+  > **bit-identical** to the live binary — same `sha256 b17ddd4c…`. So the live
+  > binary is byte-reproducible from the current untracked
+  > `src/ivf_flat_bench.cpp` (`sha256 e25278e0…`) with the committed `Makefile`
+  > flags on this host's toolchain, and every comparison above was made against
+  > the same machine code the campaign is executing.
+
+  *The final clause is false. The campaign is executing a different build; see
+  §11.1. The `-march=native` property that makes it false is documented in at
+  least eight places in this repo already — §11.3 — so this was a failure to
+  apply a known property, not a discovery.)*
 * **`ivf_flat_bench.cpp` was read only.** Not modified, not committed, still
   untracked, `mtime 2026-09-02 16:20:05` unchanged. No check here needed a
   source change; item 2 of §7 might, and is described rather than done.
@@ -354,3 +410,184 @@ same, almost all of it the single-threaded index build.
 | Does the tenant's IVF search agree with an independent IVF search? | **Yes** — exact `id_sum` match in **13 of 13** compared cells (10 ladder + 3 at campaign geometry). |
 | Any disagreement, and its magnitude? | **None on any decision.** The only residual is `dist_sum`, ≤2.4e-09 relative, which is float32 summation order, not a difference in the answer. |
 | Does the campaign now have an absolute anchor? | Yes: `recall_at_k = 0.5083` and `id_sum = 147039988` for the pinned tuple. Wiring it into the gates is §7, deliberately not done here. |
+| Does the anchor hold against the campaign's *actual* records? | **Yes**, and more strongly than this document originally claimed — 37 of 38 live records on `c4`, produced by a *different build on a different microarchitecture*, carry `id_sum = 147039988`. See §11.2. |
+| Is the campaign's binary byte-reproducible from committed source? | **Unknown and not claimed.** Only the *local* binary was shown reproducible, on one named host+toolchain. §11.1, §11.4. |
+
+---
+
+## 11. Correction, 2026-09-04 (later the same day): what "the live binary" meant
+
+Added after review. §9 as first written conflated two different binaries at the
+same path. The correction narrows a provenance claim and, separately,
+*strengthens* the correctness result. Per `A6.19` the superseded wording is
+quoted in §9 rather than deleted.
+
+### 11.1 The mis-scoped claim
+
+I reported bit-identity against "the live binary, `b17ddd4c…`, size 104344".
+That is the **local** `mos181` binary. The campaign on `c4` is executing a
+**different build**:
+
+| | path | `sha256` | size |
+| --- | --- | --- | --- |
+| **local** (`mos181`, what I hashed) | `benchmarks/e2e/ivf_flat/build/ivf_flat_bench` | `b17ddd4c…` | 104 344 B |
+| **campaign** (`c4`, `sha_ivf` in all 38 records) | same relative path | `1b63e006dcb4ad84…` | 100 832 B |
+
+The paths are identical, `/home` is local `ext4` on each host, and only the
+digest distinguishes them — which is exactly why the inference was easy to make
+and why it needs to be written down. I had the evidence that should have stopped
+me: §9 records that `/home` is *not* shared, and I noted the local binary's ISA
+(AVX2, `ymm`, no `zmm`) precisely because `-march=native` makes machine code
+host-specific. Having established that the two hosts cannot share a file, I
+should not then have called the local file "the binary the campaign is
+executing". The two facts were in the same section.
+
+Reported by review, which read `c4`'s records; I did not contact `c4` (§11.5).
+
+**The cause is benign and is the expected outcome, not a defect.** `CXXFLAGS`
+carries `-march=native` (`benchmarks/e2e/ivf_flat/Makefile:2`) and the two hosts
+differ in *both* inputs that flag is sensitive to:
+
+| | `mos181` (mine) | `c4` (campaign) |
+| --- | --- | --- |
+| CPU | Xeon Platinum 8592+ (Emerald Rapids) | Xeon Platinum 8462Y+ (Sapphire Rapids) |
+| compiler | `g++ 15.2.0` | `g++ 11.4.0` |
+
+Two different binaries are the **correct** result. A byte-identical outcome
+across that pair would have been the surprise.
+
+### 11.2 The correctness result is stronger than I wrote it
+
+The campaign's own records, read by review across 38 records so far:
+
+* `id_sum = 147039988` in **all 37 search records** — *exactly* the reference
+  value in §4.2. The single `None` is the `qui` arm, which runs no search.
+* `recall_at_k = 0.5082999999999956` in the same 37.
+
+So the anchor is not validated only against a local rebuild. It is validated
+against the campaign's actual output. Restating the strength precisely:
+
+> **A NumPy reimplementation and two independently built binaries — two
+> compilers, two microarchitectures — all agree on the same exact 64-bit
+> integer, `id_sum = 147039988`.**
+
+That is a *robustness* result and belongs in the record as a positive finding.
+`id_sum` is a sum over 10 000 returned ids, so agreement means every top-10 set
+was identical across all three. The float32 accumulation order in `l2sq`
+genuinely differs between the two builds — different compiler, different
+instruction selection, `-ffp-contract` free to place FMAs differently — and
+§5's margin argument said this should not reach any decision. It didn't. The
+prediction was tested across microarchitectures and held.
+
+This also retires a caveat §5 left open. I argued from measured decision margins
+that float32 error could not tip any argmin, top-k, or `nprobe` boundary, and
+called the empirical `id_sum` match the real proof. That proof was single-build.
+It is now three-way.
+
+### 11.3 The durable point: `-march=native` makes "rebuilds byte-identically" host-relative
+
+With `-march=native`, a reviewer on different hardware gets different machine
+code **by construction**. So a byte-reproducibility claim is only meaningful when
+it names a host *and* a toolchain. "Rebuilds byte-identically" is never a
+property of a source tree alone.
+
+How far this reaches in this repo: **every benchmark binary except the gem5
+target.**
+
+| build file | flag |
+| --- | --- |
+| `benchmarks/e2e/ivf_flat/Makefile:2` | `-march=native -mclflushopt` |
+| `benchmarks/e2e/hash_join/Makefile:2` | `-march=native` |
+| `benchmarks/bench/Makefile:2` | `-march=native -fno-tree-vectorize` |
+| `benchmarks/e2e/instrument/Makefile:10` | `-march=native -mavx2 -msse4.1` |
+| `benchmarks/e2e/hnsw/scripts/setup_hnsw.sh:19` | `-march=native` |
+| `benchmarks/e2e/oltp_index/patches/d1d2_pmu_and_l2size.patch:6` | `-march=native -mavx2` |
+| `benchmarks/e2e/duckdb_join` | `-march=native` per its pre-registration (`DUCKDB_JOIN_CORUN_PREREGISTRATION.md:1385`) |
+
+That is 4 of 4 benchmark `Makefile`s, plus the three e2e tenants that build via
+script or patch instead. The **only** deliberate exception is the gem5 full-system
+target, `hash_join/Makefile:81-87` (`gem5fs`), built `-static` with no
+`-march=native` because it runs inside a gem5 FS guest rather than on a host —
+also noted at `GATE1_FUSED_NULL_CORRECTION_2026-08-15.md:242` and
+`PAPER_DEMOTION_2026-08-15.md:21`. Note that `ivf_flat/Makefile` has **no** gem5
+target at all, only `native`: every `ivf_flat_bench` that can exist is
+host-specific.
+
+**This repo already knew this, in at least eight places** —
+`benchmarks/e2e/instrument/Makefile:6` ("`-march=native` means the binary is
+host-specific. Each host builds its own"), `instrument/README.md:57,68`
+("`-march=native` is part of the instrument, not an optimisation detail"),
+`benchmarks/e2e/MOS182_PROVISIONING.md:22`, `E3_OUTCOME_2026-08-28.md:201` ("a
+caveat that cannot be fixed, only stated"), `W5.4_VICTIM_MLP_2026-08-23.md:132`,
+`HNSW_CAT_SENSITIVITY_OUTCOME.md:95`, `AGGBW_VALIDITY_2026-09-03.md:95`, and
+`BENCH_SOURCE_PROVENANCE_2026-09-04.md:406`. My error was not discovering a new
+hazard; it was failing to apply a property the repo documents repeatedly to a
+claim I made myself. The generalisable guard is a wording rule: **a
+byte-reproducibility claim must carry a host and a toolchain, or it should not be
+made.**
+
+### 11.4 Pending: does `1b63e006…` rebuild on `c4`?
+
+**Untested. Deliberately not run now.**
+
+Compiling on `c4` would pollute the shared LLC and perturb the victim
+cycle-per-load samples the campaign is still collecting — the same contamination
+reasoning that kept this work off the host in the first place. The campaign has
+roughly five hours left. The check is to be run after it lands, by the reviewer
+who raised this.
+
+Note the hazard that makes the check itself dangerous: `BUILD := build`
+(`ivf_flat/Makefile:5`) means a **bare `make` on `c4` would overwrite the
+campaign's binary in place**, which is the `F13` failure mode exactly. Any such
+check must use `make BUILD=<scratch>`, as this work did. Review has already
+`chmod a-w`'d `c4`'s binary (still executable, digest unchanged) so a stray
+`make` cannot replace it mid-campaign.
+
+Until that check runs, the honest statement is: **committing
+`ivf_flat_bench.cpp` is known to make *a* binary reproducible on *`mos181`*. It
+is not known to make the campaign's binary reproducible on `c4`, and for a
+`-march=native` target byte-identity across those two hosts is not expected
+anyway.**
+
+### 11.5 `c4` still not contacted
+
+No `ssh`, no `scp`, no reads of `/home/domin/ivf_run/`, no compilation on `c4`,
+at any point in this task or this correction. Every fact about `c4` in §11 —
+its binary's digest and size, its CPU, its compiler, and the 38 records — was
+supplied by review, which read the host. `c4`'s digest is quoted here as
+reported, not verified by me.
+
+### 11.6 Handback for the ledger's `F13` prognosis
+
+`A1_PROVENANCE_LEDGER_2026-08-28.md` is held by another worker and is not
+touched. Proposed wording, for `F13`, whose prognosis was upgraded partly on the
+finding corrected above:
+
+> **Prognosis qualifier, 2026-09-04 later the same day.** The IVF-Flat evidence
+> that contributed to this upgrade was scoped to one host and does not carry to
+> the campaign's binary. `IVF_RECALL_REFERENCE_2026-09-04.md` §9 (`45956d4`)
+> reported a scratch rebuild of `ivf_flat_bench` as bit-identical to "the live
+> binary"; the file it matched was the **local `mos181`** copy (`b17ddd4c…`,
+> 104 344 B), not the binary the silicon campaign is executing on `c4`
+> (`1b63e006…`, 100 832 B, `sha_ivf` in all 38 records). Corrected in that
+> document's §11. **The cause is benign:** `CXXFLAGS` carries `-march=native`
+> and the hosts differ in CPU (Emerald Rapids 8592+ / Sapphire Rapids 8462Y+)
+> and compiler (`g++ 15.2.0` / `11.4.0`), so two distinct binaries are the
+> correct outcome — this is not a second instance of `F13`.
+>
+> The consequence for the prognosis is narrow but real: **"committing the source
+> makes the binary rebuildable" holds only for a named host and toolchain, and
+> for a `-march=native` target it cannot be strengthened beyond that.** Whether
+> `1b63e006…` rebuilds byte-identically on `c4` is **untested and deferred**,
+> because compiling on `c4` would perturb the victim cycle-per-load samples the
+> campaign is still collecting (~5 h remaining). If this prognosis reads
+> "byte-reproducible from committed source", it should read **"byte-reproducible
+> on a named host+toolchain pair; cross-host byte-identity is neither expected
+> nor claimed"** — which, per §11.3, applies to every benchmark binary in this
+> repo except the gem5 `gem5fs` target.
+>
+> Offsetting this, in the opposite direction: the *correctness* anchor became
+> **stronger** than first recorded. A NumPy reimplementation and two
+> independently built binaries, across two compilers and two microarchitectures,
+> all produce `id_sum = 147039988` — so the published `recall_at_k = 0.5083` is
+> robust to instruction selection, not merely to a local rebuild.
