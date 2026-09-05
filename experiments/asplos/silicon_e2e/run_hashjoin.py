@@ -80,10 +80,23 @@ def teardown() -> None:
     sudo_clos("teardown")
 
 
+# Set once this process has actually created clos_b.  The outermost teardown is
+# conditioned on it because every early return in main() -- --self-test-only, an
+# --out that already exists, a missing binary -- reaches that finally without
+# having created anything, and tearing down there rmdir's whatever CLOS group
+# another campaign is currently using.  Not hypothetical: `--self-test-only`,
+# run to validate a staged harness, deleted clos_b mid-arm during the IVF
+# silicon campaign and cost cat05/rep2, whose tenant then ran unconfined at the
+# root CLOS's full 15 ways.
+_CLOS_OWNED = False
+
+
 def setup_tenant(ways: int, tcpu: int) -> None:
+    global _CLOS_OWNED
     r = sudo_clos("setup_b", str(ways), str(tcpu))
     if r.returncode != 0:
         raise RuntimeError(f"setup_b failed: {r.stderr or r.stdout}")
+    _CLOS_OWNED = True
 
 
 def clos_cpus(group: str) -> str:
@@ -482,4 +495,5 @@ if __name__ == "__main__":
     try:
         sys.exit(main())
     finally:
-        teardown()
+        if _CLOS_OWNED:
+            teardown()
