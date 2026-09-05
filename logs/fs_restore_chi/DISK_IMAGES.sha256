@@ -1,0 +1,19 @@
+# Disk images referenced by the full-system run manifests in this directory.
+# Located outside the repository at ~/.cache/gem5/ and too large to track (257 MB each).
+# Verified 2026-09-04: each manifest's image_sha256 matches the image named here.
+
+096ac7efd6e8f1283c61b3610778fab7ce6bf0778f36b74f37d43d44c0719fc9  ~/.cache/gem5/w8-busybox-streaming-r1.img
+4e8ea63deaba18b2b074bf774c103d75d73ee8863dc5e34cf788353291a1a208  ~/.cache/gem5/w8-fs-e2e-r1.img
+3b647cc3639132ef39d487cf2bb2b8c2b017b10b1dd5f1f30a357b0edd909397  ~/.cache/gem5/w8-fs-e2e-r2.img
+f88ed2ff389fa3cc443f6a653fee30a8ea03623f0666684f2d04bcc06a259339  ~/.cache/gem5/w8-fs-e2e-r3.img
+bbafb9e55075e6415c2cd769cd591668fe47280a840d571c5d53bf1b8f656c27  ~/.cache/gem5/w8-fs-e2e-r4.img
+316cbe6990e903c05ec938b2a9e45627a32a1f57cb8ef0947dfc283800b2c662  ~/.cache/gem5/w8-fs-e2e-r5.img
+c4d3e2e1a0d104374c04d66a28df7d8f6b82653a051f70d9683da9153d33bfa2  ~/.cache/gem5/w8-fs-e2e-r6b.img
+247fb20a7cfcd8186b89fe2f26c7bb117d8268e4b6a28210e0cfc7cde0747287  ~/.cache/gem5/w8-fs-e2e-r6c.img
+9bebfa2c0865ae0c299f7e2ce0b07dc122227ad4abf4cd6600ccf7d6d2c60581  ~/.cache/gem5/w8-fs-e2e-r6d.img
+a66930abd0d4e7aa8a7fb7d74c6743d839332a5bd0a2c2cfa5fc1bfe14bb6957  ~/.cache/gem5/w8-fs-e2e-r6e.img
+460de68f9acf098722fc3ea6a1dfa58c2fdc8f80eaa35b4a9620abe245b84cee  ~/.cache/gem5/w8-fs-e2e-r6f.img
+99ec6bf0de57405861e169c1775303a047e087f39baba9dfd741f0d2bd7fffa2  ~/.cache/gem5/w8-h2-admission-r2.img
+61c731a46bf011487caa549278b2cd016b11b03d2fb31d7e946da99ae116ee53  ~/.cache/gem5/w8-os-contract-r12.img
+e30a8a18a26bc260c8b23af479d2ad255f8b3d8957064694a96ec628f6a4e853  ~/.cache/gem5/w8-os-contract-r7.img
+61a8cbfac9fa068469578673769440f42b551225a63a4ab0de1d0ea2161809e8  ~/.cache/gem5/w8-os-validation-h2-r1.img
