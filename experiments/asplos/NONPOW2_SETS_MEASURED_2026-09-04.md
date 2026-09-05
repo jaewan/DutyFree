@@ -626,3 +626,65 @@ to `.gitignore`.
   survives; what a *genuinely* 7.5 MiB LLC would have measured is unknown and
   is not asserted. Asserting a direction without measuring it is the error this
   campaign has made more than once.
+
+---
+
+## Addendum 1 — 2026-09-04, ~35 minutes after §2's audit: the guard has a field observation, and §2's count is superseded
+
+Two corrections, both from re-running `audit_nonpow2_sets.py` after this pass's
+commit rather than from any new reasoning.
+
+**§2's count moves from one affected run directory to two** (excluding this
+pass's own probe cells). Superseded wording quoted rather than deleted, per
+`A6.19`:
+
+> **One affected run directory in the whole committed tree**, and it belongs to
+> a campaign that is already VOID: `gem5/logs/se_duckdb_mmap_h2_smoke/h2_s1`.
+
+The second is `gem5/logs/diag_duckdb_store_localize/h2_s1_diag`, created at
+**2026-09-05 08:42:29 KST** — i.e. *after* the audit in §2 ran, by another
+worker, while this pass was writing its records. It is at
+`--l3_size=7680KiB --l3_assoc=20`, the r5 geometry. Two things bound it: its own
+launcher labels it `DIAGNOSTIC_RUN not_an_arm campaign=NONE
+purpose=localize_streaming_store` and states "NOT AN ARM OF
+DUCKDB_MMAP_SE_H2. Debug-flag run; output stays out of `data/`"; and
+`gem5/logs/` is covered by `.gitignore`, so **no run directory under it is
+committed and no published claim depends on this one.** The §2 phrase "in the
+whole committed tree" was loose for that reason and is corrected here.
+
+**The more useful half: this is the guard's first observation in the field, and
+it is stronger evidence than §3.5's proof.** That run's `console.log` reports
+`gem5 compiled Sep  5 2026 08:34:41` and its launcher recorded
+`DIAG_GEM5 d4e798601e7205c526868c8bdefbb75c4dde4f05f2b6b6a54a802df0b9c74a83`,
+so it is executing the guarded binary — four minutes after that binary was
+linked, unprompted, by a worker who knew nothing about this pass. The guard
+fired:
+
+```
+src/mem/ruby/structures/CacheMemory.cc:137: warn: CacheMemory
+system.ruby.hnf.cntrl.cache: 6144 sets is not a power of two, so only 4096 of
+them are reachable and 2048 are allocated but never indexed. Configured
+7864320 B (20 ways, 64 B lines); REALIZED CAPACITY 5242880 B (66.7% of
+configured). Pick a size/assoc/block whose (size/assoc)/block is a power of two.
+```
+
+§3.5 proved the guard inert on cells constructed to test it. This is a run
+nobody constructed for the purpose, at the affected geometry, whose console log
+now carries its realized capacity — which is exactly the property §3.2 argued
+the warning buys and `F9.4`'s r5 wording cites as missing. **It also
+demonstrates the failure mode was live, not historical**: absent the guard,
+this run would have inherited the 7.5 MiB reading silently, as the four
+documents corrected in §4 did.
+
+Nothing was done to that run. It was in flight when this was written and was
+not signalled; the guard is warning-only and byte-identical on every simulated
+quantity (§3.5), so its diagnostic output is unaffected by the rebuild it
+happens to have picked up. Whoever owns it should read the warning as
+information and not as a regression — the same standing instruction
+`BUILD_PROVENANCE.md` gives for the `ticks.py` rounding warnings.
+
+**Standing consequence for the audit.** `audit_nonpow2_sets.py` reads run
+directories that are not under version control, so its count is a measurement
+at a point in time and not a property of a commit. Re-run it rather than
+quoting §2's table; §2's *campaign* table, which rests on committed `.jsonl`
+and committed launchers, does not have this weakness.
