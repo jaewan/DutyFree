@@ -491,8 +491,9 @@ code **by construction**. So a byte-reproducibility claim is only meaningful whe
 it names a host *and* a toolchain. "Rebuilds byte-identically" is never a
 property of a source tree alone.
 
-How far this reaches in this repo: **every benchmark binary except the gem5
-target.**
+How far this reaches in this repo: **every benchmark binary built for a host.**
+The gem5-guest targets are the exception, and there are six of them in
+`hash_join/Makefile` alone (see the correction below).
 
 | build file | flag |
 | --- | --- |
@@ -505,11 +506,29 @@ target.**
 | `benchmarks/e2e/duckdb_join` | `-march=native` per its pre-registration (`DUCKDB_JOIN_CORUN_PREREGISTRATION.md:1385`) |
 
 That is 4 of 4 benchmark `Makefile`s, plus the three e2e tenants that build via
-script or patch instead. The **only** deliberate exception is the gem5 full-system
-target, `hash_join/Makefile:81-87` (`gem5fs`), built `-static` with no
-`-march=native` because it runs inside a gem5 FS guest rather than on a host —
-also noted at `GATE1_FUSED_NULL_CORRECTION_2026-08-15.md:242` and
-`PAPER_DEMOTION_2026-08-15.md:21`. Note that `ivf_flat/Makefile` has **no** gem5
+script or patch instead.
+
+> Superseded per `A6.19`; the original sentence read: "The **only** deliberate
+> exception is the gem5 full-system target, `hash_join/Makefile:81-87`
+> (`gem5fs`)."  **That is false.**  `hash_join/Makefile` has **six** recipes
+> that omit `-march=native`, not one -- `:34`, `:40`, `:44`, `:59`, `:76`, `:89`
+> -- and every one is `-static`.  Verified by reading each recipe: the two host
+> recipes (`:26`, `:72`) take the flag from `$(CXXFLAGS)` at `:2`, and the six
+> gem5 recipes spell their flags out and omit it.
+
+The dividing line is therefore **host target versus gem5-guest target**, not one
+named recipe: a guest binary is `-static` and host-agnostic because it runs
+inside a gem5 CPU model rather than on the build machine -- also noted at
+`GATE1_FUSED_NULL_CORRECTION_2026-08-15.md:242` and
+`PAPER_DEMOTION_2026-08-15.md:21`.
+
+This error compounds the one this section documents, and in the same document.
+`AGGBW_VALIDITY_2026-09-03.md:88-97` -- item eight of the eight citations below,
+offered here as proof the property was already known -- itself documents the
+omission at `:44` and makes it load-bearing.  So the property was mis-applied
+twice in one pass: once to a binary, and once to the very list assembled to show
+it was known.  That is the strongest available argument for `A1.R1`, and the
+reason the remedy is a wording rule rather than a ninth place to write it down. Note that `ivf_flat/Makefile` has **no** gem5
 target at all, only `native`: every `ivf_flat_bench` that can exist is
 host-specific.
 
